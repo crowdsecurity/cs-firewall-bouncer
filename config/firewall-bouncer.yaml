@@ -1,0 +1,9 @@
+mode: iptables
+piddir: /var/run/
+update_frequency: 10s
+daemonize: true
+log_mode: file
+log_dir: /var/log/
+log_level: info
+api_url: http://localhost:8080/
+api_key: 6d3ad9aafa7f66d6f1584df3752b0a58
