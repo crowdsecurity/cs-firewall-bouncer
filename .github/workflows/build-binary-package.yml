@@ -1,0 +1,27 @@
+# .github/workflows/build-docker-image.yml
+name: build-binary-package
+
+on: 
+  release:
+    types: prereleased
+
+jobs:
+  build-binary-package:
+    name: Build and upload binary package
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: Build the binaries
+      run: make release
+    - name: Upload to release
+      uses: JasonEtco/upload-to-release@master
+      with:
+        args: cs-firewall-bouncer.tgz application/x-gzip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

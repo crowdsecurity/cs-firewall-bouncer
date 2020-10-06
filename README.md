@@ -12,7 +12,7 @@ Supported firewalls:
 First, download the latest [`cs-firewall-bouncer` release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases).
 
 ```sh
-$ tar xzvf `cs-firewall-bouncer.tgz`
+$ tar xzvf cs-firewall-bouncer.tgz
 $ sudo ./install.sh
 ```
 

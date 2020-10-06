@@ -26,7 +26,7 @@ clean:
 	@rm -f $(BINARY_NAME)
 
 
-RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
+RELDIR = "cs-firewall-bouncer"
 
 .PHONY: release
 release: build
