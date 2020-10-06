@@ -44,7 +44,6 @@ install_netfilter_blocker() {
 	cp "./config/firewall-bouncer.yaml" "${CONFIG_DIR}firewall-bouncer.yaml"
 	CFG=${CONFIG_DIR} PID=${PID_DIR} BIN=${BIN_PATH_INSTALLED} envsubst < ./config/firewall-bouncer.service > "${SYSTEMD_PATH_FILE}"
 	systemctl daemon-reload
-	systemctl start firewall-bouncer
 }
 
 
