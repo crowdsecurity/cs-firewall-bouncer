@@ -13,15 +13,21 @@ import (
 	"gopkg.in/tomb.v2"
 )
 
-func reloadHandler(sig os.Signal) error {
+func reloadHandler(sig os.Signal, backend *backendCTX) error {
+	if err := backend.ShutDown(); err != nil {
+		return err
+	}
 	return nil
 }
 
-func termHandler(sig os.Signal) error {
+func termHandler(sig os.Signal, backend *backendCTX) error {
+	if err := backend.ShutDown(); err != nil {
+		return err
+	}
 	return nil
 }
 
-func HandleSignals() {
+func HandleSignals(backend *backendCTX) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan,
 		syscall.SIGHUP,
@@ -34,12 +40,13 @@ func HandleSignals() {
 			switch s {
 			// kill -SIGHUP XXXX
 			case syscall.SIGHUP:
-				if err := reloadHandler(s); err != nil {
+				if err := reloadHandler(s, backend); err != nil {
 					log.Fatalf("Reload handler failure : %s", err)
 				}
 			// kill -SIGTERM XXXX
 			case syscall.SIGTERM:
-				if err := termHandler(s); err != nil {
+				log.Infof("Shutting down : %+v \n")
+				if err := termHandler(s, backend); err != nil {
 					log.Fatalf("Term handler failure : %s", err)
 				}
 				exitChan <- 0
@@ -57,20 +64,32 @@ func main() {
 	var err error
 
 	configPath := flag.String("c", "", "path to firewall-bouncer.yaml")
+	verbose := flag.Bool("v", false, "set verbose mode")
+
 	flag.Parse()
 
 	if configPath == nil || *configPath == "" {
 		log.Fatalf("config file required")
 	}
+
 	config, err := NewConfig(*configPath)
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
+	}
+
+	if *verbose {
+		log.SetLevel(log.DebugLevel)
 	}
 
 	backend, err := newBackend(config.Mode)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+
+	if err := backend.Init(); err != nil {
+		log.Fatalf(err.Error())
+	}
+
 	bouncer := &csbouncer.StreamBouncer{
 		APIKey:         config.APIKey,
 		APIUrl:         config.APIUrl,
@@ -105,13 +124,13 @@ func main() {
 			}
 		}
 	})
-
 	if config.Daemon == true {
 		sent, err := daemon.SdNotify(false, "READY=1")
 		if !sent && err != nil {
 			log.Errorf("Failed to notify: %v", err)
 		}
-		HandleSignals()
+		log.Printf("Daemonize done!")
+		HandleSignals(backend)
 	}
 
 	err = t.Wait()

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/crowdsecurity/crowdsec/pkg/types"
 	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -23,6 +24,8 @@ type bouncerConfig struct {
 }
 
 func NewConfig(configPath string) (*bouncerConfig, error) {
+	var LogOutput *lumberjack.Logger //io.Writer
+
 	config := &bouncerConfig{}
 
 	configBuff, err := ioutil.ReadFile(configPath)
@@ -38,24 +41,22 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 	if config.Mode == "" || config.PidDir == "" || config.LogMode == "" {
 		return &bouncerConfig{}, fmt.Errorf("invalid configuration in %s", configPath)
 	}
-
 	/*Configure logging*/
-	/*if err = types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
+	if err = types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
 		log.Fatal(err.Error())
-	}*/
+	}
 	if config.LogMode == "file" {
 		if config.LogDir == "" {
 			config.LogDir = "/var/log/"
 		}
-		log.Printf("before setoutput")
-		log.SetOutput(&lumberjack.Logger{
+		LogOutput = &lumberjack.Logger{
 			Filename:   config.LogDir + "/firewall-bouncer.log",
 			MaxSize:    500, //megabytes
 			MaxBackups: 3,
 			MaxAge:     28,   //days
 			Compress:   true, //disabled by default
-		})
-		log.Printf("after setoutput")
+		}
+		log.SetOutput(LogOutput)
 		log.SetFormatter(&log.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
 	} else if config.LogMode != "stdout" {
 		return &bouncerConfig{}, fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
