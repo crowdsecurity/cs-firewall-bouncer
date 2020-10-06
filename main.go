@@ -13,12 +13,7 @@ import (
 	"gopkg.in/tomb.v2"
 )
 
-func reloadHandler(sig os.Signal, backend *backendCTX) error {
-	if err := backend.ShutDown(); err != nil {
-		return err
-	}
-	return nil
-}
+var t tomb.Tomb
 
 func termHandler(sig os.Signal, backend *backendCTX) error {
 	if err := backend.ShutDown(); err != nil {
@@ -30,7 +25,6 @@ func termHandler(sig os.Signal, backend *backendCTX) error {
 func HandleSignals(backend *backendCTX) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan,
-		syscall.SIGHUP,
 		syscall.SIGTERM)
 
 	exitChan := make(chan int)
@@ -38,16 +32,10 @@ func HandleSignals(backend *backendCTX) {
 		for {
 			s := <-signalChan
 			switch s {
-			// kill -SIGHUP XXXX
-			case syscall.SIGHUP:
-				if err := reloadHandler(s, backend); err != nil {
-					log.Fatalf("Reload handler failure : %s", err)
-				}
 			// kill -SIGTERM XXXX
 			case syscall.SIGTERM:
-				log.Infof("Shutting down : %+v \n")
 				if err := termHandler(s, backend); err != nil {
-					log.Fatalf("Term handler failure : %s", err)
+					log.Fatalf("shutdown fail: %s", err)
 				}
 				exitChan <- 0
 			}
@@ -55,12 +43,11 @@ func HandleSignals(backend *backendCTX) {
 	}()
 
 	code := <-exitChan
-	log.Warningf("Crowdsec service shutting down")
+	log.Infof("Shutting down firewall-bouncer service")
 	os.Exit(code)
 }
 
 func main() {
-	var t tomb.Tomb
 	var err error
 
 	configPath := flag.String("c", "", "path to firewall-bouncer.yaml")
@@ -69,7 +56,7 @@ func main() {
 	flag.Parse()
 
 	if configPath == nil || *configPath == "" {
-		log.Fatalf("config file required")
+		log.Fatalf("configuration file is required")
 	}
 
 	config, err := NewConfig(*configPath)
@@ -102,11 +89,11 @@ func main() {
 	go bouncer.Run()
 
 	t.Go(func() error {
-		log.Printf("Processing new and old decisions . . .")
+		log.Printf("Processing new and deleted decisions . . .")
 		for {
 			select {
 			case <-t.Dying():
-				log.Infoln("terminating process")
+				log.Infoln("terminating bouncer process")
 				return nil
 			case decision := <-bouncer.NewDecision:
 				// Do some stuff with new decisions
@@ -124,17 +111,17 @@ func main() {
 			}
 		}
 	})
+
 	if config.Daemon == true {
 		sent, err := daemon.SdNotify(false, "READY=1")
 		if !sent && err != nil {
 			log.Errorf("Failed to notify: %v", err)
 		}
-		log.Printf("Daemonize done!")
 		HandleSignals(backend)
 	}
 
 	err = t.Wait()
 	if err != nil {
-		log.Fatalf("processing return with error: %s", err)
+		log.Fatalf("process return with error: %s", err)
 	}
 }
