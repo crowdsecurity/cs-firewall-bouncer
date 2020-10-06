@@ -61,7 +61,7 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("ipset add ban [%s] (for %d seconds)", *decision.Value, int(banDuration.Seconds()))
+	log.Debugf("ipset add ban [%s] (for %d seconds)", *decision.Value, int(banDuration.Seconds()))
 	cmd := exec.Command(ctx.ipsetBin, "-exist", "add", ctx.SetName, *decision.Value, "timeout", fmt.Sprintf("%d", int(banDuration.Seconds())))
 	log.Debugf("ipset add : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -102,7 +102,7 @@ func (ctx *ipTablesContext) delete(decision *models.Decision) error {
 		ipset -exist delete test 192.168.0.1 timeout 600
 		ipset -exist add test 192.168.0.1 timeout 600
 	*/
-	log.Infof("ipset del ban for [%s]", *decision.Value)
+	log.Debugf("ipset del ban for [%s]", *decision.Value)
 	cmd := exec.Command(ctx.ipsetBin, "-exist", "del", ctx.SetName, *decision.Value)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while deleting from set (%s): %v --> %s", cmd.String(), err, string(out))
