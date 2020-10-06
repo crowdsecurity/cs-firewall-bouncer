@@ -61,7 +61,7 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("ipset add ban [%s] (for %d seconds)", *decision.Value, banDuration.Seconds())
+	log.Infof("ipset add ban [%s] (for %d seconds)", *decision.Value, int(banDuration.Seconds()))
 	cmd := exec.Command(ctx.ipsetBin, "-exist", "add", ctx.SetName, *decision.Value, "timeout", fmt.Sprintf("%d", int(banDuration.Seconds())))
 	log.Debugf("ipset add : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
