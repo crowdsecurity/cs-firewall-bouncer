@@ -5,7 +5,7 @@ firewall-bouncer will fetch new and old decisions from a CrowdSec API to add the
 
 Supported firewalls:
  - iptables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
-
+ - nftables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
 
 ## Installation
 
