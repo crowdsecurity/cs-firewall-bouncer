@@ -148,8 +148,8 @@ func (n *nft) Add(decision *models.Decision) error {
 	timeout, err := time.ParseDuration(*decision.Duration)
 	if err != nil {
 		log.Errorf("unable to parse timeout '%s' for '%s' : %s", *decision.Duration, *decision.Value, err)
+		timeout = defaultTimeout
 	}
-	timeout = defaultTimeout
 	if strings.Contains(*decision.Value, ":") { // ipv6
 		if err := n.conn.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
 			return err
