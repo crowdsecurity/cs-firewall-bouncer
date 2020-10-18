@@ -97,16 +97,14 @@ func main() {
 				return nil
 			case decision := <-bouncer.NewDecision:
 				// Do some stuff with new decisions
-				log.Infof("new decisions (%s) for '%s' (%s)", *decision.Duration, *decision.Value, *decision.Scenario)
 				if err := backend.Add(&decision); err != nil {
-					log.Errorf("unable to insert decision for '%s': %s", decision.Value, err)
+					log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
 				}
 
 			case decision := <-bouncer.ExpiredDecision:
 				// do some stuff with expired decisions
-				log.Infof("deleting decisions (%s) for '%s' (%s)", *decision.Duration, *decision.Value, *decision.Scenario)
 				if err := backend.Delete(&decision); err != nil {
-					log.Errorf("unable to insert decision for '%s': %s", decision.Value, err)
+					log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
 				}
 			}
 		}
