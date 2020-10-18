@@ -186,7 +186,7 @@ func (n *nft) Delete(decision *models.Decision) error {
 
 func (n *nft) ShutDown() error {
 	n.conn.DelTable(n.table)
-
+	n.conn.DelTable(n.table6)
 	if err := n.conn.Flush(); err != nil {
 		return err
 	}
