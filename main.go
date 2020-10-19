@@ -97,12 +97,14 @@ func main() {
 				return nil
 			case decision := <-bouncer.NewDecision:
 				// Do some stuff with new decisions
+				log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
 				if err := backend.Add(&decision); err != nil {
 					log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
 				}
 
 			case decision := <-bouncer.ExpiredDecision:
 				// do some stuff with expired decisions
+				log.Debugf("deleting '%s'", *decision.Value)
 				if err := backend.Delete(&decision); err != nil {
 					log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
 				}

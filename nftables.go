@@ -144,7 +144,6 @@ func (n *nft) Init() error {
 }
 
 func (n *nft) Add(decision *models.Decision) error {
-	log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
 	timeout, err := time.ParseDuration(*decision.Duration)
 	if err != nil {
 		log.Errorf("unable to parse timeout '%s' for '%s' : %s", *decision.Duration, *decision.Value, err)
@@ -167,7 +166,6 @@ func (n *nft) Add(decision *models.Decision) error {
 }
 
 func (n *nft) Delete(decision *models.Decision) error {
-	log.Debugf("deleting '%s'", *decision.Value)
 	if strings.Contains(*decision.Value, ":") { // ipv6
 		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To16()}}); err != nil {
 			return err
