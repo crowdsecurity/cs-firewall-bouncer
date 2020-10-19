@@ -8,6 +8,8 @@ require (
 	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20201004231041-82fed0c01d72
 	github.com/facebook/ent v0.4.3 // indirect
 	github.com/go-co-op/gocron v0.3.1 // indirect
+	github.com/google/nftables v0.0.0-20200316075819-7127d9d22474
+	github.com/sbezverk/nftableslib v0.0.0-20200402150358-c20bed91f482
 	github.com/sevlyar/go-daemon v0.1.5
 	github.com/sirupsen/logrus v1.7.0
 	golang.org/x/sys v0.0.0-20201005065044-765f4ea38db3 // indirect

@@ -52,15 +52,27 @@ func newBackend(backendType string) (*backendCTX, error) {
 	var ok bool
 	b := &backendCTX{}
 	log.Printf("backend type : %s", backendType)
-	if backendType == "iptables" {
+	switch backendType {
+	case "iptables":
 		tmpCtx, err := newIPTables()
 		if err != nil {
 			return nil, err
 		}
 		b.firewall, ok = tmpCtx.(backend)
 		if !ok {
-			return nil, fmt.Errorf("interface iptables is not good")
+			return nil, fmt.Errorf("unexpected type '%T' for iptables context", tmpCtx)
 		}
+	case "nftables":
+		tmpCtx, err := newNFTables()
+		if err != nil {
+			return nil, err
+		}
+		b.firewall, ok = tmpCtx.(backend)
+		if !ok {
+			return nil, fmt.Errorf("unexpected type '%T' for nftables context", tmpCtx)
+		}
+	default:
+		return b, fmt.Errorf("firewall '%s' is not supported", backendType)
 	}
 	return b, nil
 }
