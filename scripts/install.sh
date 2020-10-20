@@ -31,7 +31,7 @@ check_apikeygen() {
     fi
     if [ "$answer" != "${answer#[Yy]}" ] ;then
             SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
-            API_KEY=`cscli bouncers add -n firewall-bouncer-${SUFFIX} -o json`
+            API_KEY=`cscli bouncers add -n firewall-bouncer-${SUFFIX} -o raw`
             API_KEY=${API_KEY} envsubst < ./config/firewall-bouncer.yaml > "${CONFIG_DIR}firewall-bouncer.yaml"
     else 
         echo "For your bouncer to be functionnal, you need to create an API key and set it in the ${CONFIG_DIR}firewall-bouncer.yaml file"
