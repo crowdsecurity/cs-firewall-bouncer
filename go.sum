@@ -52,6 +52,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.0/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsr
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/crowdsecurity/crowdsec v0.3.3-0.20201005100359-cd90a28e4cb9 h1:FcjdKc6tNvn3/wHMzrn3khAhaQro7pK+TxDVbt7tAbU=
 github.com/crowdsecurity/crowdsec v0.3.3-0.20201005100359-cd90a28e4cb9/go.mod h1:niAwmyz34SBmgfFfnH8d7CZ80NOBHbrzK5C7yweBIgg=
+github.com/crowdsecurity/crowdsec v0.3.3-0.20201019152502-3349faced96e h1:+bspxh/uLdgnkDq2qPsDAFPHr5un5HWtrufL6vfhNy0=
+github.com/crowdsecurity/crowdsec v0.3.3-0.20201019152502-3349faced96e/go.mod h1:niAwmyz34SBmgfFfnH8d7CZ80NOBHbrzK5C7yweBIgg=
 github.com/crowdsecurity/crowdsec v0.3.5 h1:dzzHBzKo9Fi0FaIb24JTtj565YuWDwMpQLp+8+XOPXw=
 github.com/crowdsecurity/crowdsec v0.3.5/go.mod h1:4MMkcfc5vWvAgA27GN9tFuZ6rEZJHZyjMsKt5UdGJ18=
 github.com/crowdsecurity/go-cs-bouncer v0.0.0-20201004231041-82fed0c01d72 h1:WawQ+5C4sLNrXTHkARfv6oMFTS9+H+OTc6bd+mJIXWY=
