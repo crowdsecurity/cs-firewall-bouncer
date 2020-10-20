@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +12,11 @@ import (
 
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"gopkg.in/tomb.v2"
+)
+
+const (
+	version = "v0.0.2"
+	name    = "firewall-bouncer"
 )
 
 var t tomb.Tomb
@@ -81,6 +87,7 @@ func main() {
 		APIKey:         config.APIKey,
 		APIUrl:         config.APIUrl,
 		TickerInterval: config.UpdateFrequency,
+		UserAgent:      fmt.Sprintf("%s/%s", name, version),
 	}
 	if err := bouncer.Init(); err != nil {
 		log.Fatalf(err.Error())
