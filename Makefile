@@ -26,10 +26,11 @@ clean:
 	@rm -f $(BINARY_NAME)
 
 
-RELDIR = "cs-firewall-bouncer"
+RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
 
 .PHONY: release
 release: build
+	@if [ -z ${BUILD_VERSION} ] ; then BUILD_VERSION="local" ; fi
 	@if [ -d $(RELDIR) ]; then echo "$(RELDIR) already exists, clean" ;  exit 1 ; fi
 	@echo Building Release to dir $(RELDIR)
 	@mkdir $(RELDIR)/
@@ -39,5 +40,4 @@ release: build
 	@cp ./scripts/uninstall.sh $(RELDIR)/
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
-	@tar cvzf cs-firewall-bouncer.tgz $(RELDIR)
-	@rm -rf $(RELDIR)
+	@tar cvzf cs-firewall-bouncer-${BUILD_VERSION}.tgz $(RELDIR)

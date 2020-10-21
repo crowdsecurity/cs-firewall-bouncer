@@ -69,3 +69,4 @@ check_ipset
 echo "Installing firewall-bouncer"
 install_netfilter_blocker
 check_apikeygen
+echo "The firewall-bouncer service has been installed!"
