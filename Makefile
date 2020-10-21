@@ -28,7 +28,7 @@ test:
 clean:
 	@rm -f $(BINARY_NAME)
 	@rm -f ${RELDIR}
-	@rm cs-firewall-bouncer.tgz
+	@rm -f cs-firewall-bouncer.tgz || ""
 
 
 .PHONY: release
