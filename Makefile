@@ -40,4 +40,6 @@ release: build
 	@cp ./scripts/uninstall.sh $(RELDIR)/
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
-	@tar cvzf cs-firewall-bouncer-${BUILD_VERSION}.tgz $(RELDIR)
+	@tar cvzf cs-firewall-bouncer.tgz $(RELDIR)
+	@rm -rf $(RELDIR)
+	
