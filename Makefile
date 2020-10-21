@@ -11,6 +11,9 @@ PREFIX?="/"
 PID_DIR = $(PREFIX)"/var/run/"
 BINARY_NAME=firewall-bouncer
 
+RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
+
+
 all: clean test build
 
 static: clean
@@ -24,9 +27,9 @@ test:
 
 clean:
 	@rm -f $(BINARY_NAME)
+	@rm -f ${RELDIR}
+	@rm cs-firewall-bouncer.tgz
 
-
-RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
 
 .PHONY: release
 release: build
