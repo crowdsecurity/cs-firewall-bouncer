@@ -6,4 +6,4 @@ log_mode: file
 log_dir: /var/log/
 log_level: info
 api_url: http://localhost:8080/
-api_key: <api_key>
+api_key: ${API_KEY}
