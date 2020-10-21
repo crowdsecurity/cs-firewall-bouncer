@@ -3,10 +3,9 @@ module github.com/crowdsecurity/cs-firewall-bouncer
 go 1.14
 
 require (
-	github.com/antonmedv/expr v1.8.9 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
-	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/crowdsecurity/crowdsec v0.3.3-0.20201005100359-cd90a28e4cb9
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
+	github.com/crowdsecurity/crowdsec v0.3.3-0.20201021131028-be19e445df54
 	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20201020154335-83f26d9e943b
 	github.com/facebook/ent v0.4.3 // indirect
 	github.com/go-co-op/gocron v0.3.1 // indirect
@@ -14,10 +13,9 @@ require (
 	github.com/go-openapi/spec v0.19.10 // indirect
 	github.com/go-openapi/strfmt v0.19.6 // indirect
 	github.com/go-openapi/swag v0.19.10 // indirect
-	github.com/google/nftables v0.0.0-20200802175506-c25e4f69b425
+	github.com/google/nftables v0.0.0-20200316075819-7127d9d22474
 	github.com/hashicorp/go-version v1.2.1 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/mdlayher/netlink v1.1.1 // indirect
 	github.com/sbezverk/nftableslib v0.0.0-20200402150358-c20bed91f482
 	github.com/sevlyar/go-daemon v0.1.5
 	github.com/sirupsen/logrus v1.7.0
