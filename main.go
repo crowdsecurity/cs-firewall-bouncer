@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -113,7 +114,9 @@ func main() {
 				// do some stuff with expired decisions
 				log.Debugf("deleting '%s'", *decision.Value)
 				if err := backend.Delete(&decision); err != nil {
-					log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
+					if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
+						log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
+					}
 				}
 			}
 		}
