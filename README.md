@@ -1,7 +1,7 @@
 # cs-firewall-bouncer
 Crowdsec bouncer written in golang for firewalls.
 
-firewall-bouncer will fetch new and old decisions from a CrowdSec API to add them in a blocklist used by supported firewalls.
+cs-firewall-bouncer will fetch new and old decisions from a CrowdSec API to add them in a blocklist used by supported firewalls.
 
 Supported firewalls:
  - iptables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
@@ -18,11 +18,11 @@ $ sudo ./install.sh
 
 ## Configuration
 
-Before starting the `firewall-bouncer` service, please edit the configuration to add your API url and key.
-The default configuration file is located under : `/etc/crowdsec/firewall-bouncer/`
+Before starting the `cs-firewall-bouncer` service, please edit the configuration to add your API url and key.
+The default configuration file is located under : `/etc/crowdsec/cs-firewall-bouncer/`
 
 ```sh
-$ vim /etc/crowdsec/firewall-bouncer/firewall-bouncer.yaml
+$ vim /etc/crowdsec/cs-firewall-bouncer/cs-firewall-bouncer.yaml
 ```
 
 ```yaml
@@ -40,5 +40,5 @@ api_key: <API_KEY>  # Add your API key generated with `cscli bouncers add --name
 You can then start the service:
 
 ```sh
-sudo systemctl start firewall-bouncer
+sudo systemctl start cs-firewall-bouncer
 ```
