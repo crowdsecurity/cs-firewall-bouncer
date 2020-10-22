@@ -111,7 +111,7 @@ func main() {
 							log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
 						}
 					} else {
-						log.Debugf("deleted '%s'", decision.Value)
+						log.Debugf("deleted '%s'", *decision.Value)
 					}
 
 				}
@@ -120,7 +120,7 @@ func main() {
 					if err := backend.Add(decision); err != nil {
 						log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
 					} else {
-						log.Debugf("Adding '%s' for '%s'", decision.Value, decision.Duration)
+						log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
 					}
 				}
 			}
