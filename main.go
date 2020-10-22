@@ -17,7 +17,7 @@ import (
 
 const (
 	version = "v0.0.2"
-	name    = "firewall-bouncer"
+	name    = "cs-firewall-bouncer"
 )
 
 var t tomb.Tomb
@@ -57,7 +57,7 @@ func HandleSignals(backend *backendCTX) {
 func main() {
 	var err error
 
-	configPath := flag.String("c", "", "path to firewall-bouncer.yaml")
+	configPath := flag.String("c", "", "path to cs-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
 
 	flag.Parse()
@@ -103,19 +103,19 @@ func main() {
 			case <-t.Dying():
 				log.Infoln("terminating bouncer process")
 				return nil
-			case decision := <-bouncer.ExpiredDecision:
-				// do some stuff with expired decisions
-				log.Debugf("deleting '%s'", *decision.Value)
-				if err := backend.Delete(&decision); err != nil {
-					if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
-						log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
+			case decisions := <-bouncer.Stream:
+				for _, decision := range decisions.Deleted {
+					if err := backend.Delete(decision); err != nil {
+						if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
+							log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
+						}
 					}
 				}
-			case decision := <-bouncer.NewDecision:
-				// Do some stuff with new decisions
-				log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
-				if err := backend.Add(&decision); err != nil {
-					log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
+				for _, decision := range decisions.New {
+					log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
+					if err := backend.Add(decision); err != nil {
+						log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
+					}
 				}
 			}
 		}

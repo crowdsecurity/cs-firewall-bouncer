@@ -9,7 +9,7 @@ GOGET=$(GOCMD) get
 
 PREFIX?="/"
 PID_DIR = $(PREFIX)"/var/run/"
-BINARY_NAME=firewall-bouncer
+BINARY_NAME=cs-firewall-bouncer
 
 RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
 
@@ -27,7 +27,7 @@ test:
 
 clean:
 	@rm -f $(BINARY_NAME)
-	@rm -f ${RELDIR}
+	@rm -rf ${RELDIR}
 	@rm -f cs-firewall-bouncer.tgz || ""
 
 

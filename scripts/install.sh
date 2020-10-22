@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-BIN_PATH_INSTALLED="/usr/local/bin/firewall-bouncer"
-BIN_PATH="./firewall-bouncer"
-CONFIG_DIR="/etc/crowdsec/firewall-bouncer/"
+BIN_PATH_INSTALLED="/usr/local/bin/cs-firewall-bouncer"
+BIN_PATH="./cs-firewall-bouncer"
+CONFIG_DIR="/etc/crowdsec/cs-firewall-bouncer/"
 PID_DIR="/var/run/crowdsec/"
-SYSTEMD_PATH_FILE="/etc/systemd/system/firewall-bouncer.service"
+SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
 
 check_iptables() {
     which iptables > /dev/null
@@ -31,10 +31,10 @@ check_apikeygen() {
     fi
     if [ "$answer" != "${answer#[Yy]}" ] ;then
             SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
-            API_KEY=`cscli bouncers add -n firewall-bouncer-${SUFFIX} -o raw`
-            API_KEY=${API_KEY} envsubst < ./config/firewall-bouncer.yaml > "${CONFIG_DIR}firewall-bouncer.yaml"
+            API_KEY=`cscli bouncers add -n cs-firewall-bouncer-${SUFFIX} -o raw`
+            API_KEY=${API_KEY} envsubst < ./config/cs-firewall-bouncer.yaml > "${CONFIG_DIR}cs-firewall-bouncer.yaml"
     else 
-        echo "For your bouncer to be functionnal, you need to create an API key and set it in the ${CONFIG_DIR}firewall-bouncer.yaml file"
+        echo "For your bouncer to be functionnal, you need to create an API key and set it in the ${CONFIG_DIR}cs-firewall-bouncer.yaml file"
     fi;
 }
 
@@ -55,11 +55,11 @@ check_ipset() {
 }
 
 
-install_netfilter_blocker() {
+install_firewall_bouncer() {
 	install -v -m 755 -D "${BIN_PATH}" "${BIN_PATH_INSTALLED}"
 	mkdir -p "${CONFIG_DIR}"
-	cp "./config/firewall-bouncer.yaml" "${CONFIG_DIR}firewall-bouncer.yaml"
-	CFG=${CONFIG_DIR} PID=${PID_DIR} BIN=${BIN_PATH_INSTALLED} envsubst < ./config/firewall-bouncer.service > "${SYSTEMD_PATH_FILE}"
+	cp "./config/cs-firewall-bouncer.yaml" "${CONFIG_DIR}cs-firewall-bouncer.yaml"
+	CFG=${CONFIG_DIR} PID=${PID_DIR} BIN=${BIN_PATH_INSTALLED} envsubst < ./config/cs-firewall-bouncer.service > "${SYSTEMD_PATH_FILE}"
 	systemctl daemon-reload
 }
 
@@ -67,6 +67,6 @@ install_netfilter_blocker() {
 check_iptables
 check_ipset
 echo "Installing firewall-bouncer"
-install_netfilter_blocker
+install_firewall_bouncer
 check_apikeygen
 echo "The firewall-bouncer service has been installed!"

@@ -1,16 +1,17 @@
 #!/bin/bash
 
-BIN_PATH_INSTALLED="/usr/local/bin/firewall-bouncer"
-CONFIG_DIR="/etc/crowdsec/firewall-bouncer/"
+BIN_PATH_INSTALLED="/usr/local/bin/cs-firewall-bouncer"
+CONFIG_DIR="/etc/crowdsec/cs-firewall-bouncer/"
 PID_DIR="/var/run/crowdsec/"
-SYSTEMD_PATH_FILE="/etc/systemd/system/firewall-bouncer.service"
+LOG_FILE="/var/log/cs-firewall-bouncer.log"
+SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
 
 uninstall() {
-	systemctl stop firewall-bouncer
+	systemctl stop cs-firewall-bouncer
 	rm -rf "${CONFIG_DIR}"
 	rm -f "${SYSTEMD_PATH_FILE}"
-	rm -f "${PID_DIR}firewall-bouncer.pid"
 	rm -f "${BIN_PATH_INSTALLED}"
+	rm -f "${LOG_FILE}"
 }
 
 uninstall
