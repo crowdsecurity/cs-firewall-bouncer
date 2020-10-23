@@ -104,7 +104,9 @@ func main() {
 				log.Infoln("terminating bouncer process")
 				return nil
 			case decisions := <-bouncer.Stream:
-				log.Infof("deleting '%d' decisions", len(decisions.Deleted))
+				if len(decisions.Deleted) > 0 {
+					log.Infof("deleting '%d' decisions", len(decisions.Deleted))
+				}
 				for _, decision := range decisions.Deleted {
 					if err := backend.Delete(decision); err != nil {
 						if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
@@ -115,7 +117,9 @@ func main() {
 					}
 
 				}
-				log.Infof("adding '%d' decisions", len(decisions.New))
+				if len(decisions.New) > 0 {
+					log.Infof("adding '%d' decisions", len(decisions.New))
+				}
 				for _, decision := range decisions.New {
 					if err := backend.Add(decision); err != nil {
 						log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
