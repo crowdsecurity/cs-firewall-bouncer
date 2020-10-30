@@ -7,3 +7,4 @@ log_dir: /var/log/
 log_level: info
 api_url: http://localhost:8080/
 api_key: ${API_KEY}
+disable_ipv6: false

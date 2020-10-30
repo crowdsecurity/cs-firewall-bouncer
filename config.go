@@ -21,6 +21,7 @@ type bouncerConfig struct {
 	LogLevel        log.Level `yaml:"log_level"`
 	APIUrl          string    `yaml:"api_url"`
 	APIKey          string    `yaml:"api_key"`
+	DisableIPV6     bool      `yaml:"disable_ipv6"`
 }
 
 func NewConfig(configPath string) (*bouncerConfig, error) {

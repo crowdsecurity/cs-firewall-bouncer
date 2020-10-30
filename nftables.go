@@ -22,11 +22,13 @@ type nft struct {
 	table6 *nftables.Table
 }
 
-func newNFTables() (interface{}, error) {
+func newNFTables(disableIPV6 bool) (interface{}, error) {
 	ret := &nft{}
 
 	ret.conn = &nftables.Conn{}
-	ret.conn6 = &nftables.Conn{}
+	if !disableIPV6 {
+		ret.conn6 = &nftables.Conn{}
+	}
 	return ret, nil
 }
 
@@ -86,58 +88,60 @@ func (n *nft) Init() error {
 	log.Debug("nftables: ipv4 table created")
 
 	/* ipv6 */
-	table = &nftables.Table{
-		Family: nftables.TableFamilyIPv6,
-		Name:   "crowdsec6",
-	}
-	n.table6 = n.conn6.AddTable(table)
-
-	chain = n.conn6.AddChain(&nftables.Chain{
-		Name:     "crowdsec6_chain",
-		Table:    n.table,
-		Type:     nftables.ChainTypeFilter,
-		Hooknum:  nftables.ChainHookInput,
-		Priority: nftables.ChainPriorityFilter,
-	})
-	set = &nftables.Set{
-		Name:    "crowdsec6_blocklist",
-		Table:   n.table,
-		KeyType: nftables.TypeIP6Addr,
-	}
-
-	if err := n.conn6.AddSet(set, []nftables.SetElement{}); err != nil {
-		return err
-	}
-	n.set6 = set
-
-	n.conn6.AddRule(&nftables.Rule{
-		Table: n.table,
-		Chain: chain,
-		Exprs: []expr.Any{
-			// [ payload load 4b @ network header + 16 => reg 1 ]
-			&expr.Payload{
-				DestRegister: 1,
-				Base:         expr.PayloadBaseNetworkHeader,
-				Offset:       16,
-				Len:          4,
+	if n.conn6 != nil {
+		table = &nftables.Table{
+			Family: nftables.TableFamilyIPv6,
+			Name:   "crowdsec6",
+		}
+		n.table6 = n.conn6.AddTable(table)
+	
+		chain = n.conn6.AddChain(&nftables.Chain{
+			Name:     "crowdsec6_chain",
+			Table:    n.table,
+			Type:     nftables.ChainTypeFilter,
+			Hooknum:  nftables.ChainHookInput,
+			Priority: nftables.ChainPriorityFilter,
+		})
+		set = &nftables.Set{
+			Name:    "crowdsec6_blocklist",
+			Table:   n.table,
+			KeyType: nftables.TypeIP6Addr,
+		}
+	
+		if err := n.conn6.AddSet(set, []nftables.SetElement{}); err != nil {
+			return err
+		}
+		n.set6 = set
+	
+		n.conn6.AddRule(&nftables.Rule{
+			Table: n.table,
+			Chain: chain,
+			Exprs: []expr.Any{
+				// [ payload load 4b @ network header + 16 => reg 1 ]
+				&expr.Payload{
+					DestRegister: 1,
+					Base:         expr.PayloadBaseNetworkHeader,
+					Offset:       16,
+					Len:          4,
+				},
+				// [ lookup reg 1 set whitelist ]
+				&expr.Lookup{
+					SourceRegister: 1,
+					SetName:        n.set.Name,
+					SetID:          n.set.ID,
+				},
+				//[ immediate reg 0 drop ]
+				&expr.Verdict{
+					Kind: expr.VerdictDrop,
+				},
 			},
-			// [ lookup reg 1 set whitelist ]
-			&expr.Lookup{
-				SourceRegister: 1,
-				SetName:        n.set.Name,
-				SetID:          n.set.ID,
-			},
-			//[ immediate reg 0 drop ]
-			&expr.Verdict{
-				Kind: expr.VerdictDrop,
-			},
-		},
-	})
-
-	if err := n.conn6.Flush(); err != nil {
-		return err
+		})
+	
+		if err := n.conn6.Flush(); err != nil {
+			return err
+		}
+		log.Debug("nftables: ipv6 table created")
 	}
-	log.Debug("nftables: ipv6 table created")
 	log.Infof("nftables initiated")
 
 	return nil
@@ -150,8 +154,13 @@ func (n *nft) Add(decision *models.Decision) error {
 		timeout = defaultTimeout
 	}
 	if strings.Contains(*decision.Value, ":") { // ipv6
-		if err := n.conn.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
-			return err
+		if n.conn6 != nil {
+			if err := n.conn.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
+				return err
+			}
+		} else {
+			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
+			return nil
 		}
 	} else { // ipv4
 		if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To4())}}); err != nil {
@@ -167,8 +176,13 @@ func (n *nft) Add(decision *models.Decision) error {
 
 func (n *nft) Delete(decision *models.Decision) error {
 	if strings.Contains(*decision.Value, ":") { // ipv6
-		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To16()}}); err != nil {
-			return err
+		if n.conn6 != nil {
+			if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To16()}}); err != nil {
+				return err
+			} else {
+				log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
+				return nil
+			}
 		}
 	} else { // ipv4
 		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To4()}}); err != nil {
@@ -184,7 +198,9 @@ func (n *nft) Delete(decision *models.Decision) error {
 
 func (n *nft) ShutDown() error {
 	n.conn.DelTable(n.table)
-	n.conn.DelTable(n.table6)
+	if n.conn6 != nil {
+		n.conn.DelTable(n.table6)
+	}
 	if err := n.conn.Flush(); err != nil {
 		return err
 	}

@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	version = "v0.0.2"
+	version = "v0.0.4"
 	name    = "cs-firewall-bouncer"
 )
 
@@ -75,7 +75,7 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	backend, err := newBackend(config.Mode)
+	backend, err := newBackend(config.Mode, config.DisableIPV6)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
