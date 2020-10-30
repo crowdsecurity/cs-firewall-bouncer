@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	version = "v0.0.2"
+	version = "v0.0.4"
 	name    = "cs-firewall-bouncer"
 )
 
