@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -159,7 +158,9 @@ func (n *nft) Add(decision *models.Decision) error {
 			if err := n.conn.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
 				return err
 			}
-			return fmt.Errorf("failed inserting ban %s, ipv6 is disabled in configuration", *decision.Value)
+		} else {
+			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
+			return nil
 		}
 	} else { // ipv4
 		if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To4())}}); err != nil {
@@ -178,8 +179,10 @@ func (n *nft) Delete(decision *models.Decision) error {
 		if n.conn6 != nil {
 			if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To16()}}); err != nil {
 				return err
+			} else {
+				log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
+				return nil
 			}
-			return fmt.Errorf("failed deleting ban %s, ipv6 is disabled in configuration", *decision.Value)
 		}
 	} else { // ipv4
 		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To4()}}); err != nil {

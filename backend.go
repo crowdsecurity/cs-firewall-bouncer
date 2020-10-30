@@ -52,6 +52,9 @@ func newBackend(backendType string, disableIPV6 bool) (*backendCTX, error) {
 	var ok bool
 	b := &backendCTX{}
 	log.Printf("backend type : %s", backendType)
+	if disableIPV6 {
+		log.Println("IPV6 is disabled")
+	}
 	switch backendType {
 	case "iptables":
 		tmpCtx, err := newIPTables(disableIPV6)

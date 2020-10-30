@@ -66,14 +66,13 @@ func (ipt *iptables) Init() error {
 	var err error
 
 	log.Printf("iptables for ipv4 initiated")
-	err = ipt.v4.shutDown() // flush before init
-	if err != nil {
+	// flush before init
+	if err := ipt.v4.shutDown(); err != nil {
 		return fmt.Errorf("iptables shutdown failed: %s", err.Error())
 	}
 
 	// Create iptable to rule to attach the set
-	err = ipt.v4.CheckAndCreate()
-	if err != nil {
+	if err := ipt.v4.CheckAndCreate(); err != nil {
 		return fmt.Errorf("iptables init failed: %s", err.Error())
 	}
 
@@ -85,8 +84,7 @@ func (ipt *iptables) Init() error {
 		}
 
 		// Create iptable to rule to attach the set
-		err = ipt.v6.CheckAndCreate()
-		if err != nil {
+		if err := ipt.v6.CheckAndCreate(); err != nil {
 			return fmt.Errorf("iptables init failed: %s", err.Error())
 		}
 	}
@@ -110,8 +108,10 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 				return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv4 rule", *decision.Value)
 			}
 			done = true
+		} else {
+			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
+			return nil
 		}
-		return fmt.Errorf("failed inserting ban %s, ipv6 is disabled in configuration", *decision.Value)
 	}
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.add(decision); err != nil {
@@ -149,8 +149,10 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 				return fmt.Errorf("failed deleting ban")
 			}
 			done = true
+		} else {
+			log.Debugf("not deleting '%s' because ipv6 is disabled", *decision.Value)
+			return nil
 		}
-		return fmt.Errorf("failed deleting ban %s, ipv6 is disabled in configuration", *decision.Value)
 	}
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.delete(decision); err != nil {
