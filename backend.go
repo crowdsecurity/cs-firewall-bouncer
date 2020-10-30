@@ -48,13 +48,13 @@ func (b *backendCTX) Delete(decision *models.Decision) error {
 	return nil
 }
 
-func newBackend(backendType string) (*backendCTX, error) {
+func newBackend(backendType string, disableIPV6 bool) (*backendCTX, error) {
 	var ok bool
 	b := &backendCTX{}
 	log.Printf("backend type : %s", backendType)
 	switch backendType {
 	case "iptables":
-		tmpCtx, err := newIPTables()
+		tmpCtx, err := newIPTables(disableIPV6)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +63,7 @@ func newBackend(backendType string) (*backendCTX, error) {
 			return nil, fmt.Errorf("unexpected type '%T' for iptables context", tmpCtx)
 		}
 	case "nftables":
-		tmpCtx, err := newNFTables()
+		tmpCtx, err := newNFTables(disableIPV6)
 		if err != nil {
 			return nil, err
 		}

@@ -16,7 +16,7 @@ type iptables struct {
 
 var iptablesCtx = &iptables{}
 
-func newIPTables() (interface{}, error) {
+func newIPTables(disableIPV6 bool) (interface{}, error) {
 	var err error
 	ipv4Ctx := &ipTablesContext{
 		Name:             "ipset",
@@ -25,15 +25,6 @@ func newIPTables() (interface{}, error) {
 		StartupCmds:      []string{"-I", "INPUT", "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"},
 		ShutdownCmds:     []string{"-D", "INPUT", "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"},
 		CheckIptableCmds: []string{"-C", "INPUT", "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"},
-	}
-
-	ipv6Ctx := &ipTablesContext{
-		Name:             "ipset",
-		version:          "v6",
-		SetName:          "crowdsec6-blacklists",
-		StartupCmds:      []string{"-I", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
-		ShutdownCmds:     []string{"-D", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
-		CheckIptableCmds: []string{"-C", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
 	}
 
 	ipsetBin, err := exec.LookPath("ipset")
@@ -46,15 +37,26 @@ func newIPTables() (interface{}, error) {
 		return nil, fmt.Errorf("unable to find iptables")
 	}
 	ipv4Ctx.ipsetBin = ipsetBin
-	ipv6Ctx.ipsetBin = ipsetBin
-	ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
-	if err != nil {
-		return nil, fmt.Errorf("unable to find iptables")
-	}
 
 	ret := &iptables{
 		v4: ipv4Ctx,
-		v6: ipv6Ctx,
+	}
+
+	if !disableIPV6 {
+		ipv6Ctx := &ipTablesContext{
+			Name:             "ipset",
+			version:          "v6",
+			SetName:          "crowdsec6-blacklists",
+			StartupCmds:      []string{"-I", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
+			ShutdownCmds:     []string{"-D", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
+			CheckIptableCmds: []string{"-C", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
+		}
+		ipv6Ctx.ipsetBin = ipsetBin
+		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
+		if err != nil {
+			return nil, fmt.Errorf("unable to find iptables")
+		}
+		ret.v6 = ipv6Ctx
 	}
 
 	return ret, nil
@@ -75,18 +77,19 @@ func (ipt *iptables) Init() error {
 		return fmt.Errorf("iptables init failed: %s", err.Error())
 	}
 
-	log.Printf("iptables for ipv6 initiated")
-	err = ipt.v6.shutDown() // flush before init
-	if err != nil {
-		return fmt.Errorf("iptables shutdown failed: %s", err.Error())
-	}
+	if ipt.v6 != nil {
+		log.Printf("iptables for ipv6 initiated")
+		err = ipt.v6.shutDown() // flush before init
+		if err != nil {
+			return fmt.Errorf("iptables shutdown failed: %s", err.Error())
+		}
 
-	// Create iptable to rule to attach the set
-	err = ipt.v6.CheckAndCreate()
-	if err != nil {
-		return fmt.Errorf("iptables init failed: %s", err.Error())
+		// Create iptable to rule to attach the set
+		err = ipt.v6.CheckAndCreate()
+		if err != nil {
+			return fmt.Errorf("iptables init failed: %s", err.Error())
+		}
 	}
-
 	return nil
 }
 
@@ -102,10 +105,13 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 	//the obvious way would be to get the len of net.ParseIp(ba) but this is 16 internally even for ipv4.
 	//so we steal the ugly hack from https://github.com/asaskevich/govalidator/blob/3b2665001c4c24e3b076d1ca8c428049ecbb925b/validator.go#L501
 	if strings.Contains(*decision.Value, ":") {
-		if err := ipt.v6.add(decision); err != nil {
-			return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv4 rule", *decision.Value)
+		if ipt.v6 != nil {
+			if err := ipt.v6.add(decision); err != nil {
+				return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv4 rule", *decision.Value)
+			}
+			done = true
 		}
-		done = true
+		return fmt.Errorf("failed inserting ban %s, ipv6 is disabled in configuration", *decision.Value)
 	}
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.add(decision); err != nil {
@@ -126,9 +132,11 @@ func (ipt *iptables) ShutDown() error {
 	if err != nil {
 		return fmt.Errorf("iptables for ipv4 shutdown failed: %s", err.Error())
 	}
-	err = ipt.v6.shutDown()
-	if err != nil {
-		return fmt.Errorf("iptables for ipv6 shutdown failed: %s", err.Error())
+	if ipt.v6 != nil {
+		err = ipt.v6.shutDown()
+		if err != nil {
+			return fmt.Errorf("iptables for ipv6 shutdown failed: %s", err.Error())
+		}
 	}
 	return nil
 }
@@ -136,10 +144,13 @@ func (ipt *iptables) ShutDown() error {
 func (ipt *iptables) Delete(decision *models.Decision) error {
 	done := false
 	if strings.Contains(*decision.Value, ":") {
-		if err := ipt.v6.delete(decision); err != nil {
-			return fmt.Errorf("failed deleting ban")
+		if ipt.v6 != nil {
+			if err := ipt.v6.delete(decision); err != nil {
+				return fmt.Errorf("failed deleting ban")
+			}
+			done = true
 		}
-		done = true
+		return fmt.Errorf("failed deleting ban %s, ipv6 is disabled in configuration", *decision.Value)
 	}
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.delete(decision); err != nil {
@@ -148,7 +159,7 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 		done = true
 	}
 	if !done {
-		return fmt.Errorf("failed inserting ban: ip %s was not recognised", *decision.Value)
+		return fmt.Errorf("failed deleting ban: ip %s was not recognised", *decision.Value)
 	}
 	return nil
 }
