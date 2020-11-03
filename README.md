@@ -9,7 +9,8 @@ Supported firewalls:
 
 ## Installation
 
-### Assisted
+
+### Assisted
 
 First, download the latest [`cs-firewall-bouncer` release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases).
 
@@ -18,7 +19,7 @@ $ tar xzvf cs-firewall-bouncer.tgz
 $ sudo ./install.sh
 ```
 
-### From source
+### From source
 
 Run the following commands:
 
