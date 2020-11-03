@@ -32,10 +32,10 @@ goversion:
 all: clean test build
 
 static: clean
-	$(GOBUILD) -o $(BINARY_NAME) -v -a -tags netgo -ldflags '-w -extldflags "-static"'
+	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME) -v -a -tags netgo -ldflags '-w -extldflags "-static"'
 
 build: goversion clean
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME) -v
 
 test:
 	@$(GOTEST) -v ./...
