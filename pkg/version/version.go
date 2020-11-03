@@ -19,7 +19,6 @@ Additional labels for pre-release and build metadata are available as extensions
 
 var (
 	Version   string // = "v0.0.0"
-	Codename  string // = "SoumSoum"
 	BuildDate string // = "I don't remember exactly"
 	Tag       string // = "dev"
 	GoVersion string // = "1.13"
@@ -28,7 +27,6 @@ var (
 func ShowStr() string {
 	ret := ""
 	ret += fmt.Sprintf("version: %s-%s\n", Version, Tag)
-	ret += fmt.Sprintf("Codename: %s\n", Codename)
 	ret += fmt.Sprintf("BuildDate: %s\n", BuildDate)
 	ret += fmt.Sprintf("GoVersion: %s\n", GoVersion)
 	return ret
@@ -36,7 +34,6 @@ func ShowStr() string {
 
 func Show() {
 	log.Printf("version: %s-%s", Version, Tag)
-	log.Printf("Codename: %s", Codename)
 	log.Printf("BuildDate: %s", BuildDate)
 	log.Printf("GoVersion: %s", GoVersion)
 }

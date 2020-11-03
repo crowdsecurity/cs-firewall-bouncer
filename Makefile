@@ -10,12 +10,10 @@ GOGET=$(GOCMD) get
 #Current versioning information from env
 BUILD_VERSION?="$(shell git describe --tags `git rev-list --tags --max-count=1`)"
 BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
-BUILD_CODENAME=$(shell cat RELEASE.json | jq -r .CodeName)
 BUILD_TIMESTAMP=$(shell date +%F"_"%T)
 BUILD_TAG="$(shell git rev-parse HEAD)"
 export LD_OPTS=-ldflags "-s -w -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Version=$(BUILD_VERSION) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.BuildDate=$(BUILD_TIMESTAMP) \
--X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Codename=$(BUILD_CODENAME)  \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Tag=$(BUILD_TAG) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.GoVersion=$(BUILD_GOVERSION)"
 PREFIX?="/"
@@ -59,5 +57,4 @@ release: build
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
 	@tar cvzf cs-firewall-bouncer.tgz $(RELDIR)
-	@rm -rf $(RELDIR)
 	
