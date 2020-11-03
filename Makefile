@@ -59,5 +59,5 @@ release: build
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
 	@tar cvzf cs-firewall-bouncer.tgz $(RELDIR)
-	#@rm -rf $(RELDIR)
+	@rm -rf $(RELDIR)
 	
