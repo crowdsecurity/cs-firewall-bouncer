@@ -11,6 +11,7 @@ import (
 	"github.com/coreos/go-systemd/daemon"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"gopkg.in/tomb.v2"
 )
@@ -55,7 +56,7 @@ func HandleSignals(backend *backendCTX) {
 
 func main() {
 	var err error
-	log.Infof("cs-firewall-bouncer %s", Version)
+	log.Infof("cs-firewall-bouncer %s", version.VersionStr())
 	configPath := flag.String("c", "", "path to cs-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
 
@@ -86,7 +87,7 @@ func main() {
 		APIKey:         config.APIKey,
 		APIUrl:         config.APIUrl,
 		TickerInterval: config.UpdateFrequency,
-		UserAgent:      fmt.Sprintf("%s/%s", name, VersionStr()),
+		UserAgent:      fmt.Sprintf("%s/%s", name, version.VersionStr()),
 	}
 	if err := bouncer.Init(); err != nil {
 		log.Fatalf(err.Error())
