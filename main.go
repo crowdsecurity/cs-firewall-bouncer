@@ -16,8 +16,7 @@ import (
 )
 
 const (
-	version = "v0.0.4"
-	name    = "cs-firewall-bouncer"
+	name = "cs-firewall-bouncer"
 )
 
 var t tomb.Tomb
@@ -56,7 +55,7 @@ func HandleSignals(backend *backendCTX) {
 
 func main() {
 	var err error
-
+	log.Infof("cs-firewall-bouncer %s", Version)
 	configPath := flag.String("c", "", "path to cs-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
 
@@ -83,12 +82,11 @@ func main() {
 	if err := backend.Init(); err != nil {
 		log.Fatalf(err.Error())
 	}
-
 	bouncer := &csbouncer.StreamBouncer{
 		APIKey:         config.APIKey,
 		APIUrl:         config.APIUrl,
 		TickerInterval: config.UpdateFrequency,
-		UserAgent:      fmt.Sprintf("%s/%s", name, version),
+		UserAgent:      fmt.Sprintf("%s/%s", name, VersionStr()),
 	}
 	if err := bouncer.Init(); err != nil {
 		log.Fatalf(err.Error())
