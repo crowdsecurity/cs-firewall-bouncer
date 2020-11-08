@@ -102,7 +102,7 @@ func (n *nft) Init() error {
 			Hooknum:  nftables.ChainHookInput,
 			Priority: nftables.ChainPriorityFilter,
 		})
-		set = &nftables.Set{
+		set := &nftables.Set{
 			Name:    "crowdsec6_blocklist",
 			Table:   n.table6,
 			KeyType: nftables.TypeIP6Addr,
