@@ -22,20 +22,10 @@ check_iptables() {
 }
 
 
-check_apikeygen() {
-    echo "if you are on a single-machine setup, do you want the wizard to configure your API key ? (Y/n)"
-    echo "(note: if you didn't understand the question, 'Y' might be a safe answer)"
-    read answer
-    if [[ ${answer} == "" ]]; then
-            answer="y"
-    fi
-    if [ "$answer" != "${answer#[Yy]}" ] ;then
-            SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
-            API_KEY=`cscli bouncers add cs-firewall-bouncer-${SUFFIX} -o raw`
-            API_KEY=${API_KEY} envsubst < ./config/cs-firewall-bouncer.yaml > "${CONFIG_DIR}cs-firewall-bouncer.yaml"
-    else 
-        echo "For your bouncer to be functionnal, you need to create an API key and set it in the ${CONFIG_DIR}cs-firewall-bouncer.yaml file"
-    fi;
+gen_apikey() {
+    SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
+    API_KEY=`cscli bouncers add cs-firewall-bouncer-${SUFFIX} -o raw`
+    API_KEY=${API_KEY} envsubst < ./config/cs-firewall-bouncer.yaml > "${CONFIG_DIR}cs-firewall-bouncer.yaml"
 }
 
 check_ipset() {
@@ -68,5 +58,5 @@ check_iptables
 check_ipset
 echo "Installing firewall-bouncer"
 install_firewall_bouncer
-check_apikeygen
+gen_apikey
 echo "The firewall-bouncer service has been installed!"
