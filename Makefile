@@ -24,6 +24,7 @@ RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
 
 goversion:
 	CURRENT_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
+	REQUIRE_GOVERSION="1.13"
 	RESPECT_VERSION="$(shell echo "$(CURRENT_GOVERSION),$(REQUIRE_GOVERSION)" | tr ',' '\n' | sort -V)"
 
 

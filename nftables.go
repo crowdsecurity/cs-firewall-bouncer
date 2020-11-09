@@ -89,13 +89,13 @@ func (n *nft) Init() error {
 
 	/* ipv6 */
 	if n.conn6 != nil {
-		table = &nftables.Table{
+		table := &nftables.Table{
 			Family: nftables.TableFamilyIPv6,
 			Name:   "crowdsec6",
 		}
 		n.table6 = n.conn6.AddTable(table)
 
-		chain = n.conn6.AddChain(&nftables.Chain{
+		chain := n.conn6.AddChain(&nftables.Chain{
 			Name:     "crowdsec6_chain",
 			Table:    n.table6,
 			Type:     nftables.ChainTypeFilter,
@@ -203,12 +203,14 @@ func (n *nft) Delete(decision *models.Decision) error {
 }
 
 func (n *nft) ShutDown() error {
+	log.Infof("removing 'crowdsec' table")
 	n.conn.DelTable(n.table)
 	if err := n.conn.Flush(); err != nil {
 		return err
 	}
 
 	if n.conn6 != nil {
+		log.Infof("removing 'crowdsec6' table")
 		n.conn.DelTable(n.table6)
 		if err := n.conn6.Flush(); err != nil {
 			return err
