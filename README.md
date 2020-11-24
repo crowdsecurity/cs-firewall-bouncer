@@ -1,3 +1,17 @@
+<p align="center">
+<img src="https://github.com/crowdsecurity/cs-firewall-bouncer/raw/master/docs/assets/crowdsec_linux_logo.png" alt="CrowdSec" title="CrowdSec" width="280" height="300" />
+</p>
+<p align="center">
+<img src="https://img.shields.io/badge/build-pass-green">
+<img src="https://img.shields.io/badge/tests-pass-green">
+</p>
+<p align="center">
+&#x1F4DA; <a href="#installation">Documentation</a>
+&#x1F4A0; <a href="https://hub.crowdsec.net">Hub</a>
+&#128172; <a href="https://discourse.crowdsec.net">Discourse </a>
+</p>
+
+
 # cs-firewall-bouncer
 Crowdsec bouncer written in golang for firewalls.
 
@@ -8,7 +22,6 @@ Supported firewalls:
  - nftables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
 
 ## Installation
-
 
 ### Assisted
 
