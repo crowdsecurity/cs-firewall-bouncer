@@ -1,4 +1,4 @@
-mode: nftables
+mode: ${BACKEND}
 piddir: /var/run/
 update_frequency: 10s
 daemonize: true

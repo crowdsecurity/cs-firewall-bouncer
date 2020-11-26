@@ -5,27 +5,66 @@ CONFIG_DIR="/etc/crowdsec/cs-firewall-bouncer/"
 PID_DIR="/var/run/crowdsec/"
 SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
 
-check_iptables() {
+# Default pkg manager is apt
+PKG="apt"
+# Default firewall backend is nftables
+FW_BACKEND="nftables"
+API_KEY=""
+
+check_pkg_manager(){
+    if [ -f /etc/redhat-release ] ; then
+        PKG="yum"
+    fi   
+}
+
+check_firewall() {
+    iptables="true"
     which iptables > /dev/null
-    if [[ $? != 0 ]]; then
-        echo "iptables not found, do you want to install it (Y/n)? "
+    if [[ $? != 0 ]]; then 
+        iptables="false"
+    fi
+
+    nftables="true"
+    which nft > /dev/null
+    if [[ $? != 0 ]]; then 
+        nftables="false"
+    fi   
+
+    if [ "$nftables" = "false" -a "$iptables" = "false" ]; then
+        echo "No firewall found, do you want to install nftables (Y/n) ?"
         read answer
         if [[ ${answer} == "" ]]; then
             answer="y"
         fi
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            apt-get install -y -qq iptables > /dev/null && echo "iptables successfully installed"
+            "$PKG" install -y -qq nftables > /dev/null && echo "nftables successfully installed"
         else
-            echo "unable to continue without iptables. Exiting" && exit 1
-        fi      
+            echo "unable to continue without nftables. Please install nftables or iptables to use this bouncer." && exit 1
+        fi   
+    fi
+
+    if [ "$nftables" = "true" -a "$iptables" = "true" ]; then
+        echo "Found nftables and iptables, which firewall do you want to use (nftables/iptables)?"
+        read answer
+        if [ "$answer" = "iptables" ]; then
+            FW_BACKEND="iptables"
+        fi   
+    fi
+
+    if [ "$FW_BACKEND" = "iptables" ]; then
+        check_ipset
     fi
 }
+
 
 
 gen_apikey() {
     SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
     API_KEY=`cscli bouncers add cs-firewall-bouncer-${SUFFIX} -o raw`
-    API_KEY=${API_KEY} envsubst < ./config/cs-firewall-bouncer.yaml > "${CONFIG_DIR}cs-firewall-bouncer.yaml"
+}
+
+gen_config_file() {
+    API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst < ./config/cs-firewall-bouncer.yaml > "${CONFIG_DIR}cs-firewall-bouncer.yaml"
 }
 
 check_ipset() {
@@ -37,7 +76,7 @@ check_ipset() {
             answer="y"
         fi
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            apt-get install -y -qq ipset > /dev/null && echo "ipset successfully installed"
+            "$PKG" install -y -qq ipset > /dev/null && echo "ipset successfully installed"
         else
             echo "unable to continue without ipset. Exiting" && exit 1
         fi      
@@ -54,9 +93,11 @@ install_firewall_bouncer() {
 }
 
 
-check_iptables
-check_ipset
+
+check_pkg_manager
+check_firewall
 echo "Installing firewall-bouncer"
 install_firewall_bouncer
 gen_apikey
+gen_config_file
 echo "The firewall-bouncer service has been installed!"
