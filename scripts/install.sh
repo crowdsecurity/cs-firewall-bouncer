@@ -14,6 +14,10 @@ API_KEY=""
 check_pkg_manager(){
     if [ -f /etc/redhat-release ] ; then
         PKG="yum"
+    elif [ -f /etc/debian_version ]; then
+        PKG="apt"
+    else
+        echo "Distribution is not supported, exiting."
     fi   
 }
 
