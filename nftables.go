@@ -197,7 +197,13 @@ func (n *nft) Delete(decision *models.Decision) error {
 			return nil
 		}
 	} else { // ipv4
-		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To4()}}); err != nil {
+		var ipAddr string
+		if strings.Contains(*decision.Value, "/") {
+			ipAddr = strings.Split(*decision.Value, "/")[0]
+		} else {
+			ipAddr = *decision.Value
+		}
+		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(ipAddr).To4()}}); err != nil {
 			return err
 		}
 		if err := n.conn.Flush(); err != nil {
