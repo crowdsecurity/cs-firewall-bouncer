@@ -48,7 +48,7 @@ check_firewall() {
     fi
 
     if [ "$nftables" = "true" -a "$iptables" = "true" ]; then
-        echo "Found nftables and iptables, which firewall do you want to use (nftables/iptables)?"
+        echo "Found nftables(default) and iptables, which firewall do you want to use (nftables/iptables)?"
         read answer
         if [ "$answer" = "iptables" ]; then
             FW_BACKEND="iptables"
@@ -97,11 +97,16 @@ install_firewall_bouncer() {
 }
 
 
-
+if ! [ $(id -u) = 0 ]; then
+    log_err "Please run the install script as root or with sudo"
+    exit 1
+fi
 check_pkg_manager
 check_firewall
 echo "Installing firewall-bouncer"
 install_firewall_bouncer
 gen_apikey
 gen_config_file
+systemctl enable cs-firewall-bouncer.service
+systemctl start cs-firewall-bouncer.service
 echo "The firewall-bouncer service has been installed!"
