@@ -2,7 +2,6 @@
 
 BIN_PATH_INSTALLED="/usr/local/bin/cs-firewall-bouncer"
 CONFIG_DIR="/etc/crowdsec/cs-firewall-bouncer/"
-PID_DIR="/var/run/crowdsec/"
 LOG_FILE="/var/log/cs-firewall-bouncer.log"
 SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
 
@@ -16,4 +15,4 @@ uninstall() {
 
 uninstall
 
-echo "firewall-bouncer uninstall successfully"
+echo "cs-firewall-bouncer uninstall successfully"
