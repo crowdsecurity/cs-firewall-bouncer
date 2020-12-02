@@ -223,7 +223,7 @@ func (n *nft) ShutDown() error {
 
 	if n.conn6 != nil {
 		log.Infof("removing 'crowdsec6' table")
-		n.conn.DelTable(n.table6)
+		n.conn6.DelTable(n.table6)
 		if err := n.conn6.Flush(); err != nil {
 			return err
 		}
