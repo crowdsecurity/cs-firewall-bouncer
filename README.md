@@ -45,6 +45,16 @@ cd cs-firewall-bouncer-v*/
 sudo ./install.sh
 ```
 
+## Upgrade
+
+If you already have `cs-firewall-bouncer` installed, please download the [latest release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases) and run the following commands:
+
+```bash
+tar xzvf cs-firewall-bouncer.tgz
+cd cs-firewall-bouncer-v*/
+sudo ./upgrade.sh
+```
+
 
 ## Configuration
 
