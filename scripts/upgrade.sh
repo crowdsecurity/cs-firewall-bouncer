@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 BIN_PATH_INSTALLED="/usr/local/bin/cs-firewall-bouncer"
 BIN_PATH="./cs-firewall-bouncer"
-SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
 
 
 upgrade_bin() {
@@ -11,7 +10,7 @@ upgrade_bin() {
 
 
 if ! [ $(id -u) = 0 ]; then
-    log_err "Please run the install script as root or with sudo"
+    log_err "Please run the upgrade script as root or with sudo"
     exit 1
 fi
 
