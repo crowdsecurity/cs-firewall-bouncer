@@ -55,7 +55,9 @@ release: build
 	@cp -R ./config $(RELDIR)/
 	@cp ./scripts/install.sh $(RELDIR)/
 	@cp ./scripts/uninstall.sh $(RELDIR)/
+	@cp ./scripts/upgrade.sh $(RELDIR)/
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
+	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf cs-firewall-bouncer.tgz $(RELDIR)
 	
