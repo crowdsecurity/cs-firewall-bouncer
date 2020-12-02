@@ -6,7 +6,7 @@ SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
 
 upgrade_bin() {
     rm "${BIN_PATH_INSTALLED}" || (echo "cs-firewall-bouncer is not installed, exiting." && exit 1)
-	install -v -m 755 -D "${BIN_PATH}" "${BIN_PATH_INSTALLED}"
+    install -v -m 755 -D "${BIN_PATH}" "${BIN_PATH_INSTALLED}"
 }
 
 
