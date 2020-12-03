@@ -66,7 +66,7 @@ func (n *nft) Init() error {
 			&expr.Payload{
 				DestRegister: 1,
 				Base:         expr.PayloadBaseNetworkHeader,
-				Offset:       16,
+				Offset:       12,
 				Len:          4,
 			},
 			// [ lookup reg 1 set whitelist ]
