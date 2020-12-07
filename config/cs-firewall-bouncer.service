@@ -1,6 +1,6 @@
 [Unit]
 Description=The firewall bouncer for CrowdSec
-After=syslog.target network.target remote-fs.target nss-lookup.target
+After=syslog.target network.target remote-fs.target nss-lookup.target crowdsec.service
 
 [Service]
 Type=notify
