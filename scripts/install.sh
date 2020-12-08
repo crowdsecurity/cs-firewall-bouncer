@@ -116,7 +116,7 @@ install_firewall_bouncer() {
 
 
 if ! [ $(id -u) = 0 ]; then
-    log_err "Please run the install script as root or with sudo"
+    echo "Please run the install script as root or with sudo"
     exit 1
 fi
 
@@ -129,5 +129,7 @@ gen_config_file
 systemctl enable cs-firewall-bouncer.service
 if [ "$READY" = "yes" ]; then
     systemctl start cs-firewall-bouncer.service
+else
+    echo "service not started. You need to get an API key and configure it in ${CONFIG_DIR}cs-firewall-bouncer.yaml"
 fi
 echo "The firewall-bouncer service has been installed!"
