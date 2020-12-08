@@ -18,21 +18,31 @@ check_pkg_manager(){
         PKG="apt"
     else
         echo "Distribution is not supported, exiting."
+        exit
     fi   
 }
 
 check_firewall() {
     iptables="true"
     which iptables > /dev/null
+    FW_BACKEND=""
     if [[ $? != 0 ]]; then 
+        echo "iptables is not present"
         iptables="false"
+    else 
+        FW_BACKEND="iptables"
+        echo "iptables found"
     fi
 
     nftables="true"
     which nft > /dev/null
     if [[ $? != 0 ]]; then 
+        echo "nftables is not present"
         nftables="false"
-    fi   
+    else
+        FW_BACKEND="nftables" 
+        echo "nftables found"
+    fi
 
     if [ "$nftables" = "false" -a "$iptables" = "false" ]; then
         echo "No firewall found, do you want to install nftables (Y/n) ?"
@@ -63,8 +73,16 @@ check_firewall() {
 
 
 gen_apikey() {
-    SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
-    API_KEY=`cscli bouncers add cs-firewall-bouncer-${SUFFIX} -o raw`
+    which cscli > /dev/null
+    if [[ $? == 0 ]]; then 
+        echo "cscli found, generating bouncer api key."
+        SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
+        API_KEY=`cscli bouncers add cs-firewall-bouncer-${SUFFIX} -o raw`
+        READY="yes"
+    else 
+        echo "cscli not found, you will need to generate api key."
+        READY="no"
+    fi
 }
 
 gen_config_file() {
@@ -98,9 +116,10 @@ install_firewall_bouncer() {
 
 
 if ! [ $(id -u) = 0 ]; then
-    log_err "Please run the install script as root or with sudo"
+    echo "Please run the install script as root or with sudo"
     exit 1
 fi
+
 check_pkg_manager
 check_firewall
 echo "Installing firewall-bouncer"
@@ -108,5 +127,9 @@ install_firewall_bouncer
 gen_apikey
 gen_config_file
 systemctl enable cs-firewall-bouncer.service
-systemctl start cs-firewall-bouncer.service
+if [ "$READY" = "yes" ]; then
+    systemctl start cs-firewall-bouncer.service
+else
+    echo "service not started. You need to get an API key and configure it in ${CONFIG_DIR}cs-firewall-bouncer.yaml"
+fi
 echo "The firewall-bouncer service has been installed!"
