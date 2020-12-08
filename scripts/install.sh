@@ -78,8 +78,10 @@ gen_apikey() {
         echo "cscli found, generating bouncer api key."
         SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
         API_KEY=`cscli bouncers add cs-firewall-bouncer-${SUFFIX} -o raw`
+        READY="yes"
     else 
         echo "cscli not found, you will need to generate api key."
+        READY="no"
     fi
 }
 
@@ -125,5 +127,7 @@ install_firewall_bouncer
 gen_apikey
 gen_config_file
 systemctl enable cs-firewall-bouncer.service
-systemctl start cs-firewall-bouncer.service
+if [ "$READY" = "yes" ]; then
+    systemctl start cs-firewall-bouncer.service
+fi
 echo "The firewall-bouncer service has been installed!"
