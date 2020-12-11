@@ -58,8 +58,9 @@ sudo ./upgrade.sh
 
 ## Configuration
 
-Before starting the `cs-firewall-bouncer` service, please edit the configuration to add your API url and key.
-The default configuration file is located under : `/etc/crowdsec/cs-firewall-bouncer/`
+To be functional, the `cs-firewall-bouncer` service must be able to comunicate with the local API.
+The `install.sh` script will take care of it (it will call `cscli bouncers add` on your behalf).
+If it was not the case, the default configuration file is located under : `/etc/crowdsec/cs-firewall-bouncer/`
 
 ```sh
 $ vim /etc/crowdsec/cs-firewall-bouncer/cs-firewall-bouncer.yaml
