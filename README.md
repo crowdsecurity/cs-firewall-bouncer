@@ -78,8 +78,24 @@ api_url: <API_URL>  # when install, default is "localhost:8080"
 api_key: <API_KEY>  # Add your API key generated with `cscli bouncers add --name <bouncer_name>`
 ```
 
+ - `mode` can be set to `iptables` or `nftables`
+ - `update_frequency` controls how often the bouncer is going to query the local API
+ - `api_url` and `api_key` control local API parameters.
+
 You can then start the service:
 
 ```sh
 sudo systemctl start cs-firewall-bouncer
 ```
+
+### iptables vs nftables
+
+The bouncer supports two modes : `iptables` or `nftables`.
+When using `nftables`, it doesn't directly rely on any available command, but rather on github.com/google/nftables.
+When using `iptables`, it relies on `iptables` and `ipset` commands.
+
+
+
+
+
+
