@@ -22,11 +22,11 @@ type nft struct {
 	table6 *nftables.Table
 }
 
-func newNFTables(disableIPV6 bool) (interface{}, error) {
+func newNFTables(config *bouncerConfig) (interface{}, error) {
 	ret := &nft{}
 
 	ret.conn = &nftables.Conn{}
-	if !disableIPV6 {
+	if !config.DisableIPV6 {
 		ret.conn6 = &nftables.Conn{}
 	}
 	return ret, nil

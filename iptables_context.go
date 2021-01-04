@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,15 +17,16 @@ type ipTablesContext struct {
 	version          string
 	ipsetBin         string
 	iptablesBin      string
-	SetName          string   //crowdsec-netfilter
-	StartupCmds      []string //-I INPUT -m set --match-set myset src -j DROP
-	ShutdownCmds     []string //-D INPUT -m set --match-set myset src -j DROP
-	CheckIptableCmds []string
+	SetName          string     //crowdsec-netfilter
+	StartupCmds      [][]string //-I INPUT -m set --match-set myset src -j DROP
+	ShutdownCmds     [][]string //-D INPUT -m set --match-set myset src -j DROP
+	CheckIptableCmds [][]string
 }
 
 func (ctx *ipTablesContext) CheckAndCreate() error {
 	var err error
 
+	log.Infof("Checking existing set")
 	/* check if the set already exist */
 	cmd := exec.Command(ctx.ipsetBin, "-L", ctx.SetName)
 	if _, err = cmd.CombinedOutput(); err != nil { // if doesn't exist, create it
@@ -42,15 +45,32 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 	time.Sleep(1 * time.Second)
 
 	// checking if iptables rules exist
-	cmd = exec.Command(ctx.iptablesBin, ctx.CheckIptableCmds...)
-	if _, err := cmd.CombinedOutput(); err != nil { // if doesn't exist, create it
-		cmd = exec.Command(ctx.iptablesBin, ctx.StartupCmds...)
-		log.Infof("iptables set-up : %s", cmd.String())
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("Error while insert set in iptables (%s): %v --> %s", cmd.String(), err, string(out))
+	checkOk := true
+	for _, checkCmd := range ctx.CheckIptableCmds {
+		cmd = exec.Command(ctx.iptablesBin, checkCmd...)
+		if stdout, err := cmd.CombinedOutput(); err != nil {
+			checkOk = false
+			/*rule doesn't exist, avoid alarming error messages*/
+			if strings.Contains(string(stdout), "iptables: Bad rule") {
+				log.Infof("Rule doesn't exist (%s)", cmd.String())
+			} else {
+				log.Warningf("iptables check command (%s) failed : %s", cmd.String(), err)
+				log.Debugf("output: %s", string(stdout))
+			}
 		}
 	}
-
+	/*if any of the check command error'ed, exec the setup command*/
+	if !checkOk {
+		// if doesn't exist, create it
+		for _, startCmd := range ctx.StartupCmds {
+			cmd = exec.Command(ctx.iptablesBin, startCmd...)
+			log.Infof("iptables set-up : %s", cmd.String())
+			if out, err := cmd.CombinedOutput(); err != nil {
+				log.Warningf("Error inserting set in iptables (%s): %v : %s", cmd.String(), err, string(out))
+				return errors.Wrapf(err, "while inserting set in iptables")
+			}
+		}
+	}
 	return nil
 }
 
@@ -73,16 +93,22 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 
 func (ctx *ipTablesContext) shutDown() error {
 	/*clean iptables rules*/
-	cmd := exec.Command(ctx.iptablesBin, ctx.ShutdownCmds...)
-	log.Infof("iptables clean-up : %s", cmd.String())
-	if out, err := cmd.CombinedOutput(); err != nil {
-		/*if the set doesn't exist, don't frigthen user with error messages*/
-		if strings.Contains(string(out), "Set crowdsec-blacklists doesn't exist.") {
-			log.Infof("ipset 'crowdsec-blacklists' doesn't exist, skip")
-		} else {
-			log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
+	var cmd *exec.Cmd
+	// if doesn't exist, create it
+	for _, startCmd := range ctx.ShutdownCmds {
+		cmd = exec.Command(ctx.iptablesBin, startCmd...)
+		log.Infof("iptables clean-up : %s", cmd.String())
+		if out, err := cmd.CombinedOutput(); err != nil {
+			if strings.Contains(string(out), "Set crowdsec-blacklists doesn't exist.") {
+				log.Infof("ipset 'crowdsec-blacklists' doesn't exist, skip")
+			} else if strings.Contains(string(out), "Set crowdsec6-blacklists doesn't exist.") {
+				log.Infof("ipset 'crowdsec6-blacklists' doesn't exist, skip")
+			} else {
+				log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
+			}
 		}
 	}
+
 	/*clean ipset set*/
 	cmd = exec.Command(ctx.ipsetBin, "-exist", "destroy", ctx.SetName)
 	log.Infof("ipset clean-up : %s", cmd.String())

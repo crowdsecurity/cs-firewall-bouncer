@@ -22,6 +22,8 @@ type bouncerConfig struct {
 	APIUrl          string    `yaml:"api_url"`
 	APIKey          string    `yaml:"api_key"`
 	DisableIPV6     bool      `yaml:"disable_ipv6"`
+	//specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
+	IptablesChains []string `yaml:"iptables_chains"`
 }
 
 func NewConfig(configPath string) (*bouncerConfig, error) {

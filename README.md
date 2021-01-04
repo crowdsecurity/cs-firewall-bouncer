@@ -76,11 +76,16 @@ log_dir: /var/log/
 log_level: info
 api_url: <API_URL>  # when install, default is "localhost:8080"
 api_key: <API_KEY>  # Add your API key generated with `cscli bouncers add --name <bouncer_name>`
+#if present, insert rule in those chains
+iptables_chains:
+  - INPUT
+  - FORWARD
 ```
 
  - `mode` can be set to `iptables` or `nftables`
  - `update_frequency` controls how often the bouncer is going to query the local API
  - `api_url` and `api_key` control local API parameters.
+ - `iptables_chains` allows (in _iptables_ mode) to control in which chain rules are going to be inserted. (if empty,the bouncer will only maintain ipset lists)
 
 You can then start the service:
 
