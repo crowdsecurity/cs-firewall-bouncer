@@ -79,6 +79,8 @@ func (ctx *ipTablesContext) shutDown() error {
 		/*if the set doesn't exist, don't frigthen user with error messages*/
 		if strings.Contains(string(out), "Set crowdsec-blacklists doesn't exist.") {
 			log.Infof("ipset 'crowdsec-blacklists' doesn't exist, skip")
+		} else if strings.Contains(string(out), "Set crowdsec6-blacklists doesn't exist.") {
+			log.Infof("ipset 'crowdsec6-blacklists' doesn't exist, skip")
 		} else {
 			log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
 		}
