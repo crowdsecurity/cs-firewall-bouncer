@@ -16,17 +16,24 @@ type iptables struct {
 
 var iptablesCtx = &iptables{}
 
-func newIPTables(disableIPV6 bool) (interface{}, error) {
+func newIPTables(config *bouncerConfig) (interface{}, error) {
 	var err error
 	ipv4Ctx := &ipTablesContext{
 		Name:             "ipset",
 		version:          "v4",
 		SetName:          "crowdsec-blacklists",
-		StartupCmds:      []string{"-I", "INPUT", "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"},
-		ShutdownCmds:     []string{"-D", "INPUT", "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"},
-		CheckIptableCmds: []string{"-C", "INPUT", "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"},
+		StartupCmds:      [][]string{},
+		ShutdownCmds:     [][]string{},
+		CheckIptableCmds: [][]string{},
 	}
-
+	for _, v := range config.IptablesChains {
+		ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
+			[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+		ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
+			[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+		ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
+			[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+	}
 	ipsetBin, err := exec.LookPath("ipset")
 	if err != nil {
 		return nil, fmt.Errorf("unable to find ipset")
@@ -42,14 +49,22 @@ func newIPTables(disableIPV6 bool) (interface{}, error) {
 		v4: ipv4Ctx,
 	}
 
-	if !disableIPV6 {
+	if !config.DisableIPV6 {
 		ipv6Ctx := &ipTablesContext{
 			Name:             "ipset",
 			version:          "v6",
 			SetName:          "crowdsec6-blacklists",
-			StartupCmds:      []string{"-I", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
-			ShutdownCmds:     []string{"-D", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
-			CheckIptableCmds: []string{"-C", "INPUT", "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"},
+			StartupCmds:      [][]string{},
+			ShutdownCmds:     [][]string{},
+			CheckIptableCmds: [][]string{},
+		}
+		for _, v := range config.IptablesChains {
+			ipv6Ctx.StartupCmds = append(ipv6Ctx.StartupCmds,
+				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+			ipv6Ctx.ShutdownCmds = append(ipv6Ctx.ShutdownCmds,
+				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+			ipv6Ctx.CheckIptableCmds = append(ipv6Ctx.CheckIptableCmds,
+				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
 		}
 		ipv6Ctx.ipsetBin = ipsetBin
 		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")

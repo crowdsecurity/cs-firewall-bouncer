@@ -8,3 +8,11 @@ log_level: info
 api_url: http://localhost:8080/
 api_key: ${API_KEY}
 disable_ipv6: false
+#if present, insert rule in those chains
+iptables_chains:
+  - INPUT
+#  - FORWARD
+#  - DOCKER-USER
+
+
+

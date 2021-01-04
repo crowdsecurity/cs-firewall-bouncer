@@ -75,7 +75,7 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	backend, err := newBackend(config.Mode, config.DisableIPV6)
+	backend, err := newBackend(config)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
