@@ -20,6 +20,7 @@ cs-firewall-bouncer will fetch new and old decisions from a CrowdSec API to add 
 Supported firewalls:
  - iptables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
  - nftables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
+ - ipset only (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
 
 ## Installation
 
@@ -58,7 +59,7 @@ sudo ./upgrade.sh
 
 ## Configuration
 
-To be functional, the `cs-firewall-bouncer` service must be able to comunicate with the local API.
+To be functional, the `cs-firewall-bouncer` service must be able to authenticate with the local API.
 The `install.sh` script will take care of it (it will call `cscli bouncers add` on your behalf).
 If it was not the case, the default configuration file is located under : `/etc/crowdsec/cs-firewall-bouncer/`
 
@@ -82,10 +83,10 @@ iptables_chains:
   - FORWARD
 ```
 
- - `mode` can be set to `iptables` or `nftables`
+ - `mode` can be set to `iptables`, `nftables` or `ipset`
  - `update_frequency` controls how often the bouncer is going to query the local API
  - `api_url` and `api_key` control local API parameters.
- - `iptables_chains` allows (in _iptables_ mode) to control in which chain rules are going to be inserted. (if empty,the bouncer will only maintain ipset lists)
+ - `iptables_chains` allows (in _iptables_ mode) to control in which chain rules are going to be inserted. (if empty, bouncer will only maintain ipset lists)
 
 You can then start the service:
 
@@ -93,11 +94,11 @@ You can then start the service:
 sudo systemctl start cs-firewall-bouncer
 ```
 
-### iptables vs nftables
+### modes
 
-The bouncer supports two modes : `iptables` or `nftables`.
-When using `nftables`, it doesn't directly rely on any available command, but rather on github.com/google/nftables.
-When using `iptables`, it relies on `iptables` and `ipset` commands.
+ - mode `nftables` relies on github.com/google/nftables to create table, chain and set.
+ - mode `iptables` relies on `iptables` and `ipset` commands to insert `match-set` directives and maintain associated ipsets
+ - mode `ipset` relies on `ipset` and only manage contents of the sets (they need to exist at startup and will be flushed rather than created)
 
 
 
