@@ -57,7 +57,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		log.Println("IPV6 is disabled")
 	}
 	switch config.Mode {
-	case "iptables":
+	case "iptables", "ipset":
 		tmpCtx, err := newIPTables(config)
 		if err != nil {
 			return nil, err

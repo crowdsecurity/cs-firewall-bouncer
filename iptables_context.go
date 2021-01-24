@@ -21,6 +21,7 @@ type ipTablesContext struct {
 	StartupCmds      [][]string //-I INPUT -m set --match-set myset src -j DROP
 	ShutdownCmds     [][]string //-D INPUT -m set --match-set myset src -j DROP
 	CheckIptableCmds [][]string
+	ipsetContentOnly bool
 }
 
 func (ctx *ipTablesContext) CheckAndCreate() error {
@@ -29,15 +30,21 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 	log.Infof("Checking existing set")
 	/* check if the set already exist */
 	cmd := exec.Command(ctx.ipsetBin, "-L", ctx.SetName)
-	if _, err = cmd.CombinedOutput(); err != nil { // if doesn't exist, create it
-		if ctx.version == "v6" {
-			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300", "family", "inet6")
+	if _, err = cmd.CombinedOutput(); err != nil { //it doesn't exist
+		if ctx.ipsetContentOnly {
+			/*if we manage ipset content only, error*/
+			log.Errorf("set %s doesn't exist, can't manage content", ctx.SetName)
+			return errors.Wrapf(err, "set %s doesn't exist", ctx.SetName)
 		} else {
-			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300")
-		}
-		log.Infof("ipset set-up : %s", cmd.String())
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("Error while creating set : %v --> %s", err, string(out))
+			if ctx.version == "v6" {
+				cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300", "family", "inet6")
+			} else {
+				cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300")
+			}
+			log.Infof("ipset set-up : %s", cmd.String())
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("Error while creating set : %v --> %s", err, string(out))
+			}
 		}
 	}
 
@@ -110,16 +117,21 @@ func (ctx *ipTablesContext) shutDown() error {
 	}
 
 	/*clean ipset set*/
-	cmd = exec.Command(ctx.ipsetBin, "-exist", "destroy", ctx.SetName)
+	var ipsetCmd string
+	if ctx.ipsetContentOnly {
+		ipsetCmd = "flush"
+	} else {
+		ipsetCmd = "destroy"
+	}
+	cmd = exec.Command(ctx.ipsetBin, "-exist", ipsetCmd, ctx.SetName)
 	log.Infof("ipset clean-up : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		if strings.Contains(string(out), "The set with the given name does not exist") {
 			log.Infof("ipset 'crowdsec-blacklists' doesn't exist, skip")
 		} else {
-			log.Errorf("Error while destroying set : %v --> %s", err, string(out))
+			log.Errorf("set %s error : %v - %s", ipsetCmd, err, string(out))
 		}
 	}
-
 	return nil
 }
 
