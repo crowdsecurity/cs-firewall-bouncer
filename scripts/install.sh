@@ -14,7 +14,7 @@ API_KEY=""
 check_pkg_manager(){
     if [ -f /etc/redhat-release ]; then
         PKG="yum"
-    elif cat /etc/system-release | grep "Amazon Linux release 2 (Karoo)" > /dev/null; then
+    elif cat /etc/system-release | grep -q "Amazon Linux release 2 (Karoo)"; then
         PKG="yum"
     elif [ -f /etc/debian_version ]; then
         PKG="apt"
