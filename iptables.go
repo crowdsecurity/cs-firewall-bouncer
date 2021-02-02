@@ -18,6 +18,7 @@ var iptablesCtx = &iptables{}
 
 func newIPTables(config *bouncerConfig) (interface{}, error) {
 	var err error
+	var ret *iptables = &iptables{}
 	ipv4Ctx := &ipTablesContext{
 		Name:             "ipset",
 		version:          "v4",
@@ -26,37 +27,47 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 		ShutdownCmds:     [][]string{},
 		CheckIptableCmds: [][]string{},
 	}
-	for _, v := range config.IptablesChains {
-		ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
-			[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
-		ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
-			[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
-		ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
-			[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+	ipv6Ctx := &ipTablesContext{
+		Name:             "ipset",
+		version:          "v6",
+		SetName:          "crowdsec6-blacklists",
+		StartupCmds:      [][]string{},
+		ShutdownCmds:     [][]string{},
+		CheckIptableCmds: [][]string{},
 	}
+
 	ipsetBin, err := exec.LookPath("ipset")
 	if err != nil {
 		return nil, fmt.Errorf("unable to find ipset")
 	}
-
-	ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
-	if err != nil {
-		return nil, fmt.Errorf("unable to find iptables")
-	}
 	ipv4Ctx.ipsetBin = ipsetBin
-
-	ret := &iptables{
-		v4: ipv4Ctx,
+	if config.Mode == "ipset" {
+		ipv4Ctx.ipsetContentOnly = true
+	} else {
+		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
+		if err != nil {
+			return nil, fmt.Errorf("unable to find iptables")
+		}
+		for _, v := range config.IptablesChains {
+			ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
+				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+			ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
+				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+			ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
+				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+		}
 	}
-
-	if !config.DisableIPV6 {
-		ipv6Ctx := &ipTablesContext{
-			Name:             "ipset",
-			version:          "v6",
-			SetName:          "crowdsec6-blacklists",
-			StartupCmds:      [][]string{},
-			ShutdownCmds:     [][]string{},
-			CheckIptableCmds: [][]string{},
+	ret.v4 = ipv4Ctx
+	if config.DisableIPV6 {
+		return ret, nil
+	}
+	ipv6Ctx.ipsetBin = ipsetBin
+	if config.Mode == "ipset" {
+		ipv6Ctx.ipsetContentOnly = true
+	} else {
+		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
+		if err != nil {
+			return nil, fmt.Errorf("unable to find ip6tables")
 		}
 		for _, v := range config.IptablesChains {
 			ipv6Ctx.StartupCmds = append(ipv6Ctx.StartupCmds,
@@ -66,13 +77,8 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 			ipv6Ctx.CheckIptableCmds = append(ipv6Ctx.CheckIptableCmds,
 				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
 		}
-		ipv6Ctx.ipsetBin = ipsetBin
-		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
-		if err != nil {
-			return nil, fmt.Errorf("unable to find iptables")
-		}
-		ret.v6 = ipv6Ctx
 	}
+	ret.v6 = ipv6Ctx
 
 	return ret, nil
 }
@@ -180,60 +186,3 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 	}
 	return nil
 }
-
-/*func (ipt *iptables) Run(dbCTX *database.Context, frequency time.Duration) error {
-
-	lastDelTS := time.Now()
-	lastAddTS := time.Now()
-	//start by getting valid bans in db ^^
-	log.Infof("fetching existing bans from DB")
-	bansToAdd, err := dbCTX.GetNewBan()
-	if err != nil {
-		return err
-	}
-	log.Infof("found %d bans in DB", len(bansToAdd))
-	for idx, ba := range bansToAdd {
-		log.Debugf("ban %d/%d", idx, len(bansToAdd))
-		if err := ipt.AddBan(ba); err != nil {
-			return err
-		}
-
-	}
-	for {
-		// check if ipset set and iptables rules are still present. if not creat them
-		if err := ipt.v4.CheckAndCreate(); err != nil {
-			return err
-		}
-		if err := ipt.v6.CheckAndCreate(); err != nil {
-			return err
-		}
-		time.Sleep(frequency)
-
-		bas, err := dbCTX.GetDeletedBanSince(lastDelTS)
-		if err != nil {
-			return err
-		}
-		lastDelTS = time.Now()
-		if len(bas) > 0 {
-			log.Infof("%d bans to flush since %s", len(bas), lastDelTS)
-		}
-		for idx, ba := range bas {
-			log.Debugf("delete ban %d/%d", idx, len(bas))
-			if err := ipt.DeleteBan(ba); err != nil {
-				return err
-			}
-		}
-		bansToAdd, err := dbCTX.GetNewBanSince(lastAddTS)
-		if err != nil {
-			return err
-		}
-		lastAddTS = time.Now()
-		for idx, ba := range bansToAdd {
-			log.Debugf("ban %d/%d", idx, len(bansToAdd))
-			if err := ipt.AddBan(ba); err != nil {
-				return err
-			}
-		}
-	}
-}
-*/

@@ -22,13 +22,14 @@ BINARY_NAME=cs-firewall-bouncer
 
 RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
 
+all: clean test build
+
 goversion:
 	CURRENT_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
 	REQUIRE_GOVERSION="1.13"
 	RESPECT_VERSION="$(shell echo "$(CURRENT_GOVERSION),$(REQUIRE_GOVERSION)" | tr ',' '\n' | sort -V)"
 
 
-all: clean test build
 
 static: clean
 	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME) -v -a -tags netgo -ldflags '-w -extldflags "-static"'
