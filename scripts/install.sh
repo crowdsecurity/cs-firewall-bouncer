@@ -14,6 +14,8 @@ API_KEY=""
 check_pkg_manager(){
     if [ -f /etc/redhat-release ]; then
         PKG="yum"
+    elif [ -f /etc/arch-release ]; then
+	    PKG="pacman"
     elif cat /etc/system-release | grep -q "Amazon Linux release 2 (Karoo)"; then
         PKG="yum"
     elif [ -f /etc/debian_version ]; then
@@ -21,28 +23,28 @@ check_pkg_manager(){
     else
         echo "Distribution is not supported, exiting."
         exit
-    fi   
+    fi
 }
 
 check_firewall() {
     iptables="true"
     which iptables > /dev/null
     FW_BACKEND=""
-    if [[ $? != 0 ]]; then 
+    if [[ $? != 0 ]]; then
         echo "iptables is not present"
         iptables="false"
-    else 
+    else
         FW_BACKEND="iptables"
         echo "iptables found"
     fi
 
     nftables="true"
     which nft > /dev/null
-    if [[ $? != 0 ]]; then 
+    if [[ $? != 0 ]]; then
         echo "nftables is not present"
         nftables="false"
     else
-        FW_BACKEND="nftables" 
+        FW_BACKEND="nftables"
         echo "nftables found"
     fi
 
@@ -56,7 +58,7 @@ check_firewall() {
             "$PKG" install -y -qq nftables > /dev/null && echo "nftables successfully installed"
         else
             echo "unable to continue without nftables. Please install nftables or iptables to use this bouncer." && exit 1
-        fi   
+        fi
     fi
 
     if [ "$nftables" = "true" -a "$iptables" = "true" ]; then
@@ -64,7 +66,7 @@ check_firewall() {
         read answer
         if [ "$answer" = "iptables" ]; then
             FW_BACKEND="iptables"
-        fi   
+        fi
     fi
 
     if [ "$FW_BACKEND" = "iptables" ]; then
@@ -76,12 +78,12 @@ check_firewall() {
 
 gen_apikey() {
     which cscli > /dev/null
-    if [[ $? == 0 ]]; then 
+    if [[ $? == 0 ]]; then
         echo "cscli found, generating bouncer api key."
         SUFFIX=`tr -dc A-Za-z0-9 </dev/urandom | head -c 8`
         API_KEY=`cscli bouncers add cs-firewall-bouncer-${SUFFIX} -o raw`
         READY="yes"
-    else 
+    else
         echo "cscli not found, you will need to generate api key."
         READY="no"
     fi
@@ -100,10 +102,16 @@ check_ipset() {
             answer="y"
         fi
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            "$PKG" install -y -qq ipset > /dev/null && echo "ipset successfully installed"
+	        if [ ${PKG} == "pacman" ]; then
+                PKG_CMD="pacman -Syq ipset"
+            else
+		        PKG_CMD="${PKG} install -y -qq ipset"
+            fi
+
+            "$PKG_CMD" > /dev/null && echo "ipset successfully installed"
         else
             echo "unable to continue without ipset. Exiting" && exit 1
-        fi      
+        fi
     fi
 }
 
