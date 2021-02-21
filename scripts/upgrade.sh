@@ -10,7 +10,7 @@ upgrade_bin() {
 
 
 if ! [ $(id -u) = 0 ]; then
-    log_err "Please run the upgrade script as root or with sudo"
+    echo "Please run the upgrade script as root or with sudo"
     exit 1
 fi
 
