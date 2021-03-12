@@ -94,6 +94,10 @@ You can then start the service:
 sudo systemctl start cs-firewall-bouncer
 ```
 
+### logs
+
+logs can be found in `/var/log/cs-firewall-bouncer.log`
+
 ### modes
 
  - mode `nftables` relies on github.com/google/nftables to create table, chain and set.
