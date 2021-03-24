@@ -78,7 +78,7 @@ log_level: info
 api_url: <API_URL>  # when install, default is "localhost:8080"
 api_key: <API_KEY>  # Add your API key generated with `cscli bouncers add --name <bouncer_name>`
 disable_ipv6: false
-deny_mode: drop
+deny_mode: DROP
 deny_log: false
 #deny_log_prefix: "crowdsec: "
 #if present, insert rule in those chains
@@ -92,7 +92,7 @@ iptables_chains:
  - `api_url` and `api_key` control local API parameters.
  - `iptables_chains` allows (in _iptables_ mode) to control in which chain rules are going to be inserted. (if empty, bouncer will only maintain ipset lists)
  - `disable_ipv6` - set to true to disable ipv6
- - `deny_mode` - what action to use to deny, one of drop or reject
+ - `deny_mode` - what action to use to deny, one of DROP or REJECT
  - `deny_log` - set this to true to add a log statement to the firewall rule
  - `deny_log_prefix` - if logging is true, this sets the log prefix, defaults to "crowdsec: "
 

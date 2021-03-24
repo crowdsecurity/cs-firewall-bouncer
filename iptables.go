@@ -37,7 +37,7 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 	}
 
 	var target string
-	if config.DenyAction == "reject" {
+  if strings.EqualFold(n.DenyAction, "REJECT") {
 		target = "REJECT"
 	} else {
 		target = "DROP"
