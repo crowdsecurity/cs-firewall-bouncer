@@ -77,6 +77,10 @@ log_dir: /var/log/
 log_level: info
 api_url: <API_URL>  # when install, default is "localhost:8080"
 api_key: <API_KEY>  # Add your API key generated with `cscli bouncers add --name <bouncer_name>`
+disable_ipv6: false
+deny_mode: drop
+deny_log: false
+#deny_log_prefix: "crowdsec: "
 #if present, insert rule in those chains
 iptables_chains:
   - INPUT
@@ -87,6 +91,10 @@ iptables_chains:
  - `update_frequency` controls how often the bouncer is going to query the local API
  - `api_url` and `api_key` control local API parameters.
  - `iptables_chains` allows (in _iptables_ mode) to control in which chain rules are going to be inserted. (if empty, bouncer will only maintain ipset lists)
+ - `disable_ipv6` - set to true to disable ipv6
+ - `deny_mode` - what action to use to deny, one of drop or reject
+ - `deny_log` - set this to true to add a log statement to the firewall rule
+ - `deny_log_prefix` - if logging is true, this sets the log prefix, defaults to "crowdsec: "
 
 You can then start the service:
 
@@ -103,9 +111,3 @@ logs can be found in `/var/log/cs-firewall-bouncer.log`
  - mode `nftables` relies on github.com/google/nftables to create table, chain and set.
  - mode `iptables` relies on `iptables` and `ipset` commands to insert `match-set` directives and maintain associated ipsets
  - mode `ipset` relies on `ipset` and only manage contents of the sets (they need to exist at startup and will be flushed rather than created)
-
-
-
-
-
-
