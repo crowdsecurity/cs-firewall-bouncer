@@ -94,11 +94,11 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
 			}
 			ipv6Ctx.StartupCmds = append(ipv6Ctx.StartupCmds,
-				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", target})
 			ipv6Ctx.ShutdownCmds = append(ipv6Ctx.ShutdownCmds,
-				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", target})
 			ipv6Ctx.CheckIptableCmds = append(ipv6Ctx.CheckIptableCmds,
-				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", target})
 		}
 	}
 	ret.v6 = ipv6Ctx
