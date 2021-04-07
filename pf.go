@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -25,6 +26,7 @@ type pf struct {
 
 const (
 	pfctlCmd = "/sbin/pfctl"
+	pfDevice = "/dev/pf"
 )
 
 var pfCtx = &pf{}
@@ -98,6 +100,14 @@ func (ctx *pfContext) Delete(decision *models.Decision) error {
 
 func (pf *pf) Init() error {
 	var err error
+
+	if _, err := os.Stat(pfDevice); err != nil {
+		return fmt.Errorf("%s device not found: %s", pfDevice, err.Error())
+	}
+
+	if _, err := exec.LookPath(pfctlCmd); err != nil {
+		return fmt.Errorf("%s command not found: %s", pfctlCmd, err.Error())
+	}
 
 	if err := pf.inet.shutDown(); err != nil {
 		return fmt.Errorf("pf table flush failed: %s", err.Error())
