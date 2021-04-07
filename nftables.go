@@ -157,7 +157,7 @@ func (n *nft) Init() error {
 				Data: []byte(n.DenyLogPrefix),
 			})
 		}
-    if strings.EqualFold(n.DenyAction, "REJECT") {
+		if strings.EqualFold(n.DenyAction, "REJECT") {
 			r.Exprs = append(r.Exprs, &expr.Reject{
 				Type: unix.NFT_REJECT_ICMP_UNREACH,
 				Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
