@@ -1,4 +1,4 @@
-// +build openbsd
+// +build openbsd freebsd
 
 package main
 
@@ -23,7 +23,9 @@ type pf struct {
 	inet6 *pfContext
 }
 
-const PFCTL = "/sbin/pfctl"
+const (
+	pfctlCmd = "/sbin/pfctl"
+)
 
 var pfCtx = &pf{}
 
@@ -54,7 +56,7 @@ func newPF(config *bouncerConfig) (interface{}, error) {
 func (ctx *pfContext) checkTable() error {
 	log.Infof("Checking pf table: %s", ctx.table)
 
-	cmd := exec.Command(PFCTL, "-s", "Tables")
+	cmd := exec.Command(pfctlCmd, "-s", "Tables")
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -67,7 +69,7 @@ func (ctx *pfContext) checkTable() error {
 }
 
 func (ctx *pfContext) shutDown() error {
-	cmd := exec.Command(PFCTL, "-t", ctx.table, "-T", "flush")
+	cmd := exec.Command(pfctlCmd, "-t", ctx.table, "-T", "flush")
 	log.Infof("pf table clean-up : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Errorf("Error while flushing table (%s): %v - %s", err, string(out))
@@ -77,7 +79,7 @@ func (ctx *pfContext) shutDown() error {
 
 func (ctx *pfContext) Add(decision *models.Decision) error {
 	log.Debugf("pfctl add ban [%s]", *decision.Value)
-	cmd := exec.Command(PFCTL, "-t", ctx.table, "-T", "add", *decision.Value)
+	cmd := exec.Command(pfctlCmd, "-t", ctx.table, "-T", "add", *decision.Value)
 	log.Debugf("pfctl add : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while adding to table (%s): %v --> %s", cmd.String(), err, string(out))
@@ -87,7 +89,7 @@ func (ctx *pfContext) Add(decision *models.Decision) error {
 
 func (ctx *pfContext) Delete(decision *models.Decision) error {
 	log.Debugf("pfctl del ban for [%s]", *decision.Value)
-	cmd := exec.Command(PFCTL, "-t", ctx.table, "-T", "delete", *decision.Value)
+	cmd := exec.Command(pfctlCmd, "-t", ctx.table, "-T", "delete", *decision.Value)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while deleting from table (%s): %v --> %s", cmd.String(), err, string(out))
 	}

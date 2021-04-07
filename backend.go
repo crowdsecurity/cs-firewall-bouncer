@@ -49,6 +49,19 @@ func (b *backendCTX) Delete(decision *models.Decision) error {
 	return nil
 }
 
+func isPFSupported(runtimeOS string) bool {
+	var supported bool
+
+	switch runtimeOS {
+	case "openbsd", "freebsd":
+		supported = true
+	default:
+		supported = false
+	}
+
+	return supported
+}
+
 func newBackend(config *bouncerConfig) (*backendCTX, error) {
 	var ok bool
 
@@ -83,8 +96,8 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 			return nil, fmt.Errorf("unexpected type '%T' for nftables context", tmpCtx)
 		}
 	case "pf":
-		if runtime.GOOS != "openbsd" {
-			return nil, fmt.Errorf("pf is openbsd only")
+		if !isPFSupported(runtime.GOOS) {
+			return nil, fmt.Errorf("pf mode is supported only for openbsd and freebsd")
 		}
 		tmpCtx, err := newPF(config)
 		if err != nil {
