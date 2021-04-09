@@ -36,6 +36,13 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 		CheckIptableCmds: [][]string{},
 	}
 
+	var target string
+	if strings.EqualFold(config.DenyAction, "REJECT") {
+		target = "REJECT"
+	} else {
+		target = "DROP"
+	}
+
 	ipsetBin, err := exec.LookPath("ipset")
 	if err != nil {
 		return nil, fmt.Errorf("unable to find ipset")
@@ -49,12 +56,20 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 			return nil, fmt.Errorf("unable to find iptables")
 		}
 		for _, v := range config.IptablesChains {
+			if config.DenyLog {
+				ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
+				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+				ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
+				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+				ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
+				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+			}
 			ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
-				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", target})
 			ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
-				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", target})
 			ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
-				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "DROP"})
+				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", target})
 		}
 	}
 	ret.v4 = ipv4Ctx
@@ -70,12 +85,20 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 			return nil, fmt.Errorf("unable to find ip6tables")
 		}
 		for _, v := range config.IptablesChains {
+			if config.DenyLog {
+				ipv6Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
+				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+				ipv6Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
+				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+				ipv6Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
+				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+			}
 			ipv6Ctx.StartupCmds = append(ipv6Ctx.StartupCmds,
-				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", target})
 			ipv6Ctx.ShutdownCmds = append(ipv6Ctx.ShutdownCmds,
-				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", target})
 			ipv6Ctx.CheckIptableCmds = append(ipv6Ctx.CheckIptableCmds,
-				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", "DROP"})
+				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec6-blacklists", "src", "-j", target})
 		}
 	}
 	ret.v6 = ipv6Ctx

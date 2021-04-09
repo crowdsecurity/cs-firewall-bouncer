@@ -8,11 +8,12 @@ log_level: info
 api_url: http://localhost:8080/
 api_key: ${API_KEY}
 disable_ipv6: false
+deny_mode: DROP
+deny_log: false
+#to change log prefix
+#deny_log_prefix: "crowdsec: "
 #if present, insert rule in those chains
 iptables_chains:
   - INPUT
 #  - FORWARD
 #  - DOCKER-USER
-
-
-
