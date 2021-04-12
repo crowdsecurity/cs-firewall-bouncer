@@ -40,8 +40,6 @@ const (
 	delBanFormat = "%s: del ban on %s for %s sec (%s)"
 )
 
-var pfCtx = &pf{}
-
 func newPF(config *bouncerConfig) (interface{}, error) {
 	ret := &pf{}
 
@@ -89,6 +87,7 @@ func (ctx *pfContext) shutDown() error {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Errorf("Error while flushing table (%s): %v - %s", err, string(out))
 	}
+
 	return nil
 }
 
@@ -103,6 +102,7 @@ func (ctx *pfContext) Add(decision *models.Decision) error {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while adding to table (%s): %v --> %s", cmd.String(), err, string(out))
 	}
+
 	return nil
 }
 
@@ -120,8 +120,20 @@ func (ctx *pfContext) Delete(decision *models.Decision) error {
 	return nil
 }
 
+func initPF(ctx *pfContext) error {
+
+	if err := ctx.shutDown(); err != nil {
+		return fmt.Errorf("pf table flush failed: %s", err.Error())
+	}
+	if err := ctx.checkTable(); err != nil {
+		return fmt.Errorf("pf init failed: %s", err.Error())
+	}
+	log.Infof("%s initiated for %s", backendName, ctx.version)
+
+	return nil
+}
+
 func (pf *pf) Init() error {
-	var err error
 
 	if _, err := os.Stat(pfDevice); err != nil {
 		return fmt.Errorf("%s device not found: %s", pfDevice, err.Error())
@@ -131,22 +143,14 @@ func (pf *pf) Init() error {
 		return fmt.Errorf("%s command not found: %s", pfctlCmd, err.Error())
 	}
 
-	if err := pf.inet.shutDown(); err != nil {
-		return fmt.Errorf("pf table flush failed: %s", err.Error())
+	if err := initPF(pf.inet); err != nil {
+		return err
 	}
-	if err := pf.inet.checkTable(); err != nil {
-		return fmt.Errorf("pf init failed: %s", err.Error())
-	}
-	log.Printf("pf for ipv4 initiated")
 
 	if pf.inet6 != nil {
-		if err = pf.inet.shutDown(); err != nil {
-			return fmt.Errorf("pf shutdown failed: %s", err.Error())
+		if err := initPF(pf.inet6); err != nil {
+			return err
 		}
-		if err := pf.inet.checkTable(); err != nil {
-			return fmt.Errorf("pf init failed: %s", err.Error())
-		}
-		log.Printf("pf for ipv6 initiated")
 	}
 
 	return nil
