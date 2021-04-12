@@ -69,7 +69,7 @@ $ vim /etc/crowdsec/cs-firewall-bouncer/cs-firewall-bouncer.yaml
 
 ```yaml
 mode: iptables
-piddir: /var/run/
+pid_dir: /var/run/
 update_frequency: 10s
 daemonize: true
 log_mode: file
