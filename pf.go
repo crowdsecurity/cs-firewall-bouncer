@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -25,8 +27,13 @@ type pf struct {
 }
 
 const (
+	backendName = "pf"
+
 	pfctlCmd = "/sbin/pfctl"
 	pfDevice = "/dev/pf"
+
+	addBanFormat = "%s: add ban on %s for %s sec (%s)"
+	delBanFormat = "%s: del ban on %s for %s sec (%s)"
 )
 
 var pfCtx = &pf{}
@@ -80,7 +87,11 @@ func (ctx *pfContext) shutDown() error {
 }
 
 func (ctx *pfContext) Add(decision *models.Decision) error {
-	log.Debugf("pfctl add ban [%s]", *decision.Value)
+	banDuration, err := time.ParseDuration(*decision.Duration)
+	if err != nil {
+		return err
+	}
+	log.Debugf(addBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
 	cmd := exec.Command(pfctlCmd, "-t", ctx.table, "-T", "add", *decision.Value)
 	log.Debugf("pfctl add : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
@@ -90,8 +101,13 @@ func (ctx *pfContext) Add(decision *models.Decision) error {
 }
 
 func (ctx *pfContext) Delete(decision *models.Decision) error {
-	log.Debugf("pfctl del ban for [%s]", *decision.Value)
+	banDuration, err := time.ParseDuration(*decision.Duration)
+	if err != nil {
+		return err
+	}
+	log.Debugf(delBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
 	cmd := exec.Command(pfctlCmd, "-t", ctx.table, "-T", "delete", *decision.Value)
+	log.Debugf("pfctl del : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while deleting from table (%s): %v --> %s", cmd.String(), err, string(out))
 	}
