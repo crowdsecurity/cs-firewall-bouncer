@@ -45,8 +45,8 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 	}
 
 	if config.PidDir == "" {
-		log.Warningf("missing 'pid_dir' directive in '%s', using default: '/run/'", configPath)
-		config.PidDir = "/run/"
+		log.Warningf("missing 'pid_dir' directive in '%s', using default: '/var/run/'", configPath)
+		config.PidDir = "/var/run/"
 	}
 
 	if config.Mode == "" || config.LogMode == "" {
