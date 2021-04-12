@@ -10,15 +10,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+	"github.com/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type pfContext struct {
-        proto  string
-        table  string
+	proto   string
+	table   string
+	version string
 }
 
 type pf struct {
@@ -28,6 +29,9 @@ type pf struct {
 
 const (
 	backendName = "pf"
+
+	pfinetTable  = "crowdsec-blacklists"
+	pfinet6Table = "crowdsec6-blacklists"
 
 	pfctlCmd = "/sbin/pfctl"
 	pfDevice = "/dev/pf"
@@ -42,13 +46,15 @@ func newPF(config *bouncerConfig) (interface{}, error) {
 	ret := &pf{}
 
 	inetCtx := &pfContext{
-		table: "crowdsec-blacklists",
-		proto: "inet",
+		table:   pfinetTable,
+		proto:   "inet",
+		version: "ipv4",
 	}
 
 	inet6Ctx := &pfContext{
-		table: "crowdsec6-blacklists",
-		proto: "inet6",
+		table:   pfinet6Table,
+		proto:   "inet6",
+		version: "ipv6",
 	}
 
 	ret.inet = inetCtx
@@ -158,7 +164,7 @@ func (pf *pf) Add(decision *models.Decision) error {
 		}
 	} else { // inet
 		if err := pf.inet.Add(decision); err != nil {
-				return fmt.Errorf("failed adding ban ip '%s' to inet table", *decision.Value)
+			return fmt.Errorf("failed adding ban ip '%s' to inet table", *decision.Value)
 		}
 	}
 
@@ -188,12 +194,12 @@ func (pf *pf) ShutDown() error {
 	log.Infof("flushing 'crowdsec' table(s)")
 
 	if err := pf.inet.shutDown(); err != nil {
-		return fmt.Errorf("unable to flush inet table (%s): ", pf.inet.table)
+		return fmt.Errorf("unable to flush %s table (%s): ", pf.inet.version, pf.inet.table)
 	}
 
 	if pf.inet6 != nil {
 		if err := pf.inet6.shutDown(); err != nil {
-			return fmt.Errorf("unable to flush inet table (%s): ", pf.inet.table)
+			return fmt.Errorf("unable to flush %s table (%s): ", pf.inet6.version, pf.inet6.table)
 		}
 	}
 
