@@ -85,7 +85,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		}
 	case "nftables":
 		if runtime.GOOS != "linux" {
-			return nil, fmt.Errorf("iptables and ipset is linux only")
+			return nil, fmt.Errorf("nftables is linux only")
 		}
 		tmpCtx, err := newNFTables(config)
 		if err != nil {
