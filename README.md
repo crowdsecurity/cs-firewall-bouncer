@@ -112,4 +112,12 @@ logs can be found in `/var/log/cs-firewall-bouncer.log`
  - mode `nftables` relies on github.com/google/nftables to create table, chain and set.
  - mode `iptables` relies on `iptables` and `ipset` commands to insert `match-set` directives and maintain associated ipsets
  - mode `ipset` relies on `ipset` and only manage contents of the sets (they need to exist at startup and will be flushed rather than created)
- - mode `pf` relies on `pfctl` command to alter the tables.
+ - mode `pf` relies on `pfctl` command to alter the tables. You are required to create the following tables on your `pf.conf` configuration:
+
+ ```
+ # create crowdsec ipv4 table
+table <crowdsec-blacklists> persist
+
+# create crowdsec ipv6 table
+table <crowdsec6-blacklists> persist
+ ```
