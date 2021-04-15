@@ -13,7 +13,7 @@ import (
 
 type bouncerConfig struct {
 	Mode            string    `yaml:"mode"` //ipset,iptables,tc
-	PidDir          string    `yaml:"piddir"`
+	PidDir          string    `yaml:"pid_dir"`
 	UpdateFrequency string    `yaml:"update_frequency"`
 	Daemon          bool      `yaml:"daemonize"`
 	LogMode         string    `yaml:"log_mode"`
@@ -39,12 +39,17 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 		return &bouncerConfig{}, fmt.Errorf("failed to read %s : %v", configPath, err)
 	}
 
-	err = yaml.UnmarshalStrict(configBuff, &config)
+	err = yaml.Unmarshal(configBuff, &config)
 	if err != nil {
 		return &bouncerConfig{}, fmt.Errorf("failed to unmarshal %s : %v", configPath, err)
 	}
 
-	if config.Mode == "" || config.PidDir == "" || config.LogMode == "" {
+	if config.PidDir == "" {
+		log.Warningf("missing 'pid_dir' directive in '%s', using default: '/var/run/'", configPath)
+		config.PidDir = "/var/run/"
+	}
+
+	if config.Mode == "" || config.LogMode == "" {
 		return &bouncerConfig{}, fmt.Errorf("invalid configuration in %s", configPath)
 	}
 	if config.DenyLog && config.DenyLogPrefix == "" {

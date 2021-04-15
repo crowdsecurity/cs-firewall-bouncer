@@ -1,5 +1,5 @@
 mode: ${BACKEND}
-piddir: /var/run/
+pid_dir: /var/run/
 update_frequency: 10s
 daemonize: true
 log_mode: file
