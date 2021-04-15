@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	log "github.com/sirupsen/logrus"
@@ -48,6 +49,19 @@ func (b *backendCTX) Delete(decision *models.Decision) error {
 	return nil
 }
 
+func isPFSupported(runtimeOS string) bool {
+	var supported bool
+
+	switch runtimeOS {
+	case "openbsd", "freebsd":
+		supported = true
+	default:
+		supported = false
+	}
+
+	return supported
+}
+
 func newBackend(config *bouncerConfig) (*backendCTX, error) {
 	var ok bool
 
@@ -58,6 +72,9 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 	}
 	switch config.Mode {
 	case "iptables", "ipset":
+		if runtime.GOOS != "linux" {
+			return nil, fmt.Errorf("iptables and ipset is linux only")
+		}
 		tmpCtx, err := newIPTables(config)
 		if err != nil {
 			return nil, err
@@ -67,6 +84,9 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 			return nil, fmt.Errorf("unexpected type '%T' for iptables context", tmpCtx)
 		}
 	case "nftables":
+		if runtime.GOOS != "linux" {
+			return nil, fmt.Errorf("nftables is linux only")
+		}
 		tmpCtx, err := newNFTables(config)
 		if err != nil {
 			return nil, err
@@ -74,6 +94,18 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		b.firewall, ok = tmpCtx.(backend)
 		if !ok {
 			return nil, fmt.Errorf("unexpected type '%T' for nftables context", tmpCtx)
+		}
+	case "pf":
+		if !isPFSupported(runtime.GOOS) {
+			return nil, fmt.Errorf("pf mode is supported only for openbsd and freebsd")
+		}
+		tmpCtx, err := newPF(config)
+		if err != nil {
+			return nil, err
+		}
+		b.firewall, ok = tmpCtx.(backend)
+		if !ok {
+			return nil, fmt.Errorf("unexpected type '%T' for pf context", tmpCtx)
 		}
 	default:
 		return b, fmt.Errorf("firewall '%s' is not supported", config.Mode)

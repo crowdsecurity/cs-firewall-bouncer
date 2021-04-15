@@ -21,6 +21,7 @@ Supported firewalls:
  - iptables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
  - nftables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
  - ipset only (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
+ - pf (IPV4 :heavy_check_mark: / IPV6 :heavy_check_mark: )
 
 ## Installation
 
@@ -87,7 +88,7 @@ iptables_chains:
   - FORWARD
 ```
 
- - `mode` can be set to `iptables`, `nftables` or `ipset`
+ - `mode` can be set to `iptables`, `nftables` , `ipset` or `pf`
  - `update_frequency` controls how often the bouncer is going to query the local API
  - `api_url` and `api_key` control local API parameters.
  - `iptables_chains` allows (in _iptables_ mode) to control in which chain rules are going to be inserted. (if empty, bouncer will only maintain ipset lists)
@@ -111,3 +112,12 @@ logs can be found in `/var/log/cs-firewall-bouncer.log`
  - mode `nftables` relies on github.com/google/nftables to create table, chain and set.
  - mode `iptables` relies on `iptables` and `ipset` commands to insert `match-set` directives and maintain associated ipsets
  - mode `ipset` relies on `ipset` and only manage contents of the sets (they need to exist at startup and will be flushed rather than created)
+ - mode `pf` relies on `pfctl` command to alter the tables. You are required to create the following tables on your `pf.conf` configuration:
+
+ ```
+ # create crowdsec ipv4 table
+table <crowdsec-blacklists> persist
+
+# create crowdsec ipv6 table
+table <crowdsec6-blacklists> persist
+ ```
