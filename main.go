@@ -56,11 +56,18 @@ func HandleSignals(backend *backendCTX) {
 
 func main() {
 	var err error
-	log.Infof("cs-firewall-bouncer %s", version.VersionStr())
 	configPath := flag.String("c", "", "path to cs-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
+	bouncerVersion := flag.Bool("V", false, "display version and exit")
 
 	flag.Parse()
+
+	if *bouncerVersion {
+		fmt.Printf("%s", version.ShowStr())
+		os.Exit(0)
+	}
+
+	log.Infof("cs-firewall-bouncer %s", version.VersionStr())
 
 	if configPath == nil || *configPath == "" {
 		log.Fatalf("configuration file is required")
