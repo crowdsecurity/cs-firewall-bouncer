@@ -114,7 +114,7 @@ logs can be found in `/var/log/cs-firewall-bouncer.log`
  - mode `ipset` relies on `ipset` and only manage contents of the sets (they need to exist at startup and will be flushed rather than created)
  - mode `pf` relies on `pfctl` command to alter the tables. You are required to create the following tables on your `pf.conf` configuration:
 
- ```
+ ```bash
  # create crowdsec ipv4 table
 table <crowdsec-blacklists> persist
 
