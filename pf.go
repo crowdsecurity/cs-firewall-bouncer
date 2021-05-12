@@ -85,7 +85,7 @@ func (ctx *pfContext) shutDown() error {
 	cmd := exec.Command(pfctlCmd, "-t", ctx.table, "-T", "flush")
 	log.Infof("pf table clean-up : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Errorf("Error while flushing table (%s): %v - %s", err, string(out))
+		log.Errorf("Error while flushing table (%s): %v --> %s", cmd.String(), err, string(out))
 	}
 
 	return nil
