@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# if cscli is present, generate api key
+
+echo "IF CSCLI IS PRESENT, DO STUFF"

@@ -1,0 +1,13 @@
+[Unit]
+Description=The firewall bouncer for CrowdSec
+After=syslog.target network.target remote-fs.target nss-lookup.target crowdsec.service
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/crowdsec-firewall-bouncer -c /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+ExecStartPost=/bin/sleep 0.1
+
+[Install]
+WantedBy=multi-user.target
+
+

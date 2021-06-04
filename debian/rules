@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+export DEB_VERSION=$(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+export BUILD_VERSION=v${DEB_VERSION}-debian-pragmatic
+export GO111MODULE=on
+
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+override_dh_auto_test:
+override_dh_auto_build:
+override_dh_auto_install:
+	make
+	mkdir -p debian/crowdsec/usr/sbin
+	mkdir -p debian/crowdsec/etc/crowdsec
+	cp crowdsec-firewall-bouncer debian/crowdsec/usr/sbin/
+	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec/etc/crowdsec/
