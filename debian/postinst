@@ -1,5 +1,33 @@
-#!/bin/bash
+#!/bin/dash
 
+systemctl daemon-reload
+
+
+START=0
+
+if [ -f /usr/bin/cscli ] ; then
+    START=1
+    echo "cscli/crowdsec is present, generating API key"
+    unique=`date +%s`
+    API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
+    if [ $? -eq 1 ] ; then
+        echo "failed to create API token, service won't be started."
+        START=0
+    else
+        #we have API key, replace in config file
+        echo "API Key : ${API_KEY}"
+        TMP=`mktemp -p /tmp/`
+        cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
+        API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+    fi
+fi
 # if cscli is present, generate api key
+# TBD : decide which mode to apply
 
-echo "IF CSCLI IS PRESENT, DO STUFF"
+
+
+if [ $START -eq 1 ] ; then
+    systemctl start crowdsec-firewall-bouncer
+else
+    echo "create API key on LAPI with 'cscli bouncers add <name>' and add it to config before starting service."
+fi
