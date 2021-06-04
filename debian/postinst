@@ -13,17 +13,25 @@ if [ -f /usr/bin/cscli ] ; then
     if [ $? -eq 1 ] ; then
         echo "failed to create API token, service won't be started."
         START=0
+        API_KEY="<API_KEY>"
     else
-        #we have API key, replace in config file
         echo "API Key : ${API_KEY}"
-        TMP=`mktemp -p /tmp/`
-        cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
-        API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
     fi
 fi
-# if cscli is present, generate api key
-# TBD : decide which mode to apply
 
+
+if [ -f /sbin/ipset ] || [ -f /usr/sbin/ipset ] ; then
+    echo "Backend is iptables+ipset"
+    backend="iptables"
+else 
+    echo "Backend is nftables"
+    backend="nftables"
+fi
+
+
+TMP=`mktemp -p /tmp/`
+cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
+BACKEND=${backend} API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
 
 
 if [ $START -eq 1 ] ; then
