@@ -18,9 +18,9 @@ export LD_OPTS=-ldflags "-s -w -X github.com/crowdsecurity/cs-firewall-bouncer/p
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.GoVersion=$(BUILD_GOVERSION)"
 PREFIX?="/"
 PID_DIR = $(PREFIX)"/var/run/"
-BINARY_NAME=cs-firewall-bouncer
+BINARY_NAME=crowdsec-firewall-bouncer
 
-RELDIR = "cs-firewall-bouncer-${BUILD_VERSION}"
+RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
 
 all: clean test build
 
@@ -43,7 +43,7 @@ test:
 clean:
 	@rm -f $(BINARY_NAME)
 	@rm -rf ${RELDIR}
-	@rm -f cs-firewall-bouncer.tgz || ""
+	@rm -f crowdsec-firewall-bouncer.tgz || ""
 
 
 .PHONY: release
@@ -60,5 +60,5 @@ release: build
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
-	@tar cvzf cs-firewall-bouncer.tgz $(RELDIR)
+	@tar cvzf crowdsec-firewall-bouncer.tgz $(RELDIR)
 	
