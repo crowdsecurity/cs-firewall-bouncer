@@ -1,7 +1,7 @@
 #!/bin/dash
 
-
 systemctl daemon-reload
+
 
 START=0
 
@@ -20,9 +20,13 @@ if [ -f /usr/bin/cscli ] ; then
 fi
 
 
-
 TMP=`mktemp -p /tmp/`
 cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
 API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
 rm ${TMP}
 
+if [ ${START} -eq 0 ] ; then
+    echo "no api key were generated, won't start service"
+else ;
+    systemctl start crowdsec-firewall-bouncer
+fi
