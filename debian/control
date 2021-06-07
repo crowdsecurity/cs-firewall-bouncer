@@ -5,3 +5,13 @@ Build-Depends: debhelper, jq, bash, git
 Package: crowdsec-firewall-bouncer
 Architecture: any
 Description: Firewall (iptables, pf, ipset) bouncer for Crowdsec
+
+Package: crowdsec-firewall-bouncer-iptables
+Architecture: any
+Description: Firewall (iptables, pf, ipset) bouncer for Crowdsec
+Depends: crowdsec-firewall-bouncer
+
+Package: crowdsec-firewall-bouncer-nftables
+Architecture: any
+Description: Firewall (iptables, pf, ipset) bouncer for Crowdsec
+Depends: crowdsec-firewall-bouncer
