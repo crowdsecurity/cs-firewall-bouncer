@@ -1,3 +1,0 @@
-
-systemctl stop crowdsec-firewall-bouncer
-systemctl disable crowdsec-firewall-bouncer
