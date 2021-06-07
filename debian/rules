@@ -13,7 +13,9 @@ override_dh_auto_test:
 override_dh_auto_build:
 override_dh_auto_install:
 	make
-	mkdir -p debian/crowdsec/usr/sbin
-	mkdir -p debian/crowdsec/etc/crowdsec
-	cp crowdsec-firewall-bouncer debian/crowdsec/usr/sbin/
-	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec/etc/crowdsec/
+	mkdir -p debian/crowdsec-firewall-bouncer/usr/sbin
+	cp crowdsec-firewall-bouncer  debian/crowdsec-firewall-bouncer/usr/sbin
+	mkdir -p debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec
+	mkdir -p debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec
+	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec
+	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec
