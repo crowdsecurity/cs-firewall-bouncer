@@ -27,6 +27,6 @@ rm ${TMP}
 
 if [ ${START} -eq 0 ] ; then
     echo "no api key were generated, won't start service"
-else ;
+else 
     systemctl start crowdsec-firewall-bouncer
 fi
