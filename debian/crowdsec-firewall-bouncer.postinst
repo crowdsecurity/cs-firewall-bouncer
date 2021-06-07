@@ -26,7 +26,7 @@ API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.y
 rm ${TMP}
 
 if [ ${START} -eq 0 ] ; then
-    echo "no api key were generated, won't start service"
+    echo "no api key was generated, won't start service"
 else 
     systemctl start crowdsec-firewall-bouncer
 fi
