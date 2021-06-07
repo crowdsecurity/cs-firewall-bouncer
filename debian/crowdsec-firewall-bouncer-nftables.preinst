@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+
+echo "PRE INST - CHECK IF CSCLI IS PRESENT ?" 
+
