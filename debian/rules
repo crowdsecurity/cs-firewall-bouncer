@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+
+export DEB_VERSION=$(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+export BUILD_VERSION=v${DEB_VERSION}-debian-pragmatic
+export GO111MODULE=on
+
+
+%:
+	dh $@
+
+override_dh_systemd_start:
+	echo "Not running dh_systemd_start"
+override_dh_auto_clean:
+override_dh_auto_test:
+override_dh_auto_build:
+override_dh_auto_install:
+	make
+	mkdir -p debian/crowdsec-firewall-bouncer/usr/sbin
+	cp crowdsec-firewall-bouncer  debian/crowdsec-firewall-bouncer/usr/sbin
+	mkdir -p debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec
+	mkdir -p debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec
+	mkdir -p debian/crowdsec-firewall-bouncer/etc/systemd/system/
+	BIN=/sbin/crowdsec-firewall-bouncer CFG=/etc/crowdsec/ envsubst < config/crowdsec-firewall-bouncer.service >  debian/crowdsec-firewall-bouncer/etc/systemd/system/crowdsec-firewall-bouncer.service
+	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec
+	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec

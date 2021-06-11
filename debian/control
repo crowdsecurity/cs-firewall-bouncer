@@ -1,0 +1,22 @@
+Source: crowdsec-firewall-bouncer
+Maintainer: Crowdsec Support Team <support@crowdsec.net>
+Build-Depends: debhelper, jq, bash, git
+
+
+Package: crowdsec-firewall-bouncer
+Depends: crowdsec-firewall-bouncer-iptables | crowdsec-firewall-bouncer-nftables
+Provides: crowdsec-firewall-bouncer
+Description: Firewall bouncer for Crowdsec (iptables+ipset, nftables or pf)
+Architecture: any
+
+
+Package: crowdsec-firewall-bouncer-iptables
+Architecture: any
+Description: Firewall bouncer for Crowdsec (iptables+ipset)
+Depends: iptables, ipset
+
+Package: crowdsec-firewall-bouncer-nftables
+Architecture: any
+Description: Firewall bouncer for Crowdsec (nftables)
+Depends: nftables
+

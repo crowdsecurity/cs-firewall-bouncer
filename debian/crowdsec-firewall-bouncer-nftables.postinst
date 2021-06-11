@@ -1,0 +1,5 @@
+
+TMP=`mktemp -p /tmp/`
+cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
+BACKEND=nftables API_KEY='${API_KEY}' envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+rm ${TMP}
