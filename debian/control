@@ -1,5 +1,5 @@
 Source: crowdsec-firewall-bouncer
-Maintainer: Crowdsec Support Team <support@crowdsec.net>
+Maintainer: Crowdsec Team <debian@crowdsec.net>
 Build-Depends: debhelper, jq, bash, git
 
 
