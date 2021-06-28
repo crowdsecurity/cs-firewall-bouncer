@@ -1,7 +1,7 @@
-Name:           crowdsec-firewall-bouncer
+Name:           crowdsec-firewall-bouncer-iptables
 Version:        %(echo $VERSION)
 Release:        %(echo $PACKAGE_NUMBER)%{?dist}
-Summary:      Firewall bouncer for Crowdsec (iptables+ipset, nftables or pf)
+Summary:      Firewall bouncer for Crowdsec (iptables+ipset configuration)
 
 License:        MIT
 URL:            https://crowdsec.net
@@ -14,7 +14,7 @@ BuildRequires:  make
 BuildRequires:  jq
 %{?fc33:BuildRequires: systemd-rpm-macros}
 
-Requires: (crowdsec-firewall-bouncer-iptables or crowdsec-firewall-bouncer-nftables)
+Requires: iptables,ipset,gettext
 
 %define debug_package %{nil}
 
@@ -38,8 +38,6 @@ mkdir -p %{buildroot}/usr/sbin
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
 install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/%{name}.yaml 
 install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-#install -m 644 -D config/patterns/* -t %{buildroot}%{_sysconfdir}/crowdsec/patterns
-#install -m 644 -D config/config.yaml %{buildroot}%{_sysconfdir}/crowdsec
 
 %clean
 rm -rf %{buildroot}
@@ -48,38 +46,10 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
+/etc/crowdsec/%{name}.yaml 
 
 
 %post -p /bin/bash
-
-
-
- 
-%changelog
-* Tue Feb 16 2021 Manuel Sabban <manuel@crowdsec.net>
-- First initial packaging
-
-%preun
-systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
-systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
-
-%package iptables
-Summary:      Firewall bouncer for Crowdsec (iptables configuration)
-Requires: iptables,ipset,gettext
-%description iptables
-
-%files iptables
-/etc/crowdsec/%{name}.yaml 
-
-%package nftables
-Summary:      Firewall bouncer for Crowdsec (nftables configuration)
-Requires: nftables,gettext
-%description nftables
-
-%files nftables
-/etc/crowdsec/%{name}.yaml 
-
-%post -p /bin/bash iptables
 
 systemctl daemon-reload
 
@@ -113,8 +83,26 @@ else
     systemctl start crowdsec-firewall-bouncer
 fi
 
+ 
+%changelog
+* Tue Feb 16 2021 Manuel Sabban <manuel@crowdsec.net>
+- First initial packaging
 
-%post -p /bin/bash nftables
+%preun
+systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
+systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
+
+%package -n crowdsec-firewall-bouncer-nftables
+Summary:      Firewall bouncer for Crowdsec (nftables configuration)
+Requires: nftables,gettext
+%description -n crowdsec-firewall-bouncer-nftables
+
+%files -n crowdsec-firewall-bouncer-nftables
+/usr/bin/%{name}
+%{_unitdir}/%{name}.service
+/etc/crowdsec/%{name}.yaml 
+
+%post -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
 systemctl daemon-reload
 
@@ -148,3 +136,6 @@ else
     systemctl start crowdsec-firewall-bouncer
 fi
 
+%preun -n crowdsec-firewall-bouncer-nftables
+systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
+systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
