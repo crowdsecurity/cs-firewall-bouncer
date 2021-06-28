@@ -22,7 +22,7 @@ BINARY_NAME=crowdsec-firewall-bouncer
 
 RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
 
-all: clean build
+all: clean test build
 
 goversion:
 	CURRENT_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
