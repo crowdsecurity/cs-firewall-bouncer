@@ -47,6 +47,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 /usr/bin/%{name}
+%{_unitdir}/%{name}.service
 
 
 %post -p /bin/bash
