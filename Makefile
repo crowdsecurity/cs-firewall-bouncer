@@ -22,7 +22,7 @@ BINARY_NAME=crowdsec-firewall-bouncer
 
 RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
 
-all: clean test build
+all: clean build
 
 goversion:
 	CURRENT_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
@@ -61,4 +61,4 @@ release: build
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf crowdsec-firewall-bouncer.tgz $(RELDIR)
-	
+
