@@ -8,10 +8,10 @@ URL:            https://crowdsec.net
 Source0:        https://github.com/crowdsecurity/%{name}/archive/v%(echo $VERSION).tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-#BuildRequires:  git
-#BuildRequires:  golang >= 1.14
-#BuildRequires:  make
-#BuildRequires:  jq
+BuildRequires:  git
+BuildRequires:  golang >= 1.14
+BuildRequires:  make
+BuildRequires:  jq
 %{?fc33:BuildRequires: systemd-rpm-macros}
 
 Requires: (crowdsec-firewall-bouncer-iptables or crowdsec-firewall-bouncer-nftables)
