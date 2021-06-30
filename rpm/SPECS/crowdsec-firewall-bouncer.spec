@@ -31,7 +31,10 @@ Requires: iptables,ipset,gettext
 
 %build
 BUILD_VERSION=%{local_version} make
-BIN=%{buildroot}%{_bindir}/%{name} CFG=/etc/crowdsec/ envsubst < config/%{name}.service | tee config/%{name}.service
+TMP=`mktemp -p /tmp/`
+cp config/%{name}.service ${TMP}
+BIN=%{buildroot}%{_bindir}/%{name} CFG=/etc/crowdsec/ envsubst < ${TMP}/%{name}.service > config/%{name}.service
+rm -rf  ${TMP}
 
 %install
 rm -rf %{buildroot}
