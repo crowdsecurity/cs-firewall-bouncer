@@ -22,8 +22,8 @@ fi
 
 
 TMP=`mktemp -p /tmp/`
-cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
-API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 rm ${TMP}
 
 if [ ${START} -eq 0 ] ; then

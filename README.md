@@ -72,10 +72,10 @@ sudo ./upgrade.sh
 
 To be functional, the `crowdsec-firewall-bouncer` service must be able to authenticate with the local API.
 The `install.sh` script will take care of it (it will call `cscli bouncers add` on your behalf).
-If it was not the case, the default configuration file is located under : `/etc/crowdsec/crowdsec-firewall-bouncer.yaml`
+If it was not the case, the default configuration file is located under : `/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml`
 
 ```sh
-$ vim /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+$ vim /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 ```
 
 ```yaml

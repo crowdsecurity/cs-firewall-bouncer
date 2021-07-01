@@ -33,14 +33,14 @@ Requires: iptables,ipset,gettext
 BUILD_VERSION=%{local_version} make
 TMP=`mktemp -p /tmp/`
 cp config/%{name}.service ${TMP}
-BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/ envsubst < ${TMP} > config/%{name}.service
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst < ${TMP} > config/%{name}.service
 rm ${TMP}
 
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/sbin
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
-install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/%{name}.yaml 
+install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml 
 install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 
 %clean
@@ -50,7 +50,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
-%config(noreplace) /etc/crowdsec/%{name}.yaml 
+%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml 
 
 
 %post -p /bin/bash
@@ -77,8 +77,8 @@ if [ "$?" -eq "0" ] ; then
 fi
 
 TMP=`mktemp -p /tmp/`
-cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
-BACKEND=iptables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+BACKEND=iptables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 rm ${TMP}
 
 if [ ${START} -eq 0 ] ; then
@@ -104,7 +104,7 @@ Requires: nftables,gettext
 %files -n crowdsec-firewall-bouncer-nftables
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
-%config(noreplace) /etc/crowdsec/%{name}.yaml 
+%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml 
 
 %post -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
@@ -129,8 +129,8 @@ if [ "$?" -eq "0" ] ; then
 fi
 
 TMP=`mktemp -p /tmp/`
-cp /etc/crowdsec/crowdsec-firewall-bouncer.yaml ${TMP}
-BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/crowdsec-firewall-bouncer.yaml
+cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 rm ${TMP}
 
 if [ ${START} -eq 0 ] ; then

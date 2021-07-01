@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 BIN_PATH_INSTALLED="/usr/local/bin/crowdsec-firewall-bouncer"
 BIN_PATH="./crowdsec-firewall-bouncer"
-CONFIG_DIR="/etc/crowdsec/"
+CONFIG_DIR="/etc/crowdsec/bouncers/"
 PID_DIR="/var/run/crowdsec/"
 SYSTEMD_PATH_FILE="/etc/systemd/system/crowdsec-firewall-bouncer.service"
 
