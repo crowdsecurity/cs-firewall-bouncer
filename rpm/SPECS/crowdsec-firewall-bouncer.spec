@@ -60,7 +60,7 @@ systemctl daemon-reload
 
 START=0
 
-rpm -q crowdsec | grep -q ^ii >/dev/null
+type cscli > /dev/null
 
 if [ "$?" -eq "0" ] ; then
     START=1
@@ -113,7 +113,7 @@ systemctl daemon-reload
 
 START=0
 
-rpm -q crowdsec | grep -q ^ii >/dev/null
+type cscli > /dev/null
 
 if [ "$?" -eq "0" ] ; then
     START=1
