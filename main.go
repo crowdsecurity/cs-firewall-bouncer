@@ -56,7 +56,7 @@ func HandleSignals(backend *backendCTX) {
 
 func main() {
 	var err error
-	configPath := flag.String("c", "", "path to cs-firewall-bouncer.yaml")
+	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
 	bouncerVersion := flag.Bool("V", false, "display version and exit")
 

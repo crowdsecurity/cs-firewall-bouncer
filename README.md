@@ -30,7 +30,7 @@ Supported firewalls:
 First, download the latest [`cs-firewall-bouncer` release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases).
 
 ```sh
-$ tar xzvf cs-firewall-bouncer.tgz
+$ tar xzvf crowdsec-firewall-bouncer.tgz
 $ sudo ./install.sh
 ```
 
@@ -42,7 +42,7 @@ Run the following commands:
 git clone https://github.com/crowdsecurity/cs-firewall-bouncer.git
 cd cs-firewall-bouncer/
 make release
-tar xzvf cs-firewall-bouncer.tgz
+tar xzvf crowdsec-firewall-bouncer.tgz
 cd cs-firewall-bouncer-v*/
 sudo ./install.sh
 ```
@@ -52,8 +52,8 @@ sudo ./install.sh
 If you already have `cs-firewall-bouncer` installed, please download the [latest release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases) and run the following commands:
 
 ```bash
-tar xzvf cs-firewall-bouncer.tgz
-cd cs-firewall-bouncer-v*/
+tar xzvf crowdsec-firewall-bouncer.tgz
+cd crowdsec-firewall-bouncer-v*/
 sudo ./upgrade.sh
 ```
 
@@ -65,7 +65,7 @@ The `install.sh` script will take care of it (it will call `cscli bouncers add` 
 If it was not the case, the default configuration file is located under : `/etc/crowdsec/cs-firewall-bouncer/`
 
 ```sh
-$ vim /etc/crowdsec/cs-firewall-bouncer/cs-firewall-bouncer.yaml
+$ vim /etc/crowdsec/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.yaml
 ```
 
 ```yaml
@@ -105,7 +105,7 @@ sudo systemctl start cs-firewall-bouncer
 
 ### logs
 
-logs can be found in `/var/log/cs-firewall-bouncer.log`
+logs can be found in `/var/log/crowdsec-firewall-bouncer.log`
 
 ### modes
 

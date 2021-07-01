@@ -2,8 +2,8 @@
 
 BIN_PATH_INSTALLED="/usr/local/bin/cs-firewall-bouncer"
 CONFIG_DIR="/etc/crowdsec/cs-firewall-bouncer/"
-LOG_FILE="/var/log/cs-firewall-bouncer.log"
-SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
+LOG_FILE="/var/log/crowdsec-firewall-bouncer.log"
+SYSTEMD_PATH_FILE="/etc/systemd/system/crowdsec-firewall-bouncer.service"
 
 uninstall() {
 	systemctl stop cs-firewall-bouncer
