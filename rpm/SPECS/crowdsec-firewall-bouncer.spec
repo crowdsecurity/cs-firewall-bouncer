@@ -50,7 +50,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
-/etc/crowdsec/%{name}.yaml 
+%config(noreplace) /etc/crowdsec/%{name}.yaml 
 
 
 %post -p /bin/bash
@@ -60,7 +60,7 @@ systemctl daemon-reload
 
 START=0
 
-rpm -q crowdsec | grep -q ^ii >/dev/null
+type cscli > /dev/null
 
 if [ "$?" -eq "0" ] ; then
     START=1
@@ -104,16 +104,15 @@ Requires: nftables,gettext
 %files -n crowdsec-firewall-bouncer-nftables
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
-/etc/crowdsec/%{name}.yaml 
+%config(noreplace) /etc/crowdsec/%{name}.yaml 
 
 %post -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
 systemctl daemon-reload
 
-
 START=0
 
-rpm -q crowdsec | grep -q ^ii >/dev/null
+type cscli > /dev/null
 
 if [ "$?" -eq "0" ] ; then
     START=1
