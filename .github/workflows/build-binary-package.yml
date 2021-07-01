@@ -22,6 +22,6 @@ jobs:
     - name: Upload to release
       uses: JasonEtco/upload-to-release@master
       with:
-        args: cs-firewall-bouncer.tgz application/x-gzip
+        args: crowdsec-firewall-bouncer.tgz application/x-gzip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

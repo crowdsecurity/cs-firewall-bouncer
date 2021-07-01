@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	name = "cs-firewall-bouncer"
+	name = "crowdsec-firewall-bouncer"
 )
 
 var t tomb.Tomb
@@ -56,7 +56,7 @@ func HandleSignals(backend *backendCTX) {
 
 func main() {
 	var err error
-	configPath := flag.String("c", "", "path to cs-firewall-bouncer.yaml")
+	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
 	bouncerVersion := flag.Bool("V", false, "display version and exit")
 
@@ -67,7 +67,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.Infof("cs-firewall-bouncer %s", version.VersionStr())
+	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
 
 	if configPath == nil || *configPath == "" {
 		log.Fatalf("configuration file is required")

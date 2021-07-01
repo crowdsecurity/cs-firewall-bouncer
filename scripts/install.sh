@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-BIN_PATH_INSTALLED="/usr/local/bin/cs-firewall-bouncer"
-BIN_PATH="./cs-firewall-bouncer"
-CONFIG_DIR="/etc/crowdsec/cs-firewall-bouncer/"
+BIN_PATH_INSTALLED="/usr/local/bin/crowdsec-firewall-bouncer"
+BIN_PATH="./crowdsec-firewall-bouncer"
+CONFIG_DIR="/etc/crowdsec/"
 PID_DIR="/var/run/crowdsec/"
-SYSTEMD_PATH_FILE="/etc/systemd/system/cs-firewall-bouncer.service"
+SYSTEMD_PATH_FILE="/etc/systemd/system/crowdsec-firewall-bouncer.service"
 
 # Default pkg manager is apt
 PKG="apt"
@@ -88,7 +88,7 @@ gen_apikey() {
 }
 
 gen_config_file() {
-    API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst < ./config/cs-firewall-bouncer.yaml > "${CONFIG_DIR}cs-firewall-bouncer.yaml"
+    API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst < ./config/crowdsec-firewall-bouncer.yaml > "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
 }
 
 check_ipset() {
@@ -111,8 +111,8 @@ check_ipset() {
 install_firewall_bouncer() {
 	install -v -m 755 -D "${BIN_PATH}" "${BIN_PATH_INSTALLED}"
 	mkdir -p "${CONFIG_DIR}"
-	cp "./config/cs-firewall-bouncer.yaml" "${CONFIG_DIR}cs-firewall-bouncer.yaml"
-	CFG=${CONFIG_DIR} PID=${PID_DIR} BIN=${BIN_PATH_INSTALLED} envsubst < ./config/cs-firewall-bouncer.service > "${SYSTEMD_PATH_FILE}"
+	cp "./config/crowdsec-firewall-bouncer.yaml" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
+	CFG=${CONFIG_DIR} PID=${PID_DIR} BIN=${BIN_PATH_INSTALLED} envsubst < ./config/crowdsec-firewall-bouncer.service > "${SYSTEMD_PATH_FILE}"
 	systemctl daemon-reload
 }
 
@@ -128,10 +128,10 @@ echo "Installing firewall-bouncer"
 install_firewall_bouncer
 gen_apikey
 gen_config_file
-systemctl enable cs-firewall-bouncer.service
+systemctl enable crowdsec-firewall-bouncer.service
 if [ "$READY" = "yes" ]; then
-    systemctl start cs-firewall-bouncer.service
+    systemctl start crowdsec-firewall-bouncer.service
 else
-    echo "service not started. You need to get an API key and configure it in ${CONFIG_DIR}cs-firewall-bouncer.yaml"
+    echo "service not started. You need to get an API key and configure it in ${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
 fi
 echo "The firewall-bouncer service has been installed!"
