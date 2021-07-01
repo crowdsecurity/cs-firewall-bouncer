@@ -61,4 +61,4 @@ release: build
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf crowdsec-firewall-bouncer.tgz $(RELDIR)
-	
+
