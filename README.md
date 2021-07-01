@@ -12,10 +12,10 @@
 </p>
 
 
-# cs-firewall-bouncer
+# crowdsec-firewall-bouncer
 Crowdsec bouncer written in golang for firewalls.
 
-cs-firewall-bouncer will fetch new and old decisions from a CrowdSec API to add them in a blocklist used by supported firewalls.
+crowdsec-firewall-bouncer will fetch new and old decisions from a CrowdSec API to add them in a blocklist used by supported firewalls.
 
 Supported firewalls:
  - iptables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
@@ -27,7 +27,7 @@ Supported firewalls:
 
 ### Assisted
 
-First, download the latest [`cs-firewall-bouncer` release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases).
+First, download the latest [`crowdsec-firewall-bouncer` release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases).
 
 ```sh
 $ tar xzvf crowdsec-firewall-bouncer.tgz
@@ -43,13 +43,13 @@ git clone https://github.com/crowdsecurity/cs-firewall-bouncer.git
 cd cs-firewall-bouncer/
 make release
 tar xzvf crowdsec-firewall-bouncer.tgz
-cd cs-firewall-bouncer-v*/
+cd crowdsec-firewall-bouncer-v*/
 sudo ./install.sh
 ```
 
 ## Upgrade
 
-If you already have `cs-firewall-bouncer` installed, please download the [latest release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases) and run the following commands:
+If you already have `crowdsec-firewall-bouncer` installed, please download the [latest release](https://github.com/crowdsecurity/cs-firewall-bouncer/releases) and run the following commands:
 
 ```bash
 tar xzvf crowdsec-firewall-bouncer.tgz
@@ -60,12 +60,12 @@ sudo ./upgrade.sh
 
 ## Configuration
 
-To be functional, the `cs-firewall-bouncer` service must be able to authenticate with the local API.
+To be functional, the `crowdsec-firewall-bouncer` service must be able to authenticate with the local API.
 The `install.sh` script will take care of it (it will call `cscli bouncers add` on your behalf).
-If it was not the case, the default configuration file is located under : `/etc/crowdsec/cs-firewall-bouncer/`
+If it was not the case, the default configuration file is located under : `/etc/crowdsec/crowdsec-firewall-bouncer.yaml`
 
 ```sh
-$ vim /etc/crowdsec/crowdsec-firewall-bouncer/crowdsec-firewall-bouncer.yaml
+$ vim /etc/crowdsec/crowdsec-firewall-bouncer.yaml
 ```
 
 ```yaml
@@ -100,7 +100,7 @@ iptables_chains:
 You can then start the service:
 
 ```sh
-sudo systemctl start cs-firewall-bouncer
+sudo systemctl start crowdsec-firewall-bouncer
 ```
 
 ### logs
