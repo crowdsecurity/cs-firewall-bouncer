@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	name = "cs-firewall-bouncer"
+	name = "crowdsec-firewall-bouncer"
 )
 
 var t tomb.Tomb
@@ -67,7 +67,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.Infof("cs-firewall-bouncer %s", version.VersionStr())
+	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
 
 	if configPath == nil || *configPath == "" {
 		log.Fatalf("configuration file is required")
