@@ -23,7 +23,17 @@ Supported firewalls:
  - ipset only (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
  - pf (IPV4 :heavy_check_mark: / IPV6 :heavy_check_mark: )
 
-## Installation
+# Installation
+
+## Using packages
+
+Packages for crowdsec-firewall-bouncer [are available on our repositories](https://doc.crowdsec.net/Crowdsec/v1/getting_started/installation/#installation-methods).
+
+ - debian/ubuntu : `apt install crowdsec-firewall-bouncer`
+ - rhel/centos/fedora : `yum install crowdsec-firewall-bouncer`
+ - freebsd : `pkg install crowdsec-firewall-bouncer`
+
+## Manual installation
 
 ### Assisted
 
