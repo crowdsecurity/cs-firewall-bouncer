@@ -1,7 +1,7 @@
 
 
 
-if [ "$1" == "configure" ] ; then
+if [ "$1" = "configure" ] ; then
 
     TMP=`mktemp -p /tmp/`
     cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
