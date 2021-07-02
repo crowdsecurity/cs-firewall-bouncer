@@ -1,0 +1,11 @@
+
+
+
+if [ "$1" = "configure" ] && [ "$#" -eq "1" ]; then
+
+    TMP=`mktemp -p /tmp/`
+    cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    BACKEND=nftables API_KEY='${API_KEY}' envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    rm ${TMP}
+
+fi
