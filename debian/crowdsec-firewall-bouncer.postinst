@@ -4,11 +4,7 @@ systemctl daemon-reload
 
 START=0
 
-echo "debug : $#"
-echo "debug2: $1"
-echo "debug3: $@"
-
-if [ "$1" = "configure" ] && [ "$#" = "1" ] ; then
+if [ "$1" = "configure" ] && [ "$2" = "" ]; then
 
     type cscli > /dev/null
 

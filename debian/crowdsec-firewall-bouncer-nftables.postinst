@@ -1,7 +1,11 @@
 
 
+<<<<<<< HEAD
 
 if [ "$1" = "configure" ] && [ "$#" -eq "1" ]; then
+=======
+if [ "$1" = "configure" ] && [ "$2" = "" ]; then
+>>>>>>> up
 
     TMP=`mktemp -p /tmp/`
     cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
