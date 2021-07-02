@@ -1,7 +1,9 @@
 
+echo "debug : $#"
+echo "debug2: $1"
+echo "debug3: $@"
 
-
-if [ "$1" = "configure" ] && [ "$#" -eq "1" ]; then
+if [ "$1" = "configure" ] && [ "$#" = "1" ]; then
 
     TMP=`mktemp -p /tmp/`
     cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
