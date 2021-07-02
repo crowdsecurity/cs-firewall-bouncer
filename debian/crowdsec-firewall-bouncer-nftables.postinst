@@ -1,5 +1,11 @@
 
-TMP=`mktemp -p /tmp/`
-cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-BACKEND=nftables API_KEY='${API_KEY}' envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-rm ${TMP}
+
+
+if [ "$1" == "configure" ] ; then
+
+    TMP=`mktemp -p /tmp/`
+    cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    BACKEND=nftables API_KEY='${API_KEY}' envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    rm ${TMP}
+
+fi

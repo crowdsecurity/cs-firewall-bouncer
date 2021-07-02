@@ -59,27 +59,30 @@ systemctl daemon-reload
 
 
 START=0
+if [ $1 == 1 ] ; then
+    type cscli > /dev/null
 
-type cscli > /dev/null
-
-if [ "$?" -eq "0" ] ; then
-    START=1
-    echo "cscli/crowdsec is present, generating API key"
-    unique=`date +%s`
-    API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
-    if [ $? -eq 1 ] ; then
-        echo "failed to create API token, service won't be started."
-        START=0
-        API_KEY="<API_KEY>"
-    else
-        echo "API Key : ${API_KEY}"
+    if [ "$?" -eq "0" ] ; then
+        START=1
+        echo "cscli/crowdsec is present, generating API key"
+        unique=`date +%s`
+        API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
+        if [ $? -eq 1 ] ; then
+            echo "failed to create API token, service won't be started."
+            START=0
+            API_KEY="<API_KEY>"
+        else
+            echo "API Key : ${API_KEY}"
+        fi
     fi
-fi
 
-TMP=`mktemp -p /tmp/`
-cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-BACKEND=iptables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-rm ${TMP}
+    TMP=`mktemp -p /tmp/`
+    cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    BACKEND=iptables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    rm ${TMP}
+else 
+    START=1
+fi
 
 if [ ${START} -eq 0 ] ; then
     echo "no api key was generated, won't start service"
@@ -112,26 +115,30 @@ systemctl daemon-reload
 
 START=0
 
-type cscli > /dev/null
+if [ $1 == 1 ] ; then
+    type cscli > /dev/null
 
-if [ "$?" -eq "0" ] ; then
-    START=1
-    echo "cscli/crowdsec is present, generating API key"
-    unique=`date +%s`
-    API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
-    if [ $? -eq 1 ] ; then
-        echo "failed to create API token, service won't be started."
-        START=0
-        API_KEY="<API_KEY>"
-    else
-        echo "API Key : ${API_KEY}"
+    if [ "$?" -eq "0" ] ; then
+        START=1
+        echo "cscli/crowdsec is present, generating API key"
+        unique=`date +%s`
+        API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
+        if [ $? -eq 1 ] ; then
+            echo "failed to create API token, service won't be started."
+            START=0
+            API_KEY="<API_KEY>"
+        else
+            echo "API Key : ${API_KEY}"
+        fi
     fi
-fi
 
-TMP=`mktemp -p /tmp/`
-cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-rm ${TMP}
+    TMP=`mktemp -p /tmp/`
+    cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    rm ${TMP}
+else 
+    START=1
+fi
 
 if [ ${START} -eq 0 ] ; then
     echo "no api key was generated, won't start service"
