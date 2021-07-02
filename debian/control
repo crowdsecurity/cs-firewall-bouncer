@@ -4,7 +4,7 @@ Build-Depends: debhelper, jq, bash, git
 
 
 Package: crowdsec-firewall-bouncer
-Depends: crowdsec-firewall-bouncer-nftables | crowdsec-firewall-bouncer-iptables
+Depends: crowdsec-firewall-bouncer-nftables (=${binary:Version}) | crowdsec-firewall-bouncer-iptables (=${binary:Version})
 Provides: crowdsec-firewall-bouncer
 Description: Firewall bouncer for Crowdsec (iptables+ipset, nftables or pf)
 Architecture: any
