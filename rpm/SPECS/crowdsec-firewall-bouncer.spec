@@ -59,7 +59,7 @@ systemctl daemon-reload
 
 
 START=0
-if [ $1 == 1 ] ; then
+if [ "$1" == "1" ] ; then
     type cscli > /dev/null
 
     if [ "$?" -eq "0" ] ; then
@@ -95,9 +95,9 @@ fi
 * Tue Feb 16 2021 Manuel Sabban <manuel@crowdsec.net>
 - First initial packaging
 
-%preun
+%preun -p /bin/bash
 
-if [ $1 == 0 ] ; then
+if [ "$1" == "0" ] ; then
     systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
     systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
 fi
@@ -121,7 +121,7 @@ systemctl daemon-reload
 
 START=0
 
-if [ $1 == 1 ] ; then
+if [ "$1" == "1" ] ; then
     type cscli > /dev/null
 
     if [ "$?" -eq "0" ] ; then
@@ -152,30 +152,29 @@ else
     systemctl start crowdsec-firewall-bouncer
 fi
 
-%preun -n crowdsec-firewall-bouncer-nftables
+%preun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
-if [ $1 == 0 ] ; then
+if [ "$1" == "0" ] ; then
     systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
     systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
 fi
 
 
-%postun
+%postun -p /bin/bash
 
-if [ $1 == 1 ] ; then
+if [ "$1" == "1" ] ; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
-else if [ $1 == 0 ] ; then
+elif [ "$1" == "0" ] ; then
     systemctl stop crowdsec-firewall-bouncer
     systemctl disable crowdsec-firewall-bouncer
 fi
 
 
-%postun -n crowdsec-firewall-bouncer-nftables
+%postun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
-if [ $1 == 1 ] ; then
+if [ "$1" == "1" ] ; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
-else if [ $1 == 0 ] ; then
+elif [ "$1" == "0" ] ; then
     systemctl stop crowdsec-firewall-bouncer
     systemctl disable crowdsec-firewall-bouncer
 fi
-
