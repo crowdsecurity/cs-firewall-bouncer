@@ -96,8 +96,14 @@ fi
 - First initial packaging
 
 %preun
-systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
-systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
+
+if [ $1 == 0 ] ; then
+    systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
+    systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
+fi
+
+
+
 
 %package -n crowdsec-firewall-bouncer-nftables
 Summary:      Firewall bouncer for Crowdsec (nftables configuration)
@@ -147,5 +153,29 @@ else
 fi
 
 %preun -n crowdsec-firewall-bouncer-nftables
-systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
-systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
+
+if [ $1 == 0 ] ; then
+    systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
+    systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
+fi
+
+
+%postun
+
+if [ $1 == 1 ] ; then
+    systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
+else if [ $1 == 0 ] ; then
+    systemctl stop crowdsec-firewall-bouncer
+    systemctl disable crowdsec-firewall-bouncer
+fi
+
+
+%postun -n crowdsec-firewall-bouncer-nftables
+
+if [ $1 == 1 ] ; then
+    systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
+else if [ $1 == 0 ] ; then
+    systemctl stop crowdsec-firewall-bouncer
+    systemctl disable crowdsec-firewall-bouncer
+fi
+
