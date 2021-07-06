@@ -27,10 +27,10 @@ Supported firewalls:
 
 ## Using packages
 
-Packages for crowdsec-firewall-bouncer [are available on our repositories](https://doc.crowdsec.net/Crowdsec/v1/getting_started/installation/#installation-methods).
+Packages for crowdsec-firewall-bouncer [are available on our repositories](https://doc.crowdsec.net/Crowdsec/v1/getting_started/installation/#installation-methods). You need to pick the package accord to your firewall system :
 
- - debian/ubuntu : `apt install crowdsec-firewall-bouncer`
- - rhel/centos/fedora : `yum install crowdsec-firewall-bouncer`
+ - debian/ubuntu : `apt install crowdsec-firewall-bouncer-iptables crowdsec-firewall-bouncer` or `apt install crowdsec-firewall-bouncer-nftables crowdsec-firewall-bouncer`
+ - rhel/centos/fedora : `yum install crowdsec-firewall-bouncer-iptables` or `yum install crowdsec-firewall-bouncer-nftables`
  - freebsd : `pkg install crowdsec-firewall-bouncer`
 
 ## Manual installation
@@ -69,6 +69,8 @@ sudo ./upgrade.sh
 
 
 ## Configuration
+
+**note : this is only relevant for "manual" or "from source" installation, as packages would take care of all the needed configuration**
 
 To be functional, the `crowdsec-firewall-bouncer` service must be able to authenticate with the local API.
 The `install.sh` script will take care of it (it will call `cscli bouncers add` on your behalf).
