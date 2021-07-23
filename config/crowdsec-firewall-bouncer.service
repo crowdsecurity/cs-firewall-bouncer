@@ -5,6 +5,7 @@ After=syslog.target network.target remote-fs.target nss-lookup.target crowdsec.s
 [Service]
 Type=notify
 ExecStart=${BIN} -c ${CFG}crowdsec-firewall-bouncer.yaml
+ExecStartPre=${BIN} -c ${CFG}crowdsec-firewall-bouncer.yaml -t
 ExecStartPost=/bin/sleep 0.1
 
 [Install]
