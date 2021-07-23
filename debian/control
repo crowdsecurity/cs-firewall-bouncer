@@ -13,10 +13,11 @@ Architecture: any
 Package: crowdsec-firewall-bouncer-iptables
 Architecture: any
 Description: Firewall bouncer for Crowdsec (iptables+ipset)
-Depends: iptables, ipset
+Depends: iptables, ipset, crowdsec-firewall-bouncer (=${binary:Version})
 
 Package: crowdsec-firewall-bouncer-nftables
 Architecture: any
 Description: Firewall bouncer for Crowdsec (nftables)
-Depends: nftables
+Depends: nftables, crowdsec-firewall-bouncer (=${binary:Version})
+
 
