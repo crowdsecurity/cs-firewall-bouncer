@@ -81,7 +81,7 @@ func main() {
 
 	if *testConfig {
 		if err := validateConfig(*config); err != nil {
-			log.Fatal("got error %s while validating config", err.Error())
+			log.Fatalf("got error %s while validating config", err.Error())
 		}
 		log.Info("config is valid")
 		return
