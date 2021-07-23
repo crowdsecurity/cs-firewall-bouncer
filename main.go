@@ -59,6 +59,7 @@ func main() {
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
 	bouncerVersion := flag.Bool("V", false, "display version and exit")
+	testConfig := flag.Bool("t", false, "test config and exit")
 
 	flag.Parse()
 
@@ -76,6 +77,14 @@ func main() {
 	config, err := NewConfig(*configPath)
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
+	}
+
+	if *testConfig {
+		if err := validateConfig(*config); err != nil {
+			log.Fatal("got error %s while validating config", err.Error())
+		}
+		log.Info("config is valid")
+		return
 	}
 
 	if *verbose {
