@@ -44,13 +44,14 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 		return &bouncerConfig{}, fmt.Errorf("failed to unmarshal %s : %v", configPath, err)
 	}
 
+	err = validateConfig(*config)
+	if err != nil {
+		return &bouncerConfig{}, err
+	}
+
 	if config.PidDir == "" {
 		log.Warningf("missing 'pid_dir' directive in '%s', using default: '/var/run/'", configPath)
 		config.PidDir = "/var/run/"
-	}
-
-	if config.Mode == "" || config.LogMode == "" {
-		return &bouncerConfig{}, fmt.Errorf("invalid configuration in %s", configPath)
 	}
 	if config.DenyLog && config.DenyLogPrefix == "" {
 		config.DenyLogPrefix = "crowdsec drop: "
@@ -72,8 +73,24 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 		}
 		log.SetOutput(LogOutput)
 		log.SetFormatter(&log.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
-	} else if config.LogMode != "stdout" {
-		return &bouncerConfig{}, fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
 	return config, nil
+}
+
+func validateConfig(config bouncerConfig) error {
+	if config.APIUrl == "" {
+		return fmt.Errorf("config does not contain LAPI url")
+	}
+	if config.APIKey == "" {
+		return fmt.Errorf("config does not contain LAPI key")
+	}
+
+	if config.Mode == "" || config.LogMode == "" {
+		return fmt.Errorf("config does not contain mode and log mode")
+	}
+
+	if config.LogMode != "stdout" && config.LogMode != "file" {
+		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
+	}
+	return nil
 }
