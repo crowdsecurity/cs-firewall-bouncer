@@ -133,3 +133,7 @@ table <crowdsec-blacklists> persist
 # create crowdsec ipv6 table
 table <crowdsec6-blacklists> persist
  ```
+
+ You can refer to step by step instructions of the [user tutorial on
+ FreeBSD](https://doc.crowdsec.net/Crowdsec/v1/user_tutorial/crowdsec_firewall_on_freebsd)
+ to setup crowdsec-firewall-bouncer with pf.
