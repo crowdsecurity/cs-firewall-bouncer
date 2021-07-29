@@ -1,0 +1,2 @@
+systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
+systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
