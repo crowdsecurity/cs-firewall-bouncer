@@ -10,6 +10,7 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/writer"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
@@ -67,6 +68,14 @@ func main() {
 		fmt.Printf("%s", version.ShowStr())
 		os.Exit(0)
 	}
+
+	log.AddHook(&writer.Hook{ // Send logs with level fatal to stderr
+		Writer: os.Stderr,
+		LogLevels: []log.Level{
+			log.PanicLevel,
+			log.FatalLevel,
+		},
+	})
 
 	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
 
