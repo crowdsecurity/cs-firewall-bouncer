@@ -69,7 +69,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.AddHook(&writer.Hook{ // Send logs with level higher than warning to stderr
+	log.AddHook(&writer.Hook{ // Send logs with level fatal to stderr
 		Writer: os.Stderr,
 		LogLevels: []log.Level{
 			log.PanicLevel,
