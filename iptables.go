@@ -60,11 +60,11 @@ func newIPTables(config *bouncerConfig) (interface{}, error) {
 		for _, v := range config.IptablesChains {
 			if config.DenyLog {
 				ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
-				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+					[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
 				ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
-				[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+					[]string{"-D", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
 				ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
-				[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "--log-prefix", config.DenyLogPrefix, "-j", "LOG"})
+					[]string{"-C", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
 			}
 			ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
 				[]string{"-I", v, "-m", "set", "--match-set", "crowdsec-blacklists", "src", "-j", target})
