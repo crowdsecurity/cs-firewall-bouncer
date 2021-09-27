@@ -25,6 +25,8 @@ type bouncerConfig struct {
 	DenyAction      string    `yaml:"deny_action"`
 	DenyLog         bool      `yaml:"deny_log"`
 	DenyLogPrefix   string    `yaml:"deny_log_prefix"`
+	BlacklistsIpv4	string    `yaml:"blacklists_ipv4"`
+	BlacklistsIpv6	string    `yaml:"blacklists_ipv6"`
 	//specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains []string `yaml:"iptables_chains"`
 }
@@ -56,6 +58,15 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 	if config.DenyLog && config.DenyLogPrefix == "" {
 		config.DenyLogPrefix = "crowdsec drop: "
 	}
+
+	if config.BlacklistsIpv4 == "" {
+		config.BlacklistsIpv4 = "crowdsec-blacklists"
+	}
+
+	if config.BlacklistsIpv6 == "" {
+		config.BlacklistsIpv6 = "crowdsec6-blacklists"
+	}
+
 	/*Configure logging*/
 	if err = types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
 		log.Fatal(err.Error())

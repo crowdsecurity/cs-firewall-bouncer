@@ -30,9 +30,6 @@ type pf struct {
 const (
 	backendName = "pf"
 
-	pfinetTable  = "crowdsec-blacklists"
-	pfinet6Table = "crowdsec6-blacklists"
-
 	pfctlCmd = "/sbin/pfctl"
 	pfDevice = "/dev/pf"
 
@@ -44,13 +41,13 @@ func newPF(config *bouncerConfig) (interface{}, error) {
 	ret := &pf{}
 
 	inetCtx := &pfContext{
-		table:   pfinetTable,
+		table:   config.BlacklistsIpv4,
 		proto:   "inet",
 		version: "ipv4",
 	}
 
 	inet6Ctx := &pfContext{
-		table:   pfinet6Table,
+		table:   config.BlacklistsIpv6,
 		proto:   "inet6",
 		version: "ipv6",
 	}
