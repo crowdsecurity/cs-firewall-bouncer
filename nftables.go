@@ -1,8 +1,10 @@
+//go:build linux
 // +build linux
 
 package main
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -10,21 +12,22 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
-	"golang.org/x/sys/unix"
+	"github.com/mikioh/ipaddr"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const defaultTimeout = 4 * time.Hour
 
 type nft struct {
-	conn   *nftables.Conn
-	conn6  *nftables.Conn
-	set    *nftables.Set
-	set6   *nftables.Set
-	table  *nftables.Table
-	table6 *nftables.Table
-	DenyAction string
-	DenyLog bool
+	conn          *nftables.Conn
+	conn6         *nftables.Conn
+	set           *nftables.Set
+	set6          *nftables.Set
+	table         *nftables.Table
+	table6        *nftables.Table
+	DenyAction    string
+	DenyLog       bool
 	DenyLogPrefix string
 }
 
@@ -57,9 +60,10 @@ func (n *nft) Init() error {
 		Priority: nftables.ChainPriorityFilter,
 	})
 	set := &nftables.Set{
-		Name:    "crowdsec_blocklist",
-		Table:   n.table,
-		KeyType: nftables.TypeIPAddr,
+		Name:     "crowdsec_blocklist",
+		Table:    n.table,
+		KeyType:  nftables.TypeIPAddr,
+		Interval: true,
 	}
 
 	if err := n.conn.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -201,15 +205,41 @@ func (n *nft) Add(decision *models.Decision) error {
 			return nil
 		}
 	} else { // ipv4
-		var ipAddr string
-		if strings.Contains(*decision.Value, "/") {
-			ipAddr = strings.Split(*decision.Value, "/")[0]
-		} else {
-			ipAddr = *decision.Value
+		if strings.ToLower(*decision.Scope) == "ip" {
+			ipAddr := net.ParseIP(*decision.Value)
+			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(ipAddr.To4())}}); err != nil {
+				return err
+			}
+			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(ipAddr.To4()), IntervalEnd: true}}); err != nil {
+				return err
+			}
+		} else if strings.ToLower(*decision.Scope) == "range" {
+			ip, ipnet, err := net.ParseCIDR(*decision.Value)
+			if err != nil {
+				return err
+			}
+
+			ipSplit := strings.Split(*decision.Value, "/")
+			if len(ipSplit) != 2 {
+				return fmt.Errorf("bad ip range '%s'", *decision.Value)
+
+			}
+			prefix := ipaddr.NewPrefix(ipnet)
+			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(ip.To4())}}); err != nil {
+				return err
+			}
+			// don't provide an end interval for /32 IP
+			if ipSplit[1] != "/32" {
+				if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(prefix.Last().To4()), IntervalEnd: true}}); err != nil {
+					return err
+				}
+			} else {
+				if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(ip.To4()), IntervalEnd: true}}); err != nil {
+					return err
+				}
+			}
 		}
-		if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(ipAddr).To4())}}); err != nil {
-			return err
-		}
+
 		if err := n.conn.Flush(); err != nil {
 			return err
 		}
@@ -221,7 +251,9 @@ func (n *nft) Add(decision *models.Decision) error {
 func (n *nft) Delete(decision *models.Decision) error {
 	if strings.Contains(*decision.Value, ":") { // ipv6
 		if n.conn6 != nil {
-			if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(*decision.Value).To16()}}); err != nil {
+			ip := net.ParseIP(*decision.Value).To16()
+			log.Printf("Parsed IPV6: %+v", ip)
+			if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: ip}}); err != nil {
 				return err
 			}
 			if err := n.conn.Flush(); err != nil {
