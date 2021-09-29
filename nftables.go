@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -214,29 +213,17 @@ func (n *nft) Add(decision *models.Decision) error {
 				return err
 			}
 		} else if strings.ToLower(*decision.Scope) == "range" {
-			ip, ipnet, err := net.ParseCIDR(*decision.Value)
+			_, ipnet, err := net.ParseCIDR(*decision.Value)
 			if err != nil {
 				return err
 			}
 
-			ipSplit := strings.Split(*decision.Value, "/")
-			if len(ipSplit) != 2 {
-				return fmt.Errorf("bad ip range '%s'", *decision.Value)
-
-			}
 			prefix := ipaddr.NewPrefix(ipnet)
-			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(ip.To4())}}); err != nil {
+			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(ipnet.IP.To4())}}); err != nil {
 				return err
 			}
-			// don't provide an end interval for /32 IP
-			if ipSplit[1] != "/32" {
-				if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(prefix.Last().To4()), IntervalEnd: true}}); err != nil {
-					return err
-				}
-			} else {
-				if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(ip.To4()), IntervalEnd: true}}); err != nil {
-					return err
-				}
+			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(prefix.Last().To4()), IntervalEnd: true}}); err != nil {
+				return err
 			}
 		}
 
