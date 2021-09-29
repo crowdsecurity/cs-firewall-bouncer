@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -10,21 +11,21 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
-	"golang.org/x/sys/unix"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const defaultTimeout = 4 * time.Hour
 
 type nft struct {
-	conn   *nftables.Conn
-	conn6  *nftables.Conn
-	set    *nftables.Set
-	set6   *nftables.Set
-	table  *nftables.Table
-	table6 *nftables.Table
-	DenyAction string
-	DenyLog bool
+	conn          *nftables.Conn
+	conn6         *nftables.Conn
+	set           *nftables.Set
+	set6          *nftables.Set
+	table         *nftables.Table
+	table6        *nftables.Table
+	DenyAction    string
+	DenyLog       bool
 	DenyLogPrefix string
 }
 
@@ -57,9 +58,10 @@ func (n *nft) Init() error {
 		Priority: nftables.ChainPriorityFilter,
 	})
 	set := &nftables.Set{
-		Name:    "crowdsec_blocklist",
-		Table:   n.table,
-		KeyType: nftables.TypeIPAddr,
+		Name:     "crowdsec_blocklist",
+		Table:    n.table,
+		KeyType:  nftables.TypeIPAddr,
+		Interval: true,
 	}
 
 	if err := n.conn.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -201,15 +203,23 @@ func (n *nft) Add(decision *models.Decision) error {
 			return nil
 		}
 	} else { // ipv4
-		var ipAddr string
-		if strings.Contains(*decision.Value, "/") {
-			ipAddr = strings.Split(*decision.Value, "/")[0]
+		var network string
+		if !strings.Contains(*decision.Value, "/") {
+			network = fmt.Sprintf("%s/32", *decision.Value)
 		} else {
-			ipAddr = *decision.Value
+			network = *decision.Value
 		}
-		if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(ipAddr).To4())}}); err != nil {
+		_, cidr, err := net.ParseCIDR(network)
+		if err != nil {
 			return err
 		}
+		n.conn.SetAddElements(
+			n.set,
+			[]nftables.SetElement{
+				{Key: cidr.IP},
+				{Key: incrementIP(BroadcastAddr(cidr)), IntervalEnd: true},
+			},
+		)
 		if err := n.conn.Flush(); err != nil {
 			return err
 		}
