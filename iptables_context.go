@@ -108,10 +108,8 @@ func (ctx *ipTablesContext) shutDown() error {
 		cmd = exec.Command(ctx.iptablesBin, startCmd...)
 		log.Infof("iptables clean-up : %s", cmd.String())
 		if out, err := cmd.CombinedOutput(); err != nil {
-			if strings.Contains(string(out), "Set crowdsec-blacklists doesn't exist.") {
-				log.Infof("ipset 'crowdsec-blacklists' doesn't exist, skip")
-			} else if strings.Contains(string(out), "Set crowdsec6-blacklists doesn't exist.") {
-				log.Infof("ipset 'crowdsec6-blacklists' doesn't exist, skip")
+			if strings.Contains(string(out), "Set " + ctx.SetName + " doesn't exist.") {
+				log.Infof("ipset '%s' doesn't exist, skip", ctx.SetName)
 			} else {
 				log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
 			}
@@ -129,7 +127,7 @@ func (ctx *ipTablesContext) shutDown() error {
 	log.Infof("ipset clean-up : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		if strings.Contains(string(out), "The set with the given name does not exist") {
-			log.Infof("ipset 'crowdsec-blacklists' doesn't exist, skip")
+			log.Infof("ipset '%s' doesn't exist, skip", ctx.SetName)
 		} else {
 			log.Errorf("set %s error : %v - %s", ipsetCmd, err, string(out))
 		}

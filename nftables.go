@@ -26,6 +26,8 @@ type nft struct {
 	DenyAction string
 	DenyLog bool
 	DenyLogPrefix string
+	BlacklistsIpv4 string
+	BlacklistsIpv6 string
 }
 
 func newNFTables(config *bouncerConfig) (interface{}, error) {
@@ -38,6 +40,8 @@ func newNFTables(config *bouncerConfig) (interface{}, error) {
 	ret.DenyAction = config.DenyAction
 	ret.DenyLog = config.DenyLog
 	ret.DenyLogPrefix = config.DenyLogPrefix
+	ret.BlacklistsIpv4 = config.BlacklistsIpv4
+	ret.BlacklistsIpv6 = config.BlacklistsIpv6
 	return ret, nil
 }
 
@@ -50,14 +54,14 @@ func (n *nft) Init() error {
 	n.table = n.conn.AddTable(table)
 
 	chain := n.conn.AddChain(&nftables.Chain{
-		Name:     "crowdsec_chain",
+		Name:     "crowdsec-chain",
 		Table:    n.table,
 		Type:     nftables.ChainTypeFilter,
 		Hooknum:  nftables.ChainHookInput,
 		Priority: nftables.ChainPriorityFilter,
 	})
 	set := &nftables.Set{
-		Name:    "crowdsec_blocklist",
+		Name:    n.BlacklistsIpv4,
 		Table:   n.table,
 		KeyType: nftables.TypeIPAddr,
 	}
@@ -118,14 +122,14 @@ func (n *nft) Init() error {
 		n.table6 = n.conn6.AddTable(table)
 
 		chain := n.conn6.AddChain(&nftables.Chain{
-			Name:     "crowdsec6_chain",
+			Name:     "crowdsec6-chain",
 			Table:    n.table6,
 			Type:     nftables.ChainTypeFilter,
 			Hooknum:  nftables.ChainHookInput,
 			Priority: nftables.ChainPriorityFilter,
 		})
 		set := &nftables.Set{
-			Name:    "crowdsec6_blocklist",
+			Name:    n.BlacklistsIpv6,
 			Table:   n.table6,
 			KeyType: nftables.TypeIP6Addr,
 		}
