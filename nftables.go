@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -65,6 +66,7 @@ func (n *nft) Init() error {
 		Table:      n.table,
 		KeyType:    nftables.TypeIPAddr,
 		HasTimeout: true,
+		Interval:   true,
 	}
 
 	if err := n.conn.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -134,6 +136,7 @@ func (n *nft) Init() error {
 			Table:      n.table6,
 			KeyType:    nftables.TypeIP6Addr,
 			HasTimeout: true,
+			Interval:   true,
 		}
 
 		if err := n.conn6.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -194,9 +197,23 @@ func (n *nft) Add(decision *models.Decision) error {
 		log.Errorf("unable to parse timeout '%s' for '%s' : %s", *decision.Duration, *decision.Value, err)
 		timeout = defaultTimeout
 	}
+	var cidr string
 	if strings.Contains(*decision.Value, ":") { // ipv6
 		if n.conn6 != nil {
-			if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
+			if !strings.Contains(*decision.Value, "/") {
+				cidr = fmt.Sprintf("%s/128", *decision.Value)
+			} else {
+				cidr = *decision.Value
+			}
+			_, cidrNet, err := net.ParseCIDR(cidr)
+			if err != nil {
+				return err
+			}
+			if err := n.conn6.SetAddElements(n.set6,
+				[]nftables.SetElement{
+					{Key: []byte(cidrNet.IP.To16()), Timeout: timeout},
+					{Key: []byte(incrementIP(BroadcastAddr(cidrNet)).To16()), IntervalEnd: true},
+				}); err != nil {
 				return err
 			}
 			if err := n.conn6.Flush(); err != nil {
@@ -207,13 +224,20 @@ func (n *nft) Add(decision *models.Decision) error {
 			return nil
 		}
 	} else { // ipv4
-		var ipAddr string
-		if strings.Contains(*decision.Value, "/") {
-			ipAddr = strings.Split(*decision.Value, "/")[0]
+		if !strings.Contains(*decision.Value, "/") {
+			cidr = fmt.Sprintf("%s/32", *decision.Value)
 		} else {
-			ipAddr = *decision.Value
+			cidr = *decision.Value
 		}
-		if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(ipAddr).To4()), Timeout: timeout}}); err != nil {
+		_, cidrNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return err
+		}
+		if err := n.conn.SetAddElements(n.set,
+			[]nftables.SetElement{
+				{Key: cidrNet.IP, Timeout: timeout},
+				{Key: incrementIP(BroadcastAddr(cidrNet)), IntervalEnd: true},
+			}); err != nil {
 			return err
 		}
 		if err := n.conn.Flush(); err != nil {
@@ -225,26 +249,49 @@ func (n *nft) Add(decision *models.Decision) error {
 }
 
 func (n *nft) Delete(decision *models.Decision) error {
+	var cidr string
 	if strings.Contains(*decision.Value, ":") { // ipv6
 		if n.conn6 != nil {
-			if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16())}}); err != nil {
+			if !strings.Contains(*decision.Value, "/") {
+				cidr = fmt.Sprintf("%s/128", *decision.Value)
+			} else {
+				cidr = *decision.Value
+			}
+			_, cidrNet, err := net.ParseCIDR(cidr)
+			if err != nil {
+				return err
+			}
+			if err := n.conn6.SetDeleteElements(n.set6,
+				[]nftables.SetElement{
+					{Key: []byte(cidrNet.IP.To16())},
+					{Key: []byte(incrementIP(BroadcastAddr(cidrNet)).To16()), IntervalEnd: true},
+				}); err != nil {
 				return err
 			}
 			if err := n.conn6.Flush(); err != nil {
 				return err
 			}
+
 		} else {
 			log.Debugf("not removing '%s' because ipv6 is disabled", *decision.Value)
 			return nil
 		}
 	} else { // ipv4
-		var ipAddr string
-		if strings.Contains(*decision.Value, "/") {
-			ipAddr = strings.Split(*decision.Value, "/")[0]
+		var cidr string
+		if !strings.Contains(*decision.Value, "/") {
+			cidr = fmt.Sprintf("%s/32", *decision.Value)
 		} else {
-			ipAddr = *decision.Value
+			cidr = *decision.Value
 		}
-		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(ipAddr).To4()}}); err != nil {
+		_, cidrNet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return err
+		}
+		if err := n.conn.SetDeleteElements(n.set,
+			[]nftables.SetElement{
+				{Key: cidrNet.IP},
+				{Key: incrementIP(BroadcastAddr(cidrNet)), IntervalEnd: true},
+			}); err != nil {
 			return err
 		}
 		if err := n.conn.Flush(); err != nil {
@@ -270,4 +317,45 @@ func (n *nft) ShutDown() error {
 		}
 	}
 	return nil
+}
+
+// Utilites from https://github.com/IBM/netaddr/blob/master/net_utils.go
+
+// NewIP returns a new IP with the given size. The size must be 4 for IPv4 and
+// 16 for IPv6.
+func NewIP(size int) net.IP {
+	if size == 4 {
+		return net.ParseIP("0.0.0.0").To4()
+	}
+	if size == 16 {
+		return net.ParseIP("::")
+	}
+	panic("Bad value for size")
+}
+
+// BroadcastAddr returns the last address in the given network, or the broadcast address.
+func BroadcastAddr(n *net.IPNet) net.IP {
+	// The golang net package doesn't make it easy to calculate the broadcast address. :(
+	broadcast := NewIP(len(n.IP))
+	for i := 0; i < len(n.IP); i++ {
+		broadcast[i] = n.IP[i] | ^n.Mask[i]
+	}
+	return broadcast
+}
+
+// incrementIP returns the given IP + 1
+func incrementIP(ip net.IP) (result net.IP) {
+	result = make([]byte, len(ip)) // start off with a nice empty ip of proper length
+
+	carry := true
+	for i := len(ip) - 1; i >= 0; i-- {
+		result[i] = ip[i]
+		if carry {
+			result[i]++
+			if result[i] != 0 {
+				carry = false
+			}
+		}
+	}
+	return
 }
