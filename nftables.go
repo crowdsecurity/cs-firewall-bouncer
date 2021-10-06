@@ -209,10 +209,14 @@ func (n *nft) Add(decision *models.Decision) error {
 			if err != nil {
 				return err
 			}
+			bca, err := BroadcastAddr(cidrNet)
+			if err != nil {
+				return err
+			}
 			if err := n.conn6.SetAddElements(n.set6,
 				[]nftables.SetElement{
 					{Key: []byte(cidrNet.IP.To16()), Timeout: timeout},
-					{Key: []byte(incrementIP(BroadcastAddr(cidrNet)).To16()), IntervalEnd: true},
+					{Key: []byte(incrementIP(bca).To16()), IntervalEnd: true},
 				}); err != nil {
 				return err
 			}
@@ -233,10 +237,14 @@ func (n *nft) Add(decision *models.Decision) error {
 		if err != nil {
 			return err
 		}
+		bca, err := BroadcastAddr(cidrNet)
+		if err != nil {
+			return err
+		}
 		if err := n.conn.SetAddElements(n.set,
 			[]nftables.SetElement{
 				{Key: cidrNet.IP, Timeout: timeout},
-				{Key: incrementIP(BroadcastAddr(cidrNet)), IntervalEnd: true},
+				{Key: incrementIP(bca), IntervalEnd: true},
 			}); err != nil {
 			return err
 		}
@@ -261,10 +269,14 @@ func (n *nft) Delete(decision *models.Decision) error {
 			if err != nil {
 				return err
 			}
+			bca, err := BroadcastAddr(cidrNet)
+			if err != nil {
+				return err
+			}
 			if err := n.conn6.SetDeleteElements(n.set6,
 				[]nftables.SetElement{
 					{Key: []byte(cidrNet.IP.To16())},
-					{Key: []byte(incrementIP(BroadcastAddr(cidrNet)).To16()), IntervalEnd: true},
+					{Key: []byte(incrementIP(bca).To16()), IntervalEnd: true},
 				}); err != nil {
 				return err
 			}
@@ -287,10 +299,14 @@ func (n *nft) Delete(decision *models.Decision) error {
 		if err != nil {
 			return err
 		}
+		bca, err := BroadcastAddr(cidrNet)
+		if err != nil {
+			return err
+		}
 		if err := n.conn.SetDeleteElements(n.set,
 			[]nftables.SetElement{
 				{Key: cidrNet.IP},
-				{Key: incrementIP(BroadcastAddr(cidrNet)), IntervalEnd: true},
+				{Key: incrementIP(bca), IntervalEnd: true},
 			}); err != nil {
 			return err
 		}
@@ -323,24 +339,27 @@ func (n *nft) ShutDown() error {
 
 // NewIP returns a new IP with the given size. The size must be 4 for IPv4 and
 // 16 for IPv6.
-func NewIP(size int) net.IP {
+func NewIP(size int) (net.IP, error) {
 	if size == 4 {
-		return net.ParseIP("0.0.0.0").To4()
+		return net.ParseIP("0.0.0.0").To4(), nil
 	}
 	if size == 16 {
-		return net.ParseIP("::")
+		return net.ParseIP("::"), nil
 	}
-	panic("Bad value for size")
+	return net.IP{}, fmt.Errorf("invalid size %d", size)
 }
 
 // BroadcastAddr returns the last address in the given network, or the broadcast address.
-func BroadcastAddr(n *net.IPNet) net.IP {
+func BroadcastAddr(n *net.IPNet) (net.IP, error) {
 	// The golang net package doesn't make it easy to calculate the broadcast address. :(
-	broadcast := NewIP(len(n.IP))
+	broadcast, err := NewIP(len(n.IP))
+	if err != nil {
+		return net.IP{}, err
+	}
 	for i := 0; i < len(n.IP); i++ {
 		broadcast[i] = n.IP[i] | ^n.Mask[i]
 	}
-	return broadcast
+	return broadcast, nil
 }
 
 // incrementIP returns the given IP + 1
