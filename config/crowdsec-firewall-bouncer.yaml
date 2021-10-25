@@ -20,3 +20,5 @@ iptables_chains:
   - INPUT
 #  - FORWARD
 #  - DOCKER-USER
+#BlacklistsIpv4: crowdsec-blacklists
+#BlacklistsIpv6: crowdsec6-blacklists
