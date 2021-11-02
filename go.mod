@@ -4,8 +4,8 @@ go 1.14
 
 require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/crowdsecurity/crowdsec v1.2.0
-	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20210715153028-e96121f59525
+	github.com/crowdsecurity/crowdsec v1.2.1
+	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20211102133442-6337f533409f
 	github.com/go-openapi/errors v0.20.1 // indirect
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/runtime v0.19.31 // indirect
@@ -19,7 +19,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f // indirect
 	go.mongodb.org/mongo-driver v1.7.2 // indirect
 	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8 // indirect
-	golang.org/x/sys v0.0.0-20210915083310-ed5796bab164
+	golang.org/x/sys v0.0.0-20210921065528-437939a70204
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
