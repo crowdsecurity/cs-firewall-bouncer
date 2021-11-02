@@ -38,6 +38,7 @@ require (
 	golang.org/x/net v0.0.0-20211101193420-4a448f8816b3 // indirect
 	golang.org/x/sys v0.0.0-20211102061401-a2f17f7b995c
 	golang.org/x/text v0.3.7 // indirect
+	github.com/mattn/go-sqlite3 v1.14.8 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gopkg.in/yaml.v2 v2.4.0
