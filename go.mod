@@ -8,7 +8,7 @@ require (
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/crowdsecurity/crowdsec v1.2.1
-	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20210917121841-081b4a21571c
+	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20211102133442-6337f533409f
 	github.com/crowdsecurity/grokky v0.0.0-20210908140943-c4460be565eb // indirect
 	github.com/facebook/ent v0.5.0 // indirect
 	github.com/go-openapi/analysis v0.21.1 // indirect
