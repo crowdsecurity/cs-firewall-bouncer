@@ -7,7 +7,7 @@ require (
 	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/crowdsecurity/crowdsec v1.2.0
+	github.com/crowdsecurity/crowdsec v1.2.1
 	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20210917121841-081b4a21571c
 	github.com/crowdsecurity/grokky v0.0.0-20210908140943-c4460be565eb // indirect
 	github.com/facebook/ent v0.5.0 // indirect
@@ -22,6 +22,7 @@ require (
 	github.com/jamiealquiza/tachymeter v2.0.0+incompatible // indirect
 	github.com/jinzhu/gorm v1.9.12 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.8 // indirect
 	github.com/mdlayher/netlink v1.4.1 // indirect
 	github.com/mdlayher/socket v0.0.0-20211007213009-516dcbdf0267 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
@@ -38,12 +39,11 @@ require (
 	golang.org/x/net v0.0.0-20211101193420-4a448f8816b3 // indirect
 	golang.org/x/sys v0.0.0-20211102061401-a2f17f7b995c
 	golang.org/x/text v0.3.7 // indirect
-	github.com/mattn/go-sqlite3 v1.14.8 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 exclude github.com/mattn/go-sqlite3 v2.0.3+incompatible
-exclude github.com/mattn/go-sqlite3 v2.0.1+incompatible
 
+exclude github.com/mattn/go-sqlite3 v2.0.1+incompatible
