@@ -154,9 +154,11 @@ func main() {
 					} else {
 						log.Debugf("deleted '%s'", *decision.Value)
 					}
-					if nbDeletedDecisions > 0 {
-						log.Infof("'%d' decisions deleted", nbDeletedDecisions)
-					}
+					nbDeletedDecisions++
+				}
+
+				if nbDeletedDecisions > 0 {
+					log.Infof("'%d' decisions deleted", nbDeletedDecisions)
 				}
 
 				nbNewDecisions := 0
