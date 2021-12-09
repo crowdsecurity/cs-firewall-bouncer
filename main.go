@@ -22,6 +22,7 @@ const (
 )
 
 var t tomb.Tomb
+var supportedDecisionsTypes = []string{"ban"}
 
 func termHandler(sig os.Signal, backend *backendCTX) error {
 	if err := backend.ShutDown(); err != nil {
@@ -53,6 +54,15 @@ func HandleSignals(backend *backendCTX) {
 	code := <-exitChan
 	log.Infof("Shutting down firewall-bouncer service")
 	os.Exit(code)
+}
+
+func inSlice(s string, slice []string) bool {
+	for _, str := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
@@ -131,7 +141,12 @@ func main() {
 				if len(decisions.Deleted) > 0 {
 					log.Infof("deleting '%d' decisions", len(decisions.Deleted))
 				}
+				nbDeletedDecisions := 0
 				for _, decision := range decisions.Deleted {
+					if !inSlice(strings.ToLower(*decision.Type), supportedDecisionsTypes) {
+						log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *decision.Value, *decision.Type)
+						continue
+					}
 					if err := backend.Delete(decision); err != nil {
 						if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
 							log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
@@ -139,17 +154,26 @@ func main() {
 					} else {
 						log.Debugf("deleted '%s'", *decision.Value)
 					}
+					if nbDeletedDecisions > 0 {
+						log.Infof("'%d' decisions deleted", nbDeletedDecisions)
+					}
+				}
 
-				}
-				if len(decisions.New) > 0 {
-					log.Infof("adding '%d' decisions", len(decisions.New))
-				}
+				nbNewDecisions := 0
 				for _, decision := range decisions.New {
+					if !inSlice(strings.ToLower(*decision.Type), supportedDecisionsTypes) {
+						log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *decision.Value, *decision.Type)
+						continue
+					}
 					if err := backend.Add(decision); err != nil {
 						log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
 					} else {
 						log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
 					}
+					nbNewDecisions++
+				}
+				if nbNewDecisions > 0 {
+					log.Infof("'%d' decisions added", nbNewDecisions)
 				}
 			}
 		}
