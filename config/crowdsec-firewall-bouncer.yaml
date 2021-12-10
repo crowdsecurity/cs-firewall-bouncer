@@ -10,6 +10,8 @@ api_key: ${API_KEY}
 disable_ipv6: false
 deny_action: DROP
 deny_log: false
+supported_decisions_types:
+  - ban
 #to change log prefix
 #deny_log_prefix: "crowdsec: "
 #to change the blacklists name
