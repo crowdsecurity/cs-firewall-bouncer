@@ -25,10 +25,11 @@ type bouncerConfig struct {
 	DenyAction      string    `yaml:"deny_action"`
 	DenyLog         bool      `yaml:"deny_log"`
 	DenyLogPrefix   string    `yaml:"deny_log_prefix"`
-	BlacklistsIpv4	string    `yaml:"blacklists_ipv4"`
-	BlacklistsIpv6	string    `yaml:"blacklists_ipv6"`
+	BlacklistsIpv4  string    `yaml:"blacklists_ipv4"`
+	BlacklistsIpv6  string    `yaml:"blacklists_ipv6"`
 	//specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
-	IptablesChains []string `yaml:"iptables_chains"`
+	IptablesChains          []string `yaml:"iptables_chains"`
+	supportedDecisionsTypes []string `yaml:"supported_decisions_type"`
 }
 
 func NewConfig(configPath string) (*bouncerConfig, error) {
@@ -49,6 +50,10 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 	err = validateConfig(*config)
 	if err != nil {
 		return &bouncerConfig{}, err
+	}
+
+	if len(config.supportedDecisionsTypes) == 0 {
+		config.supportedDecisionsTypes = []string{"ban"}
 	}
 
 	if config.PidDir == "" {

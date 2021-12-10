@@ -138,12 +138,9 @@ func main() {
 				log.Infoln("terminating bouncer process")
 				return nil
 			case decisions := <-bouncer.Stream:
-				if len(decisions.Deleted) > 0 {
-					log.Infof("deleting '%d' decisions", len(decisions.Deleted))
-				}
 				nbDeletedDecisions := 0
 				for _, decision := range decisions.Deleted {
-					if !inSlice(strings.ToLower(*decision.Type), supportedDecisionsTypes) {
+					if !inSlice(strings.ToLower(*decision.Type), config.supportedDecisionsTypes) {
 						log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *decision.Value, *decision.Type)
 						continue
 					}
@@ -163,7 +160,7 @@ func main() {
 
 				nbNewDecisions := 0
 				for _, decision := range decisions.New {
-					if !inSlice(strings.ToLower(*decision.Type), supportedDecisionsTypes) {
+					if !inSlice(strings.ToLower(*decision.Type), config.supportedDecisionsTypes) {
 						log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *decision.Value, *decision.Type)
 						continue
 					}
