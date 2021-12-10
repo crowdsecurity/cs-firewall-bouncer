@@ -22,7 +22,6 @@ const (
 )
 
 var t tomb.Tomb
-var supportedDecisionsTypes = []string{"ban"}
 
 func termHandler(sig os.Signal, backend *backendCTX) error {
 	if err := backend.ShutDown(); err != nil {
