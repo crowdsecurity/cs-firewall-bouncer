@@ -32,8 +32,7 @@ else
     START=1
 fi
 
-
-
+systemctl --quiet is-enabled crowdsec-firewall-bouncer || systemctl unmask crowdsec-firewall-bouncer && systemctl enable crowdsec-firewall-bouncer
 
 if [ ${START} -eq 0 ] ; then
     echo "no api key was generated, won't start service"
