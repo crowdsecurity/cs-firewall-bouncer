@@ -6,7 +6,6 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
-
 #Current versioning information from env
 BUILD_VERSION?="$(shell git describe --tags `git rev-list --tags --max-count=1`)"
 BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
@@ -20,15 +19,27 @@ PREFIX?="/"
 PID_DIR = $(PREFIX)"/var/run/"
 BINARY_NAME=crowdsec-firewall-bouncer
 
+#Golang version info
+GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
+GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
+MINIMUM_SUPPORTED_GO_MAJOR_VERSION = 1
+MINIMUM_SUPPORTED_GO_MINOR_VERSION = 17
+GO_VERSION_VALIDATION_ERR_MSG = Golang version ($(BUILD_GOVERSION)) is not supported, please use least $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION).$(MINIMUM_SUPPORTED_GO_MINOR_VERSION)
+
 RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
 
 all: clean test build
 
 goversion:
-	CURRENT_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
-	REQUIRE_GOVERSION="1.13"
-	RESPECT_VERSION="$(shell echo "$(CURRENT_GOVERSION),$(REQUIRE_GOVERSION)" | tr ',' '\n' | sort -V)"
-
+    @if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+        exit 0 ;\
+    elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
+        echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+        exit 1; \
+    elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MINOR_VERSION) ] ; then \
+        echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
+        exit 1; \
+    fi
 
 
 static: clean
