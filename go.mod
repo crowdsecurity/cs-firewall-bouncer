@@ -3,16 +3,18 @@ module github.com/crowdsecurity/cs-firewall-bouncer
 go 1.14
 
 require (
+	github.com/ahmetb/dlog v0.0.0-20170105205344-4fb5f8204f26 // indirect
 	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/crowdsecurity/crowdsec v1.2.1
-	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20211102133442-6337f533409f
+	github.com/crowdsecurity/crowdsec v1.2.2
+	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20211102140123-4cf1e1b3f89b
 	github.com/crowdsecurity/grokky v0.0.0-20210908140943-c4460be565eb // indirect
 	github.com/go-openapi/analysis v0.21.1 // indirect
 	github.com/go-openapi/runtime v0.21.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/google/nftables v0.0.0-20210916140115-16a134723a96
 	github.com/hashicorp/go-version v1.3.0 // indirect
+	github.com/logrusorgru/grokky v0.0.0-20180829062225-47edf017d42c // indirect
 	github.com/mdlayher/netlink v1.4.1 // indirect
 	github.com/mdlayher/socket v0.0.0-20211007213009-516dcbdf0267 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
