@@ -5,7 +5,6 @@ systemctl daemon-reload
 START=0
 
 if [ "$1" = "configure" ]; then
-    #otherwise, try to generate an api key
 
     type cscli > /dev/null
 
