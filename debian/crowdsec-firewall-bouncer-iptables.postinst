@@ -4,7 +4,7 @@ systemctl daemon-reload
 
 START=0
 
-if [ "$1" = "configure" ] && [ "$2" = "" ]; then
+if [ "$1" = "configure" ]; then
 
     type cscli > /dev/null
 
