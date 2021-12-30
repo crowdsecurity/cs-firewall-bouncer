@@ -153,8 +153,12 @@ func main() {
 					nbDeletedDecisions++
 				}
 
+				noun := "decisions"
+				if nbDeletedDecisions == 1 {
+					noun = "decision"
+				}
 				if nbDeletedDecisions > 0 {
-					log.Infof("'%d' decisions deleted", nbDeletedDecisions)
+					log.Infof("%d %s deleted", nbDeletedDecisions, noun)
 				}
 
 				nbNewDecisions := 0
@@ -170,8 +174,13 @@ func main() {
 					}
 					nbNewDecisions++
 				}
+
+				noun = "decisions"
+				if nbNewDecisions == 1 {
+					noun = "decision"
+				}
 				if nbNewDecisions > 0 {
-					log.Infof("'%d' decisions added", nbNewDecisions)
+					log.Infof("%d %s added", nbNewDecisions, noun)
 				}
 			}
 		}
