@@ -3,6 +3,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -28,160 +30,267 @@ type nft struct {
 	DenyLogPrefix  string
 	BlacklistsIpv4 string
 	BlacklistsIpv6 string
+	//	Enabled4       bool
+	ChainName4 string
+	TableName4 string
+	SetOnly4   bool
+	//	Enabled6       bool
+	ChainName6 string
+	TableName6 string
+	SetOnly6   bool
 }
 
 func newNFTables(config *bouncerConfig) (interface{}, error) {
 	ret := &nft{}
 
-	ret.conn = &nftables.Conn{}
-	if !config.DisableIPV6 {
+	/*	ret.Enabled4 = config.Nftables.Ipv4.Enabled
+		ret.Enabled6 = config.Nftables.Ipv6.Enabled */
+
+	if config.Nftables.Ipv4.Enabled {
+		log.Debug("nftables: ipv4 enabled")
+		ret.conn = &nftables.Conn{}
+	} else {
+		log.Debug("nftables: ipv4 disabled")
+	}
+	if config.Nftables.Ipv6.Enabled {
+		log.Debug("nftables: ipv6 enabled")
 		ret.conn6 = &nftables.Conn{}
+	} else {
+		log.Debug("nftables: ipv6 disabled")
 	}
 	ret.DenyAction = config.DenyAction
 	ret.DenyLog = config.DenyLog
 	ret.DenyLogPrefix = config.DenyLogPrefix
-	ret.BlacklistsIpv4 = config.BlacklistsIpv4
-	ret.BlacklistsIpv6 = config.BlacklistsIpv6
+
+	// IPv4
+	ret.TableName4 = config.Nftables.Ipv4.Table
+	ret.ChainName4 = config.Nftables.Ipv4.Chain
+	ret.BlacklistsIpv4 = config.Nftables.Ipv4.Blacklist
+	ret.SetOnly4 = config.Nftables.Ipv4.SetOnly
+	log.Debug(fmt.Sprintf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
+		config.Nftables.Ipv4.Enabled, ret.TableName4, ret.ChainName4, ret.BlacklistsIpv4, ret.SetOnly4))
+
+	// IPv6
+	ret.TableName6 = config.Nftables.Ipv6.Table
+	ret.ChainName6 = config.Nftables.Ipv6.Chain
+	ret.BlacklistsIpv6 = config.Nftables.Ipv6.Blacklist
+	ret.SetOnly6 = config.Nftables.Ipv6.SetOnly
+	log.Debug(fmt.Sprintf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
+		config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6))
+
 	return ret, nil
 }
 
 func (n *nft) Init() error {
+	log.Debug("nftables: Init()")
 	/* ip4 */
-	table := &nftables.Table{
-		Family: nftables.TableFamilyIPv4,
-		Name:   "crowdsec",
-	}
-	n.table = n.conn.AddTable(table)
+	if n.conn != nil {
+		log.Debug("nftables: ipv4 init starting")
+		if n.SetOnly4 {
+			log.Debug("nftables: ipv4 set-only")
+			// Use to existing nftables configuration
+			var table *nftables.Table
+			tables, err := n.conn.ListTables()
+			if err != nil {
+				return err
+			}
+			for _, t := range tables {
+				if t.Name == n.TableName4 {
+					table = t
+				}
+			} // for
+			if table == nil {
+				return errors.New("nftables: could not find ipv4 table '" + n.TableName4 + "'")
+			}
+			n.table = table
 
-	chain := n.conn.AddChain(&nftables.Chain{
-		Name:     "crowdsec-chain",
-		Table:    n.table,
-		Type:     nftables.ChainTypeFilter,
-		Hooknum:  nftables.ChainHookInput,
-		Priority: nftables.ChainPriorityFilter,
-	})
-	set := &nftables.Set{
-		Name:       n.BlacklistsIpv4,
-		Table:      n.table,
-		KeyType:    nftables.TypeIPAddr,
-		HasTimeout: true,
-	}
+			set, err := n.conn.GetSetByName(n.table, n.BlacklistsIpv4)
+			if err != nil {
+				log.Debug(fmt.Sprintf("nftables: could not find ipv4 blacklist '%s' in table '%s': creating...", n.BlacklistsIpv4, n.TableName4))
+				set = &nftables.Set{
+					Name:       n.BlacklistsIpv4,
+					Table:      n.table,
+					KeyType:    nftables.TypeIPAddr,
+					HasTimeout: true,
+				}
 
-	if err := n.conn.AddSet(set, []nftables.SetElement{}); err != nil {
-		return err
-	}
-	n.set = set
+				if err := n.conn.AddSet(set, []nftables.SetElement{}); err != nil {
+					return err
+				}
+				if err := n.conn.Flush(); err != nil {
+					return err
+				}
+			}
+			n.set = set
+			log.Debug("nftables: ipv4 set '" + n.BlacklistsIpv4 + "' configured")
 
-	r := &nftables.Rule{
-		Table: n.table,
-		Chain: chain,
-		Exprs: []expr.Any{},
-	}
-	// [ payload load 4b @ network header + 16 => reg 1 ]
-	r.Exprs = append(r.Exprs, &expr.Payload{
-		DestRegister: 1,
-		Base:         expr.PayloadBaseNetworkHeader,
-		Offset:       12,
-		Len:          4,
-	})
-	// [ lookup reg 1 set whitelist ]
-	r.Exprs = append(r.Exprs, &expr.Lookup{
-		SourceRegister: 1,
-		SetName:        n.set.Name,
-		SetID:          n.set.ID,
-	})
-	if n.DenyLog {
-		r.Exprs = append(r.Exprs, &expr.Log{
-			Key:  unix.NFTA_LOG_PREFIX,
-			Data: []byte(n.DenyLogPrefix),
-		})
-	}
-	if strings.EqualFold(n.DenyAction, "REJECT") {
-		r.Exprs = append(r.Exprs, &expr.Reject{
-			Type: unix.NFT_REJECT_ICMP_UNREACH,
-			Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
-		})
-	} else {
-		r.Exprs = append(r.Exprs, &expr.Verdict{
-			Kind: expr.VerdictDrop,
-		})
-	}
+		} else { // Create crowdsec table,chain, blacklist set and rules
+			log.Debug("nftables: ipv4 own table")
+			table := &nftables.Table{
+				Family: nftables.TableFamilyIPv4,
+				Name:   n.TableName4,
+			}
+			n.table = n.conn.AddTable(table)
 
-	n.conn.AddRule(r)
+			chain := n.conn.AddChain(&nftables.Chain{
+				Name:     n.ChainName4,
+				Table:    n.table,
+				Type:     nftables.ChainTypeFilter,
+				Hooknum:  nftables.ChainHookInput,
+				Priority: nftables.ChainPriorityFilter,
+			})
+			set := &nftables.Set{
+				Name:       n.BlacklistsIpv4,
+				Table:      n.table,
+				KeyType:    nftables.TypeIPAddr,
+				HasTimeout: true,
+			}
 
-	if err := n.conn.Flush(); err != nil {
-		return err
-	}
-	log.Debug("nftables: ipv4 table created")
+			if err := n.conn.AddSet(set, []nftables.SetElement{}); err != nil {
+				return err
+			}
+			n.set = set
+
+			r := &nftables.Rule{
+				Table: n.table,
+				Chain: chain,
+				Exprs: []expr.Any{},
+			}
+			// [ payload load 4b @ network header + 16 => reg 1 ]
+			r.Exprs = append(r.Exprs, &expr.Payload{
+				DestRegister: 1,
+				Base:         expr.PayloadBaseNetworkHeader,
+				Offset:       12,
+				Len:          4,
+			})
+			// [ lookup reg 1 set whitelist ]
+			r.Exprs = append(r.Exprs, &expr.Lookup{
+				SourceRegister: 1,
+				SetName:        n.set.Name,
+				SetID:          n.set.ID,
+			})
+			if n.DenyLog {
+				r.Exprs = append(r.Exprs, &expr.Log{
+					Key:  unix.NFTA_LOG_PREFIX,
+					Data: []byte(n.DenyLogPrefix),
+				})
+			}
+			if strings.EqualFold(n.DenyAction, "REJECT") {
+				r.Exprs = append(r.Exprs, &expr.Reject{
+					Type: unix.NFT_REJECT_ICMP_UNREACH,
+					Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
+				})
+			} else {
+				r.Exprs = append(r.Exprs, &expr.Verdict{
+					Kind: expr.VerdictDrop,
+				})
+			}
+
+			n.conn.AddRule(r)
+
+			if err := n.conn.Flush(); err != nil {
+				return err
+			}
+			log.Debug("nftables: ipv4 table created")
+		} // IPv4 set-only
+	} // IPv4
 
 	/* ipv6 */
 	if n.conn6 != nil {
-		table := &nftables.Table{
-			Family: nftables.TableFamilyIPv6,
-			Name:   "crowdsec6",
-		}
-		n.table6 = n.conn6.AddTable(table)
 
-		chain := n.conn6.AddChain(&nftables.Chain{
-			Name:     "crowdsec6-chain",
-			Table:    n.table6,
-			Type:     nftables.ChainTypeFilter,
-			Hooknum:  nftables.ChainHookInput,
-			Priority: nftables.ChainPriorityFilter,
-		})
-		set := &nftables.Set{
-			Name:       n.BlacklistsIpv6,
-			Table:      n.table6,
-			KeyType:    nftables.TypeIP6Addr,
-			HasTimeout: true,
-		}
+		if n.SetOnly6 {
+			// Use to existing nftables configuration
+			var table *nftables.Table
 
-		if err := n.conn6.AddSet(set, []nftables.SetElement{}); err != nil {
-			return err
-		}
-		n.set6 = set
+			tables, err := n.conn6.ListTables()
+			if err != nil {
+				return err
+			}
+			for _, t := range tables {
+				if t.Name == n.TableName6 {
+					table = t
+				}
+			} // for
+			if table == nil {
+				return errors.New("nftables: could not find ipv6 table '" + n.TableName6 + "'")
+			}
+			n.table6 = table
 
-		r := &nftables.Rule{
-			Table: n.table6,
-			Chain: chain,
-			Exprs: []expr.Any{},
-		}
-		// [ payload load 4b @ network header + 16 => reg 1 ]
-		r.Exprs = append(r.Exprs, &expr.Payload{
-			DestRegister: 1,
-			Base:         expr.PayloadBaseNetworkHeader,
-			Offset:       8,
-			Len:          16,
-		})
-		// [ lookup reg 1 set whitelist ]
-		r.Exprs = append(r.Exprs, &expr.Lookup{
-			SourceRegister: 1,
-			SetName:        n.set6.Name,
-			SetID:          n.set6.ID,
-		})
-		if n.DenyLog {
-			r.Exprs = append(r.Exprs, &expr.Log{
-				Key:  unix.NFTA_LOG_PREFIX,
-				Data: []byte(n.DenyLogPrefix),
-			})
-		}
-		if strings.EqualFold(n.DenyAction, "REJECT") {
-			r.Exprs = append(r.Exprs, &expr.Reject{
-				Type: unix.NFT_REJECT_ICMP_UNREACH,
-				Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
-			})
+			set, err := n.conn.GetSetByName(n.table6, n.BlacklistsIpv6)
+			if err != nil {
+				return err
+			}
+			n.set6 = set
+			log.Debug("nftables: ipv6 set '" + n.BlacklistsIpv6 + "' configured")
+
 		} else {
-			r.Exprs = append(r.Exprs, &expr.Verdict{
-				Kind: expr.VerdictDrop,
+			table := &nftables.Table{
+				Family: nftables.TableFamilyIPv6,
+				Name:   n.TableName6,
+			}
+			n.table6 = n.conn6.AddTable(table)
+
+			chain := n.conn6.AddChain(&nftables.Chain{
+				Name:     n.ChainName6,
+				Table:    n.table6,
+				Type:     nftables.ChainTypeFilter,
+				Hooknum:  nftables.ChainHookInput,
+				Priority: nftables.ChainPriorityFilter,
 			})
-		}
+			set := &nftables.Set{
+				Name:       n.BlacklistsIpv6,
+				Table:      n.table6,
+				KeyType:    nftables.TypeIP6Addr,
+				HasTimeout: true,
+			}
 
-		n.conn6.AddRule(r)
+			if err := n.conn6.AddSet(set, []nftables.SetElement{}); err != nil {
+				return err
+			}
+			n.set6 = set
 
-		if err := n.conn6.Flush(); err != nil {
-			return err
+			r := &nftables.Rule{
+				Table: n.table6,
+				Chain: chain,
+				Exprs: []expr.Any{},
+			}
+			// [ payload load 4b @ network header + 16 => reg 1 ]
+			r.Exprs = append(r.Exprs, &expr.Payload{
+				DestRegister: 1,
+				Base:         expr.PayloadBaseNetworkHeader,
+				Offset:       8,
+				Len:          16,
+			})
+			// [ lookup reg 1 set whitelist ]
+			r.Exprs = append(r.Exprs, &expr.Lookup{
+				SourceRegister: 1,
+				SetName:        n.set6.Name,
+				SetID:          n.set6.ID,
+			})
+			if n.DenyLog {
+				r.Exprs = append(r.Exprs, &expr.Log{
+					Key:  unix.NFTA_LOG_PREFIX,
+					Data: []byte(n.DenyLogPrefix),
+				})
+			}
+			if strings.EqualFold(n.DenyAction, "REJECT") {
+				r.Exprs = append(r.Exprs, &expr.Reject{
+					Type: unix.NFT_REJECT_ICMP_UNREACH,
+					Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
+				})
+			} else {
+				r.Exprs = append(r.Exprs, &expr.Verdict{
+					Kind: expr.VerdictDrop,
+				})
+			}
+
+			n.conn6.AddRule(r)
+
+			if err := n.conn6.Flush(); err != nil {
+				return err
+			}
+			log.Debug("nftables: ipv6 table created")
 		}
-		log.Debug("nftables: ipv6 table created")
 	}
 	log.Infof("nftables initiated")
 
@@ -207,17 +316,19 @@ func (n *nft) Add(decision *models.Decision) error {
 			return nil
 		}
 	} else { // ipv4
-		var ipAddr string
-		if strings.Contains(*decision.Value, "/") {
-			ipAddr = strings.Split(*decision.Value, "/")[0]
-		} else {
-			ipAddr = *decision.Value
-		}
-		if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(ipAddr).To4()), Timeout: timeout}}); err != nil {
-			return err
-		}
-		if err := n.conn.Flush(); err != nil {
-			return err
+		if n.conn != nil {
+			var ipAddr string
+			if strings.Contains(*decision.Value, "/") {
+				ipAddr = strings.Split(*decision.Value, "/")[0]
+			} else {
+				ipAddr = *decision.Value
+			}
+			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(ipAddr).To4()), Timeout: timeout}}); err != nil {
+				return err
+			}
+			if err := n.conn.Flush(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -238,17 +349,19 @@ func (n *nft) Delete(decision *models.Decision) error {
 			return nil
 		}
 	} else { // ipv4
-		var ipAddr string
-		if strings.Contains(*decision.Value, "/") {
-			ipAddr = strings.Split(*decision.Value, "/")[0]
-		} else {
-			ipAddr = *decision.Value
-		}
-		if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(ipAddr).To4()}}); err != nil {
-			return err
-		}
-		if err := n.conn.Flush(); err != nil {
-			return err
+		if n.conn != nil {
+			var ipAddr string
+			if strings.Contains(*decision.Value, "/") {
+				ipAddr = strings.Split(*decision.Value, "/")[0]
+			} else {
+				ipAddr = *decision.Value
+			}
+			if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(ipAddr).To4()}}); err != nil {
+				return err
+			}
+			if err := n.conn.Flush(); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -256,15 +369,33 @@ func (n *nft) Delete(decision *models.Decision) error {
 }
 
 func (n *nft) ShutDown() error {
-	log.Infof("removing 'crowdsec' table")
-	n.conn.DelTable(n.table)
+
+	// continue here
+	if n.conn != nil {
+		if n.SetOnly4 {
+			// Flush blacklist4 set empty
+			log.Infof("flushing '%s' set in '%s' table", n.set.Name, n.table.Name)
+			n.conn.FlushSet(n.set)
+		} else {
+			// delete whole crowdsec table
+			log.Infof("removing '%s' table", n.table.Name)
+			n.conn.DelTable(n.table)
+		}
+	} // ipv4
+
 	if err := n.conn.Flush(); err != nil {
 		return err
 	}
 
 	if n.conn6 != nil {
-		log.Infof("removing 'crowdsec6' table")
-		n.conn6.DelTable(n.table6)
+		if n.SetOnly6 {
+			// Flush blacklist6 set empty
+			log.Infof("flushing '%s' set in '%s' table", n.set6.Name, n.table6.Name)
+			n.conn.FlushSet(n.set6)
+		} else {
+			log.Infof("removing '%s' table", n.TableName6)
+			n.conn6.DelTable(n.table6)
+		}
 		if err := n.conn6.Flush(); err != nil {
 			return err
 		}
