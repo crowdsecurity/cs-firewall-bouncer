@@ -27,13 +27,13 @@ iptables_chains:
 nftables:
   ipv4:
     enabled: true
-    blacklist: crowdsec-blacklists
+    blacklist: crowdsec-blacklist
     set-only: false
     table: crowdsec
     chain: crowdsec-chain
   ipv6:
-    enabled: false
-    blacklist: crowdsec6-blacklists
+    enabled: true
+    blacklist: crowdsec6-blacklist
     set-only: false
     table: crowdsec6
     chain: crowdsec6-chain
