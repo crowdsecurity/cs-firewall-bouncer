@@ -42,6 +42,10 @@ goversion:
 	fi
 
 
+.PHONY: lint
+lint:
+	golangci-lint run
+
 static: clean
 	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME) -v -a -tags netgo -ldflags '-w -extldflags "-static"'
 
