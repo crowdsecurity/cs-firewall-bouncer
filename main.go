@@ -186,7 +186,7 @@ func main() {
 		}
 	})
 
-	if config.Daemon == true {
+	if config.Daemon {
 		sent, err := daemon.SdNotify(false, "READY=1")
 		if !sent && err != nil {
 			log.Errorf("Failed to notify: %v", err)
