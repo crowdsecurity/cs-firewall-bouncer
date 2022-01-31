@@ -8,18 +8,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const defaultBatch = 1000
+
 type backend interface {
 	Init() error
 	ShutDown() error
 	Add(*models.Decision) error
 	Delete(*models.Decision) error
+	Commit() error
 }
 
 type backendCTX struct {
-	firewall backend
+	firewall          backend
+	bufferedDecisions int
 }
 
 func (b *backendCTX) Init() error {
+	b.bufferedDecisions = 0
 	err := b.firewall.Init()
 	if err != nil {
 		return err
@@ -36,7 +41,11 @@ func (b *backendCTX) ShutDown() error {
 }
 
 func (b *backendCTX) Add(decision *models.Decision) error {
+
 	if err := b.firewall.Add(decision); err != nil {
+		return err
+	}
+	if err := b.sendBatch(); err != nil {
 		return err
 	}
 	return nil
@@ -45,6 +54,31 @@ func (b *backendCTX) Add(decision *models.Decision) error {
 func (b *backendCTX) Delete(decision *models.Decision) error {
 	if err := b.firewall.Delete(decision); err != nil {
 		return err
+	}
+	if err := b.sendBatch(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *backendCTX) Commit() error {
+	defer func() { b.bufferedDecisions = 0 }()
+
+	if err := b.firewall.Commit(); err != nil {
+		return err
+	}
+	if b.bufferedDecisions > 0 {
+		log.Debugf("committed %d decisions", b.bufferedDecisions)
+	}
+	return nil
+}
+
+func (b *backendCTX) sendBatch() error {
+	b.bufferedDecisions++
+	if b.bufferedDecisions == defaultBatch {
+		if err := b.Commit(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

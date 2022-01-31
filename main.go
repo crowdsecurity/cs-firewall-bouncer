@@ -153,12 +153,12 @@ func main() {
 					nbDeletedDecisions++
 				}
 
-				noun := "decisions"
+				nounDel := "decisions"
 				if nbDeletedDecisions == 1 {
-					noun = "decision"
+					nounDel = "decision"
 				}
 				if nbDeletedDecisions > 0 {
-					log.Infof("%d %s deleted", nbDeletedDecisions, noun)
+					log.Infof("%d %s deleted", nbDeletedDecisions, nounDel)
 				}
 
 				nbNewDecisions := 0
@@ -168,19 +168,32 @@ func main() {
 						continue
 					}
 					if err := backend.Add(decision); err != nil {
-						log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
+						if !strings.Contains(err.Error(), "netlink receive: no such file or directory") { // should this be also in Add()?
+							log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
+						}
 					} else {
-						log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
+						log.Debugf("adding '%s' for '%s'", *decision.Value, *decision.Duration)
 					}
 					nbNewDecisions++
 				}
 
-				noun = "decisions"
+				nounAdd := "decisions"
 				if nbNewDecisions == 1 {
-					noun = "decision"
+					nounAdd = "decision"
 				}
 				if nbNewDecisions > 0 {
-					log.Infof("%d %s added", nbNewDecisions, noun)
+					log.Infof("%d %s added", nbNewDecisions, nounAdd)
+				}
+
+				if nbDeletedDecisions+nbNewDecisions > 0 {
+					noun := "decisions"
+					if nbDeletedDecisions+nbNewDecisions == 1 {
+						noun = "decision"
+					}
+					if err := backend.Commit(); err != nil {
+						log.Errorf("error committing %s: %s", noun, err)
+					}
+					log.Infof("committed %d added %s, %d deleted %s", nbNewDecisions, nounAdd, nbDeletedDecisions, nounDel)
 				}
 			}
 		}

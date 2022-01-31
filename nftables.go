@@ -308,9 +308,9 @@ func (n *nft) Add(decision *models.Decision) error {
 			if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
 				return err
 			}
-			if err := n.conn6.Flush(); err != nil {
+			/* if err := n.conn6.Flush(); err != nil {
 				return err
-			}
+			} */
 		} else {
 			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
 			return nil
@@ -326,9 +326,9 @@ func (n *nft) Add(decision *models.Decision) error {
 			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(ipAddr).To4()), Timeout: timeout}}); err != nil {
 				return err
 			}
-			if err := n.conn.Flush(); err != nil {
+			/* if err := n.conn.Flush(); err != nil {
 				return err
-			}
+			} */
 		}
 	}
 
@@ -341,9 +341,9 @@ func (n *nft) Delete(decision *models.Decision) error {
 			if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16())}}); err != nil {
 				return err
 			}
-			if err := n.conn6.Flush(); err != nil {
+			/* if err := n.conn6.Flush(); err != nil {
 				return err
-			}
+			} */
 		} else {
 			log.Debugf("not removing '%s' because ipv6 is disabled", *decision.Value)
 			return nil
@@ -359,13 +359,28 @@ func (n *nft) Delete(decision *models.Decision) error {
 			if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(ipAddr).To4()}}); err != nil {
 				return err
 			}
-			if err := n.conn.Flush(); err != nil {
+			/* if err := n.conn.Flush(); err != nil {
 				return err
-			}
+			} */
 		}
 	}
 
 	return nil
+}
+
+func (n *nft) Commit() error {
+	var ret error = nil
+	if n.conn != nil {
+		if err := n.conn.Flush(); err != nil {
+			ret = err
+		}
+	}
+	if n.conn6 != nil {
+		if err := n.conn6.Flush(); err != nil {
+			ret = err
+		}
+	}
+	return ret
 }
 
 func (n *nft) ShutDown() error {
@@ -381,11 +396,10 @@ func (n *nft) ShutDown() error {
 			log.Infof("removing '%s' table", n.table.Name)
 			n.conn.DelTable(n.table)
 		}
+		if err := n.conn.Flush(); err != nil {
+			return err
+		}
 	} // ipv4
-
-	if err := n.conn.Flush(); err != nil {
-		return err
-	}
 
 	if n.conn6 != nil {
 		if n.SetOnly6 {

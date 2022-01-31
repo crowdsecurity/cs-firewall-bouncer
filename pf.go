@@ -191,6 +191,10 @@ func (pf *pf) Delete(decision *models.Decision) error {
 	return nil
 }
 
+func (pf *pf) Commit() error {
+	return nil
+}
+
 func (pf *pf) ShutDown() error {
 	log.Infof("flushing 'crowdsec' table(s)")
 

@@ -33,8 +33,8 @@ type bouncerConfig struct {
 	DenyAction      string    `yaml:"deny_action"`
 	DenyLog         bool      `yaml:"deny_log"`
 	DenyLogPrefix   string    `yaml:"deny_log_prefix"`
-	BlacklistsIpv4  string    `yaml:"blacklists_ipv4"`
-	BlacklistsIpv6  string    `yaml:"blacklists_ipv6"`
+	BlacklistsIpv4  string    `yaml:"crowdsec-blacklist"`
+	BlacklistsIpv6  string    `yaml:"crowdsec6-blacklist"`
 
 	//specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`

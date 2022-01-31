@@ -187,6 +187,10 @@ func (ipt *iptables) ShutDown() error {
 	return nil
 }
 
+func (ipt *iptables) Commit() error {
+	return nil
+}
+
 func (ipt *iptables) Delete(decision *models.Decision) error {
 	done := false
 	if strings.Contains(*decision.Value, ":") {
