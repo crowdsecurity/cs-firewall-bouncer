@@ -16,20 +16,22 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const defaultTimeout = 4 * time.Hour
+var defaultTimeout = "4h"
 
 type nft struct {
-	conn           *nftables.Conn
-	conn6          *nftables.Conn
-	set            *nftables.Set
-	set6           *nftables.Set
-	table          *nftables.Table
-	table6         *nftables.Table
-	DenyAction     string
-	DenyLog        bool
-	DenyLogPrefix  string
-	BlacklistsIpv4 string
-	BlacklistsIpv6 string
+	conn              *nftables.Conn
+	conn6             *nftables.Conn
+	set               *nftables.Set
+	set6              *nftables.Set
+	table             *nftables.Table
+	table6            *nftables.Table
+	decisionsToAdd    []*models.Decision
+	decisionsToDelete []*models.Decision
+	DenyAction        string
+	DenyLog           bool
+	DenyLogPrefix     string
+	BlacklistsIpv4    string
+	BlacklistsIpv6    string
 	//	Enabled4       bool
 	ChainName4 string
 	TableName4 string
@@ -40,7 +42,8 @@ type nft struct {
 	SetOnly6   bool
 }
 
-func newNFTables(config *bouncerConfig) (interface{}, error) {
+func newNFTables(config *bouncerConfig) (backend, error) {
+
 	ret := &nft{}
 
 	/*	ret.Enabled4 = config.Nftables.Ipv4.Enabled
@@ -298,71 +301,169 @@ func (n *nft) Init() error {
 }
 
 func (n *nft) Add(decision *models.Decision) error {
-	timeout, err := time.ParseDuration(*decision.Duration)
-	if err != nil {
-		log.Errorf("unable to parse timeout '%s' for '%s' : %s", *decision.Duration, *decision.Value, err)
-		timeout = defaultTimeout
-	}
-	if strings.Contains(*decision.Value, ":") { // ipv6
-		if n.conn6 == nil {
-			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
-			return nil
-		}
-		if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
-			return err
-		}
-		if err := n.conn6.Flush(); err != nil {
-			return err
-		}
-	} else { // ipv4
-		if n.conn != nil {
-			var ipAddr string
-			if strings.Contains(*decision.Value, "/") {
-				ipAddr = strings.Split(*decision.Value, "/")[0]
-			} else {
-				ipAddr = *decision.Value
-			}
-			if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: []byte(net.ParseIP(ipAddr).To4()), Timeout: timeout}}); err != nil {
-				return err
-			}
-			if err := n.conn.Flush(); err != nil {
-				return err
-			}
-		}
-	}
-
+	n.decisionsToAdd = append(n.decisionsToAdd, decision)
 	return nil
 }
 
-func (n *nft) Delete(decision *models.Decision) error {
-	if strings.Contains(*decision.Value, ":") { // ipv6
-		if n.conn6 == nil {
-			log.Debugf("not removing '%s' because ipv6 is disabled", *decision.Value)
-			return nil
+// returns a set of currently banned IPs
+func (n *nft) getCurrentState() (map[string]struct{}, error) {
+	elements, err := n.conn.GetSetElements(n.set)
+	if err != nil {
+		return nil, err
+	}
+
+	if n.conn6 != nil {
+		ipv6Elements, err := n.conn6.GetSetElements(n.set6)
+		if err != nil {
+			return nil, err
 		}
-		if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16())}}); err != nil {
-			return err
-		}
-		if err := n.conn6.Flush(); err != nil {
-			return err
-		}
-	} else { // ipv4
-		if n.conn != nil {
-			var ipAddr string
-			if strings.Contains(*decision.Value, "/") {
-				ipAddr = strings.Split(*decision.Value, "/")[0]
-			} else {
-				ipAddr = *decision.Value
-			}
-			if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: net.ParseIP(ipAddr).To4()}}); err != nil {
+		elements = append(elements, ipv6Elements...)
+	}
+	return elementSliceToIPSet(elements), nil
+}
+func (n *nft) reset() {
+	n.decisionsToAdd = make([]*models.Decision, 0)
+	n.decisionsToDelete = make([]*models.Decision, 0)
+}
+
+func (n *nft) commitDeletedDecisions() error {
+	n.decisionsToDelete = normalizedDecisions(n.decisionsToDelete)
+	deletedIPV6, deletedIPV4 := false, false
+	currentState := make(map[string]struct{})
+	var err error
+	for i := 0; i < len(n.decisionsToDelete); {
+		if i == 0 || deletedIPV6 || deletedIPV4 {
+			currentState, err = n.getCurrentState()
+			if err != nil {
 				return err
 			}
+			deletedIPV4, deletedIPV6 = false, false
+		}
+		for canDelete := 200; canDelete > 0 && i < len(n.decisionsToDelete); {
+			decision := n.decisionsToDelete[i]
+			i++
+			decisionIP := net.ParseIP(*decision.Value)
+			if _, ok := currentState[decisionIP.String()]; ok {
+				log.Debugf("will delete %s", decisionIP)
+				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
+					if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
+						return err
+					}
+					deletedIPV6 = true
+				} else {
+					if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: decisionIP.To4()}}); err != nil {
+						return err
+					}
+					deletedIPV4 = true
+				}
+				canDelete--
+			} else {
+				log.Debugf("not deleting %s as it's not present in set", decisionIP)
+			}
+		}
+		if deletedIPV4 {
 			if err := n.conn.Flush(); err != nil {
 				return err
 			}
 		}
+		if deletedIPV6 {
+			if err := n.conn6.Flush(); err != nil {
+				return err
+			}
+		}
 	}
+	return nil
+}
 
+func (n *nft) commitAddedDecisions() error {
+	n.decisionsToAdd = normalizedDecisions(n.decisionsToAdd)
+	addedIPV6, addedIPV4 := false, false
+	currentState := make(map[string]struct{})
+	var err error
+	for i := 0; i < len(n.decisionsToAdd); {
+		if i == 0 || addedIPV4 || addedIPV6 {
+			currentState, err = n.getCurrentState()
+			if err != nil {
+				return err
+			}
+			addedIPV4, addedIPV6 = false, false
+		}
+		for canAdd := 200; canAdd > 0 && i < len(n.decisionsToAdd); {
+			decision := n.decisionsToAdd[i]
+			i++
+			decisionIP := net.ParseIP(*decision.Value)
+			if _, ok := currentState[decisionIP.String()]; ok {
+				log.Debugf("skipping %s since it's already in set", decisionIP)
+
+			} else {
+				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
+					if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
+						return err
+					}
+					addedIPV6 = true
+				} else {
+					if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: decisionIP.To4()}}); err != nil {
+						return err
+					}
+					addedIPV4 = true
+				}
+				canAdd--
+				log.Debugf("adding %s to buffer ", decisionIP)
+			}
+		}
+		if addedIPV4 {
+			if err := n.conn.Flush(); err != nil {
+				return err
+			}
+		}
+		if addedIPV6 {
+			if err := n.conn6.Flush(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (n *nft) Commit() error {
+	defer n.reset()
+	if err := n.commitDeletedDecisions(); err != nil {
+		return err
+	}
+	if err := n.commitAddedDecisions(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func elementSliceToIPSet(elements []nftables.SetElement) map[string]struct{} {
+	ipSet := make(map[string]struct{})
+	for _, element := range elements {
+		ipSet[net.IP(element.Key).String()] = struct{}{}
+	}
+	return ipSet
+}
+
+// remove duplicates, normalize decision timeouts
+func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
+	vals := make(map[string]struct{})
+	finalDecisions := make([]*models.Decision, 0)
+	for _, d := range decisions {
+		if _, ok := vals[*d.Value]; ok {
+			continue
+		}
+		vals[*d.Value] = struct{}{}
+		if _, err := time.ParseDuration(*d.Duration); err != nil {
+			d.Duration = &defaultTimeout
+		}
+		*d.Value = strings.Split(*d.Value, "/")[0]
+		finalDecisions = append(finalDecisions, d)
+	}
+	return finalDecisions
+}
+
+func (n *nft) Delete(decision *models.Decision) error {
+	n.decisionsToDelete = append(n.decisionsToDelete, decision)
 	return nil
 }
 

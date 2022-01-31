@@ -37,7 +37,7 @@ const (
 	delBanFormat = "%s: del ban on %s for %s sec (%s)"
 )
 
-func newPF(config *bouncerConfig) (interface{}, error) {
+func newPF(config *bouncerConfig) (backend, error) {
 	ret := &pf{}
 
 	inetCtx := &pfContext{
@@ -152,6 +152,10 @@ func (pf *pf) Init() error {
 		}
 	}
 
+	return nil
+}
+
+func (pf *pf) Commit() error {
 	return nil
 }
 

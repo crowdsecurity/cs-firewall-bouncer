@@ -2,6 +2,6 @@
 
 package main
 
-func newPF(config *bouncerConfig) (interface{}, error) {
+func newPF(config *bouncerConfig) (backend, error) {
 	return nil, nil
 }
