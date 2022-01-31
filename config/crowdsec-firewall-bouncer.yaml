@@ -27,7 +27,7 @@ iptables_chains:
 nftables:
   ipv4:
     enabled: true
-    blacklist: crowdsec-blacklists
+    blacklist: crowdsec-blacklist
     set-only: false
     table: crowdsec
     chain: crowdsec-chain
