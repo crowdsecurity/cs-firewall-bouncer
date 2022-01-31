@@ -32,7 +32,7 @@ nftables:
     table: crowdsec
     chain: crowdsec-chain
   ipv6:
-    enabled: false
+    enabled: true
     blacklist: crowdsec6-blacklists
     set-only: false
     table: crowdsec6
