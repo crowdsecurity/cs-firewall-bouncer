@@ -385,7 +385,7 @@ func (n *nft) Commit() error {
 
 func (n *nft) ShutDown() error {
 
-	// continue here
+	// ipv4
 	if n.conn != nil {
 		if n.SetOnly4 {
 			// Flush blacklist4 set empty
@@ -399,8 +399,9 @@ func (n *nft) ShutDown() error {
 		if err := n.conn.Flush(); err != nil {
 			return err
 		}
-	} // ipv4
+	}
 
+	// ipv6
 	if n.conn6 != nil {
 		if n.SetOnly6 {
 			// Flush blacklist6 set empty

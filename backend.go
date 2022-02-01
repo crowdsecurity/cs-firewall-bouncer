@@ -21,10 +21,10 @@ type backend interface {
 type backendCTX struct {
 	firewall          backend
 	bufferedDecisions int
+	buffering         bool
 }
 
 func (b *backendCTX) Init() error {
-	b.bufferedDecisions = 0
 	err := b.firewall.Init()
 	if err != nil {
 		return err
@@ -45,8 +45,10 @@ func (b *backendCTX) Add(decision *models.Decision) error {
 	if err := b.firewall.Add(decision); err != nil {
 		return err
 	}
-	if err := b.sendBatch(); err != nil {
-		return err
+	if b.buffering {
+		if err := b.sendBatch(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -55,8 +57,10 @@ func (b *backendCTX) Delete(decision *models.Decision) error {
 	if err := b.firewall.Delete(decision); err != nil {
 		return err
 	}
-	if err := b.sendBatch(); err != nil {
-		return err
+	if b.buffering {
+		if err := b.sendBatch(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -67,17 +71,19 @@ func (b *backendCTX) Commit() error {
 	if err := b.firewall.Commit(); err != nil {
 		return err
 	}
-	if b.bufferedDecisions > 0 {
+	if b.buffering {
 		log.Debugf("committed %d decisions", b.bufferedDecisions)
 	}
 	return nil
 }
 
 func (b *backendCTX) sendBatch() error {
-	b.bufferedDecisions++
-	if b.bufferedDecisions == defaultBatch {
-		if err := b.Commit(); err != nil {
-			return err
+	if b.buffering {
+		b.bufferedDecisions++
+		if b.bufferedDecisions == defaultBatch {
+			if err := b.Commit(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -100,12 +106,15 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 	var ok bool
 
 	b := &backendCTX{}
+	b.bufferedDecisions = 0
+	b.buffering = false // Decision buffering disabled by default
 	log.Printf("backend type : %s", config.Mode)
 	if config.DisableIPV6 {
 		log.Println("IPV6 is disabled")
 	}
 	switch config.Mode {
 	case "iptables", "ipset":
+
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("iptables and ipset is linux only")
 		}
@@ -126,6 +135,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 			return nil, err
 		}
 		b.firewall, ok = tmpCtx.(backend)
+		b.buffering = true // Decision buffering enabled
 		if !ok {
 			return nil, fmt.Errorf("unexpected type '%T' for nftables context", tmpCtx)
 		}
