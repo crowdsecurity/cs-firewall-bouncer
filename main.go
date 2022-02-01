@@ -177,13 +177,13 @@ func main() {
 					nbNewDecisions++
 				}
 
-				nounAdd := "decisions"
+				/* nounAdd := "decisions"
 				if nbNewDecisions == 1 {
 					nounAdd = "decision"
 				}
 				if nbNewDecisions > 0 {
 					log.Infof("%d %s added", nbNewDecisions, nounAdd)
-				}
+				} */
 
 				if nbDeletedDecisions+nbNewDecisions > 0 {
 					noun := "decisions"
@@ -193,7 +193,7 @@ func main() {
 					if err := backend.Commit(); err != nil {
 						log.Errorf("error committing %s: %s", noun, err)
 					}
-					log.Infof("committed %d added %s, %d deleted %s", nbNewDecisions, nounAdd, nbDeletedDecisions, nounDel)
+					// log.Infof("committed %d added %s, %d deleted %s", nbNewDecisions, nounAdd, nbDeletedDecisions, nounDel)
 				}
 			}
 		}

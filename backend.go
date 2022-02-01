@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	log "github.com/sirupsen/logrus"
@@ -21,11 +22,15 @@ type backend interface {
 type backendCTX struct {
 	firewall          backend
 	bufferedDecisions int
-	buffering         bool
+	buffered          bool
+	bufferedDeletions map[string]*models.Decision
+	bufferedAdditions map[string]*models.Decision
 }
 
 func (b *backendCTX) Init() error {
 	err := b.firewall.Init()
+	b.bufferedDeletions = make(map[string]*models.Decision)
+	b.bufferedAdditions = make(map[string]*models.Decision)
 	if err != nil {
 		return err
 	}
@@ -42,11 +47,34 @@ func (b *backendCTX) ShutDown() error {
 
 func (b *backendCTX) Add(decision *models.Decision) error {
 
-	if err := b.firewall.Add(decision); err != nil {
-		return err
-	}
-	if b.buffering {
+	if b.buffered {
+		if old, ok := b.bufferedAdditions[*decision.Value]; ok {
+			// old decision exists
+			timeout_old, err := time.ParseDuration(*old.Duration)
+			timeout_new, err := time.ParseDuration(*decision.Duration)
+			if err != nil {
+				log.Errorf("unable to parse timeout '%s' for '%s' : %s", *decision.Duration, *decision.Value, err)
+				timeout_new = defaultTimeout
+			}
+			if timeout_new > timeout_old {
+				b.bufferedAdditions[*decision.Value] = decision
+				log.Debugf("updating Add-decision for %s to %s", *decision.Value, *decision.Duration)
+			}
+
+		} else {
+			_, err := time.ParseDuration(*decision.Duration)
+			if err != nil {
+				log.Errorf("unable to parse timeout '%s' for '%s' : %s", *decision.Duration, *decision.Value, err)
+				*decision.Duration = defaultTimeout.String()
+			}
+			b.bufferedDecisions++ // only count unique decisions
+			b.bufferedAdditions[*decision.Value] = decision
+		}
 		if err := b.sendBatch(); err != nil {
+			return err
+		}
+	} else {
+		if err := b.firewall.Add(decision); err != nil {
 			return err
 		}
 	}
@@ -54,11 +82,16 @@ func (b *backendCTX) Add(decision *models.Decision) error {
 }
 
 func (b *backendCTX) Delete(decision *models.Decision) error {
-	if err := b.firewall.Delete(decision); err != nil {
-		return err
-	}
-	if b.buffering {
+	if b.buffered {
+		if _, ok := b.bufferedDeletions[*decision.Value]; !ok {
+			b.bufferedDecisions++ // only count unique decisions
+		}
+		b.bufferedDeletions[*decision.Value] = decision
 		if err := b.sendBatch(); err != nil {
+			return err
+		}
+	} else {
+		if err := b.firewall.Delete(decision); err != nil {
 			return err
 		}
 	}
@@ -68,18 +101,43 @@ func (b *backendCTX) Delete(decision *models.Decision) error {
 func (b *backendCTX) Commit() error {
 	defer func() { b.bufferedDecisions = 0 }()
 
-	if err := b.firewall.Commit(); err != nil {
-		return err
+	if b.buffered {
+		for _, decision := range b.bufferedDeletions {
+			if err := b.firewall.Delete(decision); err != nil {
+				return err
+			}
+		}
+
+		for _, decision := range b.bufferedAdditions {
+			if err := b.firewall.Add(decision); err != nil {
+				return err
+			}
+		}
+
+		nounDeleted := "decisions"
+		if len(b.bufferedDeletions) == 1 {
+			nounDeleted = "decision"
+		}
+		nounAdded := "decisions"
+		if len(b.bufferedAdditions) == 1 {
+			nounAdded = "decision"
+		}
+
+		log.Debugf("committing %d unique deleted %s and %d unique added %s", len(b.bufferedDeletions), nounDeleted, len(b.bufferedAdditions), nounAdded)
+		b.bufferedDeletions = make(map[string]*models.Decision)
+		b.bufferedAdditions = make(map[string]*models.Decision)
+
+		if err := b.firewall.Commit(); err != nil {
+			return err
+		}
+		log.Debugf("commit successful")
 	}
-	if b.buffering {
-		log.Debugf("committed %d decisions", b.bufferedDecisions)
-	}
+
 	return nil
 }
 
 func (b *backendCTX) sendBatch() error {
-	if b.buffering {
-		b.bufferedDecisions++
+	if b.buffered {
 		if b.bufferedDecisions == defaultBatch {
 			if err := b.Commit(); err != nil {
 				return err
@@ -107,7 +165,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 
 	b := &backendCTX{}
 	b.bufferedDecisions = 0
-	b.buffering = false // Decision buffering disabled by default
+	b.buffered = false // Decision buffering disabled by default
 	log.Printf("backend type : %s", config.Mode)
 	if config.DisableIPV6 {
 		log.Println("IPV6 is disabled")
@@ -135,7 +193,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 			return nil, err
 		}
 		b.firewall, ok = tmpCtx.(backend)
-		b.buffering = true // Decision buffering enabled
+		b.buffered = true // Decision buffering enabled
 		if !ok {
 			return nil, fmt.Errorf("unexpected type '%T' for nftables context", tmpCtx)
 		}
