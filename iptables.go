@@ -16,8 +16,6 @@ type iptables struct {
 	v6 *ipTablesContext
 }
 
-var iptablesCtx = &iptables{}
-
 func newIPTables(config *bouncerConfig) (interface{}, error) {
 	var err error
 	var ret *iptables = &iptables{}
