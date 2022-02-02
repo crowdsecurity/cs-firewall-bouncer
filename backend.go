@@ -21,8 +21,8 @@ type backend interface {
 
 type backendCTX struct {
 	firewall          backend
-	bufferedDecisions int
 	buffered          bool
+	bufferedDecisions int
 	bufferedDeletions map[string]*models.Decision
 	bufferedAdditions map[string]*models.Decision
 }
@@ -123,7 +123,7 @@ func (b *backendCTX) Commit() error {
 			nounAdded = "decision"
 		}
 
-		log.Debugf("committing %d unique deleted %s and %d unique added %s", len(b.bufferedDeletions), nounDeleted, len(b.bufferedAdditions), nounAdded)
+		log.Debugf("committing %d unique delete %s and %d unique add %s", len(b.bufferedDeletions), nounDeleted, len(b.bufferedAdditions), nounAdded)
 		b.bufferedDeletions = make(map[string]*models.Decision)
 		b.bufferedAdditions = make(map[string]*models.Decision)
 
