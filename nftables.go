@@ -195,16 +195,15 @@ func (n *nft) Add(decision *models.Decision) error {
 		timeout = defaultTimeout
 	}
 	if strings.Contains(*decision.Value, ":") { // ipv6
-		if n.conn6 != nil {
-			if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
-				return err
-			}
-			if err := n.conn6.Flush(); err != nil {
-				return err
-			}
-		} else {
+		if n.conn6 == nil {
 			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
 			return nil
+		}
+		if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16()), Timeout: timeout}}); err != nil {
+			return err
+		}
+		if err := n.conn6.Flush(); err != nil {
+			return err
 		}
 	} else { // ipv4
 		var ipAddr string
@@ -226,16 +225,15 @@ func (n *nft) Add(decision *models.Decision) error {
 
 func (n *nft) Delete(decision *models.Decision) error {
 	if strings.Contains(*decision.Value, ":") { // ipv6
-		if n.conn6 != nil {
-			if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16())}}); err != nil {
-				return err
-			}
-			if err := n.conn6.Flush(); err != nil {
-				return err
-			}
-		} else {
+		if n.conn6 == nil {
 			log.Debugf("not removing '%s' because ipv6 is disabled", *decision.Value)
 			return nil
+		}
+		if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: []byte(net.ParseIP(*decision.Value).To16())}}); err != nil {
+			return err
+		}
+		if err := n.conn6.Flush(); err != nil {
+			return err
 		}
 	} else { // ipv4
 		var ipAddr string

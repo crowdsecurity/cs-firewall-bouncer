@@ -147,15 +147,14 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 	//the obvious way would be to get the len of net.ParseIp(ba) but this is 16 internally even for ipv4.
 	//so we steal the ugly hack from https://github.com/asaskevich/govalidator/blob/3b2665001c4c24e3b076d1ca8c428049ecbb925b/validator.go#L501
 	if strings.Contains(*decision.Value, ":") {
-		if ipt.v6 != nil {
-			if err := ipt.v6.add(decision); err != nil {
-				return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv4 rule", *decision.Value)
-			}
-			done = true
-		} else {
+		if ipt.v6 == nil {
 			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
 			return nil
 		}
+		if err := ipt.v6.add(decision); err != nil {
+			return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv4 rule", *decision.Value)
+		}
+		done = true
 	}
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.add(decision); err != nil {
@@ -188,15 +187,14 @@ func (ipt *iptables) ShutDown() error {
 func (ipt *iptables) Delete(decision *models.Decision) error {
 	done := false
 	if strings.Contains(*decision.Value, ":") {
-		if ipt.v6 != nil {
-			if err := ipt.v6.delete(decision); err != nil {
-				return fmt.Errorf("failed deleting ban")
-			}
-			done = true
-		} else {
+		if ipt.v6 == nil {
 			log.Debugf("not deleting '%s' because ipv6 is disabled", *decision.Value)
 			return nil
 		}
+		if err := ipt.v6.delete(decision); err != nil {
+			return fmt.Errorf("failed deleting ban")
+		}
+		done = true
 	}
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.delete(decision); err != nil {

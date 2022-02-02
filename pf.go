@@ -71,7 +71,9 @@ func (ctx *pfContext) checkTable() error {
 
 	if err != nil {
 		return errors.Wrapf(err, "pfctl error : %v - %s", err, string(out))
-	} else if !strings.Contains(string(out), ctx.table) {
+	}
+
+	if !strings.Contains(string(out), ctx.table) {
 		return errors.Errorf("table %s doesn't exist", ctx.table)
 	}
 
@@ -155,13 +157,12 @@ func (pf *pf) Init() error {
 
 func (pf *pf) Add(decision *models.Decision) error {
 	if strings.Contains(*decision.Value, ":") && pf.inet6 != nil { // inet6
-		if pf.inet6 != nil {
-			if err := pf.inet6.Add(decision); err != nil {
-				return fmt.Errorf("failed to add ban ip '%s' to inet6 table", *decision.Value)
-			}
-		} else {
+		if pf.inet6 == nil {
 			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
 			return nil
+		}
+		if err := pf.inet6.Add(decision); err != nil {
+			return fmt.Errorf("failed to add ban ip '%s' to inet6 table", *decision.Value)
 		}
 	} else { // inet
 		if err := pf.inet.Add(decision); err != nil {
@@ -174,13 +175,12 @@ func (pf *pf) Add(decision *models.Decision) error {
 
 func (pf *pf) Delete(decision *models.Decision) error {
 	if strings.Contains(*decision.Value, ":") { // ipv6
-		if pf.inet6 != nil {
-			if err := pf.inet6.Delete(decision); err != nil {
-				return fmt.Errorf("failed to remove ban ip '%s' from inet6 table", *decision.Value)
-			}
-		} else {
+		if pf.inet6 == nil {
 			log.Debugf("not removing '%s' because ipv6 is disabled", *decision.Value)
 			return nil
+		}
+		if err := pf.inet6.Delete(decision); err != nil {
+			return fmt.Errorf("failed to remove ban ip '%s' from inet6 table", *decision.Value)
 		}
 	} else { // ipv4
 		if err := pf.inet.Delete(decision); err != nil {

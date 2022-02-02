@@ -37,16 +37,15 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 			/*if we manage ipset content only, error*/
 			log.Errorf("set %s doesn't exist, can't manage content", ctx.SetName)
 			return errors.Wrapf(err, "set %s doesn't exist", ctx.SetName)
+		}
+		if ctx.version == "v6" {
+			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300", "family", "inet6")
 		} else {
-			if ctx.version == "v6" {
-				cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300", "family", "inet6")
-			} else {
-				cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300")
-			}
-			log.Infof("ipset set-up : %s", cmd.String())
-			if out, err := cmd.CombinedOutput(); err != nil {
-				return fmt.Errorf("Error while creating set : %v --> %s", err, string(out))
-			}
+			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300")
+		}
+		log.Infof("ipset set-up : %s", cmd.String())
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("Error while creating set : %v --> %s", err, string(out))
 		}
 	}
 
