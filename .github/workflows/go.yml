@@ -2,9 +2,13 @@ name: Go
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - testing
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - testing
 
 jobs:
 
@@ -22,7 +26,3 @@ jobs:
     - name: Build
       run: make build
 
-      
-
-      
-  
