@@ -184,5 +184,8 @@ class TestNFTables(unittest.TestCase):
         for node in output["nftables"]:
             if "set" not in node or "elem" not in node["set"]:
                 continue
-            return set(node["set"]["elem"])
+            if not isinstance(node["set"]["elem"][0], dict):
+                return set(node["set"]["elem"])
+            else:
+                return {elem["elem"]["val"] for elem in node["set"]["elem"]}
         return set()
