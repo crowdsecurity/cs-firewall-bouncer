@@ -92,18 +92,17 @@ func main() {
 		log.Fatalf("configuration file is required")
 	}
 
-	config, err := NewConfig(*configPath)
+	config, err := newConfig(*configPath)
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
 
 	if *testConfig {
-		if err := validateConfig(*config); err != nil {
-			log.Fatalf("got error %s while validating config", err.Error())
-		}
 		log.Info("config is valid")
-		return
+		os.Exit(0)
 	}
+
+	configureLogging(config)
 
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
