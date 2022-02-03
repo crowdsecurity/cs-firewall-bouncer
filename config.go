@@ -32,9 +32,7 @@ type bouncerConfig struct {
 	supportedDecisionsTypes []string `yaml:"supported_decisions_type"`
 }
 
-func NewConfig(configPath string) (*bouncerConfig, error) {
-	var LogOutput *lumberjack.Logger //io.Writer
-
+func newConfig(configPath string) (*bouncerConfig, error) {
 	config := &bouncerConfig{}
 
 	configBuff, err := ioutil.ReadFile(configPath)
@@ -71,9 +69,14 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 	if config.BlacklistsIpv6 == "" {
 		config.BlacklistsIpv6 = "crowdsec6-blacklists"
 	}
+	return config, nil
+}
+
+func configureLogging(config *bouncerConfig) {
+	var LogOutput *lumberjack.Logger //io.Writer
 
 	/*Configure logging*/
-	if err = types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
+	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
 		log.Fatal(err.Error())
 	}
 	if config.LogMode == "file" {
@@ -90,7 +93,6 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 		log.SetOutput(LogOutput)
 		log.SetFormatter(&log.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
 	}
-	return config, nil
 }
 
 func validateConfig(config bouncerConfig) error {
