@@ -1,0 +1,16 @@
+mode: nftables
+pid_dir: /var/run/
+update_frequency: 1s
+daemonize: false
+log_mode: stdout
+log_dir: ./
+log_level: info
+api_url: http://localhost:8081/
+api_key: 1237adaf7a1724ac68a3288828820a67
+disable_ipv6: false
+deny_action: DROP
+deny_log: false
+supported_decisions_types:
+  - ban
+iptables_chains:
+  - INPUT
