@@ -4,8 +4,8 @@ on:
     tags:
       - v*
     branches:
-      - master
       - main
+      - testing
   pull_request:
 permissions:
   contents: read
