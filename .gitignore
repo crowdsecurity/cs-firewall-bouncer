@@ -1,9 +1,14 @@
+
 # Binaries for programs and plugins
+cs-firewall-bouncer
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# git
+.gitignore
 
 # Test binary, built with `go test -c`
 *.test
@@ -13,3 +18,5 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+*.swp
+
