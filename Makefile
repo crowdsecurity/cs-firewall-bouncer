@@ -11,10 +11,14 @@ BUILD_VERSION?="$(shell git describe --tags `git rev-list --tags --max-count=1`)
 BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
 BUILD_TIMESTAMP=$(shell date +%F"_"%T)
 BUILD_TAG?="$(shell git rev-parse HEAD)"
-export LD_OPTS=-ldflags "-s -w -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Version=$(BUILD_VERSION) \
+LDFLAGS_VARS=\
+-X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Version=$(BUILD_VERSION) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.BuildDate=$(BUILD_TIMESTAMP) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Tag=$(BUILD_TAG) \
--X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.GoVersion=$(BUILD_GOVERSION)"
+-X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.GoVersion=$(BUILD_GOVERSION)
+LDFLAGS_DYNAMIC=-s -w $(LDFLAGS_VARS)
+LDFLAGS_STATIC=-s -w -extldflags '-static' $(LDFLAGS_VARS)
+
 PREFIX?="/"
 PID_DIR = $(PREFIX)"/var/run/"
 BINARY_NAME=crowdsec-firewall-bouncer
@@ -46,19 +50,19 @@ goversion:
 lint:
 	golangci-lint run
 
-static: clean
-	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME) -v -a -tags netgo -ldflags '-w -extldflags "-static"'
+static: goversion clean
+	$(GOBUILD) -ldflags "$(LDFLAGS_STATIC)" -o $(BINARY_NAME) -v -a -tags netgo
 
 build: goversion clean
-	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME) -v
+	$(GOBUILD) -ldflags "$(LDFLAGS_DYNAMIC)" -o $(BINARY_NAME) -v
 
 test:
-	@$(GOTEST) $(LD_OPTS) -v ./...
+	@$(GOTEST) -ldflags "$(LDFLAGS_DYNAMIC)" -v ./...
 
 clean:
-	@rm -f $(BINARY_NAME)
-	@rm -rf ${RELDIR}
-	@rm -f crowdsec-firewall-bouncer.tgz || ""
+	@$(RM) $(BINARY_NAME)
+	@$(RM) -r ${RELDIR}
+	@$(RM) crowdsec-firewall-bouncer.tgz || ""
 
 
 .PHONY: release
