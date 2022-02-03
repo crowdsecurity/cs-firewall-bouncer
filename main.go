@@ -78,6 +78,24 @@ func main() {
 		os.Exit(0)
 	}
 
+	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
+
+	if configPath == nil || *configPath == "" {
+		log.Fatalf("configuration file is required")
+	}
+
+	config, err := newConfig(*configPath)
+	if err != nil {
+		log.Fatalf("unable to load configuration: %s", err)
+	}
+
+	if *testConfig {
+		log.Info("config is valid")
+		os.Exit(0)
+	}
+
+	configureLogging(config)
+
 	log.AddHook(&writer.Hook{ // Send logs with level fatal to stderr
 		Writer: os.Stderr,
 		LogLevels: []log.Level{
@@ -85,25 +103,6 @@ func main() {
 			log.FatalLevel,
 		},
 	})
-
-	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
-
-	if configPath == nil || *configPath == "" {
-		log.Fatalf("configuration file is required")
-	}
-
-	config, err := NewConfig(*configPath)
-	if err != nil {
-		log.Fatalf("unable to load configuration: %s", err)
-	}
-
-	if *testConfig {
-		if err := validateConfig(*config); err != nil {
-			log.Fatalf("got error %s while validating config", err.Error())
-		}
-		log.Info("config is valid")
-		return
-	}
 
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
