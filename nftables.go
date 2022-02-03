@@ -329,6 +329,9 @@ func (n *nft) Add(decision *models.Decision) error {
 			/* if err := n.conn.Flush(); err != nil {
 				return err
 			} */
+		} else {
+			log.Debugf("not adding '%s' because ipv4 is disabled", *decision.Value)
+			return nil
 		}
 	}
 
