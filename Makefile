@@ -1,5 +1,3 @@
-SHELL := /bin/bash
-
 # Go parameters
 #BUILD_VERSION?="$(shell git for-each-ref --sort=-v:refname --count=1 --format '%(refname)'  | cut -d '/' -f3)"
 GOCMD=go
@@ -37,7 +35,7 @@ RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
 PYTHON=python3
 PIP=pip
 
-all: clean build func-tests
+all: clean build
 
 goversion:
 	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
@@ -74,7 +72,6 @@ clean:
 func-tests: build
 	( \
 	$(PYTHON) -m venv tests/venv ; \
-    source tests/venv/bin/activate ; \
 	tests/venv/bin/$(PIP) install -r tests/requirements.txt ; \
 	sudo tests/venv/bin/$(PYTHON) -B -m unittest -v ; \
 	)
