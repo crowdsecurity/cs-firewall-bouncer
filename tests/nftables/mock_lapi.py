@@ -1,5 +1,6 @@
 from ipaddress import ip_address
 import logging
+from time import sleep
 from flask import Flask
 
 from flask import request, abort
@@ -68,25 +69,33 @@ class DataStore:
         return decision["created_at"] + timedelta(seconds=timeparse(decision["duration"]))
 
 
-app = Flask(__name__)
-log = logging.getLogger("werkzeug")
-log.setLevel(logging.ERROR)
-app.logger.disabled = True
-log.disabled = True
-ds = DataStore()
+class MockLAPI:
+    def __init__(self) -> None:
+        self.app = Flask(__name__)
+        self.app.add_url_rule("/v1/decisions/stream", view_func=self.decisions)
+        log = logging.getLogger("werkzeug")
+        log.setLevel(logging.ERROR)
+        self.app.logger.disabled = True
+        log.disabled = True
+        self.ds = DataStore()
 
+    def decisions(self):
+        api_key = request.headers.get("x-api-key")
+        if not api_key:
+            abort(404)
+        startup = True if request.args.get("startup") == "true" else False
+        active_decisions, expired_decisions = self.ds.get_decisions_for_bouncer(api_key, startup)
+        return {
+            "new": formatted_decisions(active_decisions),
+            "deleted": formatted_decisions(expired_decisions),
+        }
 
-@app.route("/v1/decisions/stream")
-def decisions():
-    api_key = request.headers.get("x-api-key")
-    if not api_key:
-        abort(404)
-    startup = True if request.args.get("startup") == "true" else False
-    active_decisions, expired_decisions = ds.get_decisions_for_bouncer(api_key, startup)
-    return {
-        "new": formatted_decisions(active_decisions),
-        "deleted": formatted_decisions(expired_decisions),
-    }
+    def start(self):
+        self.server_thread = ServerThread(self.app)
+        self.server_thread.start()
+
+    def stop(self):
+        self.server_thread.shutdown()
 
 
 def formatted_decisions(decisions):
@@ -125,12 +134,6 @@ class ServerThread(Thread):
         self.server.shutdown()
 
 
-def start_server():
-    global server
-    server = ServerThread(app)
-    server.start()
-
-
-def stop_server():
-    global server
-    server.shutdown()
+if __name__ == "__main__":
+    MockLAPI().start()
+    sleep(100)
