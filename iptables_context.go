@@ -45,7 +45,7 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 		}
 		log.Infof("ipset set-up : %s", cmd.String())
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("Error while creating set : %v --> %s", err, string(out))
+			return fmt.Errorf("error while creating set : %v --> %s", err, string(out))
 		}
 	}
 

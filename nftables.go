@@ -4,7 +4,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -32,22 +31,17 @@ type nft struct {
 	DenyLogPrefix     string
 	BlacklistsIpv4    string
 	BlacklistsIpv6    string
-	//	Enabled4       bool
-	ChainName4 string
-	TableName4 string
-	SetOnly4   bool
-	//	Enabled6       bool
-	ChainName6 string
-	TableName6 string
-	SetOnly6   bool
+	ChainName4        string
+	TableName4        string
+	SetOnly4          bool
+	ChainName6        string
+	TableName6        string
+	SetOnly6          bool
 }
 
 func newNFTables(config *bouncerConfig) (backend, error) {
 
 	ret := &nft{}
-
-	/*	ret.Enabled4 = config.Nftables.Ipv4.Enabled
-		ret.Enabled6 = config.Nftables.Ipv6.Enabled */
 
 	if config.Nftables.Ipv4.Enabled {
 		log.Debug("nftables: ipv4 enabled")
@@ -70,16 +64,16 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	ret.ChainName4 = config.Nftables.Ipv4.Chain
 	ret.BlacklistsIpv4 = config.Nftables.Ipv4.Blacklist
 	ret.SetOnly4 = config.Nftables.Ipv4.SetOnly
-	log.Debug(fmt.Sprintf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
-		config.Nftables.Ipv4.Enabled, ret.TableName4, ret.ChainName4, ret.BlacklistsIpv4, ret.SetOnly4))
+	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
+		config.Nftables.Ipv4.Enabled, ret.TableName4, ret.ChainName4, ret.BlacklistsIpv4, ret.SetOnly4)
 
 	// IPv6
 	ret.TableName6 = config.Nftables.Ipv6.Table
 	ret.ChainName6 = config.Nftables.Ipv6.Chain
 	ret.BlacklistsIpv6 = config.Nftables.Ipv6.Blacklist
 	ret.SetOnly6 = config.Nftables.Ipv6.SetOnly
-	log.Debug(fmt.Sprintf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
-		config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6))
+	log.Debugf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
+		config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6)
 
 	return ret, nil
 }
@@ -109,7 +103,7 @@ func (n *nft) Init() error {
 
 			set, err := n.conn.GetSetByName(n.table, n.BlacklistsIpv4)
 			if err != nil {
-				log.Debug(fmt.Sprintf("nftables: could not find ipv4 blacklist '%s' in table '%s': creating...", n.BlacklistsIpv4, n.TableName4))
+				log.Debugf("nftables: could not find ipv4 blacklist '%s' in table '%s': creating...", n.BlacklistsIpv4, n.TableName4)
 				set = &nftables.Set{
 					Name:       n.BlacklistsIpv4,
 					Table:      n.table,
