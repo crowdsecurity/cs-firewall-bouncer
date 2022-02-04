@@ -22,3 +22,18 @@ iptables_chains:
   - INPUT
 #  - FORWARD
 #  - DOCKER-USER
+
+## nftables
+nftables:
+  ipv4:
+    enabled: true
+    blacklist: crowdsec-blacklist
+    set-only: false
+    table: crowdsec
+    chain: crowdsec-chain
+  ipv6:
+    enabled: true
+    blacklist: crowdsec6-blacklist
+    set-only: false
+    table: crowdsec6
+    chain: crowdsec6-chain
