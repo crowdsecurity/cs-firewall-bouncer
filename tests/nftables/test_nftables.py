@@ -1,25 +1,25 @@
-import ipaddress
-import subprocess
-import unittest
 import json
 import os
+import subprocess
 import sys
+import unittest
+from ipaddress import ip_address
+from pathlib import Path
 from time import sleep
 from typing import List
-from ipaddress import ip_address
+
 
 from tests.nftables import mock_lapi
 
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-os.chdir(SCRIPT_DIR)
-
+SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
+BINARY_PATH = PROJECT_ROOT.joinpath("crowdsec-firewall-bouncer")
+CONFIG_PATH = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer.yaml")
 
 def run_cmd(cmd: List[str], trace_error=True):
     with subprocess.Popen(cmd, stdout=subprocess.PIPE) as p:
         if p.wait() and trace_error:
-            print(cmd, "exited with non-zero code with following logs")
-            print(p.stdout.read().decode())
-            sys.exit(1)
+            raise SystemExit(f"{cmd} exited with non-zero code with following logs:\n {p.stdout.read().decode()}")
         else:
             return p.stdout.read().decode()
 
@@ -33,9 +33,9 @@ def generate_n_decisions(n: int, action="ban", dup_count=0, ipv4=True):
     decisions = []
     for i in range(unique_decision_count):
         if ipv4:
-            ip = ipaddress.ip_address(i)
+            ip = ip_address(i)
         else:
-            ip = ipaddress.ip_address(2 ** 32 + i)
+            ip = ip_address(2 ** 32 + i)
         decisions.append(
             {
                 "value": ip.__str__(),
@@ -53,7 +53,7 @@ def generate_n_decisions(n: int, action="ban", dup_count=0, ipv4=True):
 
 class TestNFTables(unittest.TestCase):
     def setUp(self):
-        self.fb = subprocess.Popen(["../../crowdsec-firewall-bouncer", "-c", "./bouncer_cfg.yaml"])
+        self.fb = subprocess.Popen([BINARY_PATH, "-c", CONFIG_PATH])
         mock_lapi.start_server()
         return super().setUp()
 

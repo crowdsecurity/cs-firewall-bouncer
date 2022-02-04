@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 # Go parameters
 #BUILD_VERSION?="$(shell git for-each-ref --sort=-v:refname --count=1 --format '%(refname)'  | cut -d '/' -f3)"
 GOCMD=go
@@ -32,7 +34,10 @@ GO_VERSION_VALIDATION_ERR_MSG = Golang version ($(BUILD_GOVERSION)) is not suppo
 
 RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
 
-all: clean test build
+PYTHON=python3
+PIP=pip
+
+all: clean build func-tests
 
 goversion:
 	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
@@ -63,7 +68,16 @@ clean:
 	@$(RM) $(BINARY_NAME)
 	@$(RM) -r ${RELDIR}
 	@$(RM) crowdsec-firewall-bouncer.tgz || ""
+	@$(RM) -r tests/venv
 
+.PHONY: func-tests
+func-tests: build
+	( \
+	$(PYTHON) -m venv tests/venv ; \
+    source tests/venv/bin/activate ; \
+	tests/venv/bin/$(PIP) install -r tests/requirements.txt ; \
+	sudo tests/venv/bin/$(PYTHON) -B -m unittest -v ; \
+	)
 
 .PHONY: release
 release: build
