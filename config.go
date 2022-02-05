@@ -166,7 +166,7 @@ func validateConfig(config bouncerConfig) error {
 		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
 
-	if config.Nftables.Ipv4.Enabled == false && config.Nftables.Ipv6.Enabled == false {
+	if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
 		return fmt.Errorf("Both IPv4 and IPv6 disabled, doing nothing")
 	}
 	return nil
