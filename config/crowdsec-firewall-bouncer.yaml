@@ -39,3 +39,7 @@ nftables:
     set-only: false
     table: crowdsec6
     chain: crowdsec6-chain
+# packet filter
+pf:
+  # an empty string disables the anchor
+  anchor_name: crowdsec
