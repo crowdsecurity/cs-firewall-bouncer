@@ -1,10 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"reflect"
+	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
+	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -20,15 +24,15 @@ type nftablesFamilyConfig struct {
 }
 
 type bouncerConfig struct {
-	Mode            string    `yaml:"mode"` //ipset,iptables,tc
+	Mode            string    `yaml:"mode" validate:"required"` //ipset,iptables,tc
 	PidDir          string    `yaml:"pid_dir"`
 	UpdateFrequency string    `yaml:"update_frequency"`
 	Daemon          bool      `yaml:"daemonize"`
-	LogMode         string    `yaml:"log_mode"`
+	LogMode         string    `yaml:"log_mode" validate:"required,oneof=stdout file"`
 	LogDir          string    `yaml:"log_dir"`
 	LogLevel        log.Level `yaml:"log_level"`
-	APIUrl          string    `yaml:"api_url"`
-	APIKey          string    `yaml:"api_key"`
+	APIUrl          string    `yaml:"api_url" validate:"required"`
+	APIKey          string    `yaml:"api_key" validate:"required"`
 	DisableIPV6     bool      `yaml:"disable_ipv6"`
 	DenyAction      string    `yaml:"deny_action"`
 	DenyLog         bool      `yaml:"deny_log"`
@@ -129,8 +133,6 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 
 func configureLogging(config *bouncerConfig) {
 	var LogOutput *lumberjack.Logger //io.Writer
-
-	/*Configure logging*/
 	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
 		log.Fatal(err.Error())
 	}
@@ -150,20 +152,37 @@ func configureLogging(config *bouncerConfig) {
 	}
 }
 
+// more complex or custom struct-wide validation happens here
+func configStructLevelValidation(sl validator.StructLevel) {
+	//	config := sl.Current().Interface().(bouncerConfig)
+}
+
 func validateConfig(config bouncerConfig) error {
-	if config.APIUrl == "" {
-		return fmt.Errorf("config does not contain LAPI url")
-	}
-	if config.APIKey == "" {
-		return fmt.Errorf("config does not contain LAPI key")
-	}
+	validate := validator.New()
 
-	if config.Mode == "" || config.LogMode == "" {
-		return fmt.Errorf("config does not contain mode and log mode")
-	}
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("yaml"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
 
-	if config.LogMode != "stdout" && config.LogMode != "file" {
-		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
+	validate.RegisterStructValidation(configStructLevelValidation, bouncerConfig{})
+	err := validate.Struct(config)
+	if err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			switch err.Tag() {
+			case "required":
+				log.Errorf("'%s' is required.", err.Field())
+			case "oneof":
+				log.Errorf("'%s' must be one of: %s", err.Field(), err.Param())
+			default:
+				// the default messages are good enough but less user friendly
+				log.Errorf("%s", err)
+			}
+		}
+		return errors.New("the configuration is not valid")
 	}
 
 	if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {

@@ -11,6 +11,7 @@ require (
 	github.com/crowdsecurity/grokky v0.0.0-20210908140943-c4460be565eb // indirect
 	github.com/go-openapi/analysis v0.21.1 // indirect
 	github.com/go-openapi/runtime v0.21.0 // indirect
+	github.com/go-playground/validator/v10 v10.4.1
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/google/nftables v0.0.0-20210916140115-16a134723a96
 	github.com/hashicorp/go-version v1.3.0 // indirect

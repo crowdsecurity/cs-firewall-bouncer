@@ -93,13 +93,16 @@ func main() {
 	}
 
 	config, err := newConfig(*configPath)
+	if *testConfig {
+		if err != nil {
+			log.Error(err)
+		} else {
+			log.Info("the configuration is valid")
+		}
+		os.Exit(0)
+	}
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
-	}
-
-	if *testConfig {
-		log.Info("config is valid")
-		os.Exit(0)
 	}
 
 	configureLogging(config)
