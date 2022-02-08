@@ -14,3 +14,17 @@ supported_decisions_types:
   - ban
 iptables_chains:
   - INPUT
+
+nftables:
+  ipv4:
+    enabled: true
+    blacklist: crowdsec-blacklists
+    set-only: false
+    table: crowdsec
+    chain: crowdsec-chain
+  ipv6:
+    enabled: true
+    blacklist: crowdsec6-blacklists
+    set-only: false
+    table: crowdsec6
+    chain: crowdsec6-chain
