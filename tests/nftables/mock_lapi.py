@@ -90,8 +90,8 @@ class MockLAPI:
             "deleted": formatted_decisions(expired_decisions),
         }
 
-    def start(self):
-        self.server_thread = ServerThread(self.app)
+    def start(self, port=8081):
+        self.server_thread = ServerThread(self.app, port=port)
         self.server_thread.start()
 
     def stop(self):
