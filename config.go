@@ -48,11 +48,6 @@ type bouncerConfig struct {
 	IptablesChains          []string `yaml:"iptables_chains"`
 	supportedDecisionsTypes []string `yaml:"supported_decisions_type"`
 	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
-	/*	NftablesTable4         string `yaml:"nftables_table4"`
-		NftablesChain4         string `yaml:"nftables_chain4"`
-		NftablesTable6         string `yaml:"nftables_table6"`
-		NftablesChain6         string `yaml:"nftables_chain6"`
-	*/
 	Nftables struct {
 		Ipv4 nftablesFamilyConfig `yaml:"ipv4"`
 		Ipv6 nftablesFamilyConfig `yaml:"ipv6"`
@@ -190,10 +185,9 @@ func validateConfig(config bouncerConfig) error {
 	if config.LogMode != "stdout" && config.LogMode != "file" {
 		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
-	if config.Mode == NftablesMode {
-		if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
-			return fmt.Errorf("Both IPv4 and IPv6 disabled, doing nothing")
-		}
+
+	if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
+		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
 	}
 	return nil
 }

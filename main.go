@@ -157,6 +157,11 @@ func main() {
 					noun = "decision"
 				}
 				if nbDeletedDecisions > 0 {
+					log.Debug("commiting expired decisions")
+					if err := backend.Commit(); err != nil {
+						log.Errorf("unable to commit delete decisions %v", err)
+					}
+					log.Debug("commited expired decisions")
 					log.Infof("%d %s deleted", nbDeletedDecisions, noun)
 				}
 
@@ -179,6 +184,11 @@ func main() {
 					noun = "decision"
 				}
 				if nbNewDecisions > 0 {
+					log.Debug("commiting added decisions")
+					if err := backend.Commit(); err != nil {
+						log.Errorf("unable to commit add decisions %v", err)
+					}
+					log.Debug("commited added decisions")
 					log.Infof("%d %s added", nbNewDecisions, noun)
 				}
 			}
