@@ -18,7 +18,7 @@ CONFIG_PATH = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer.yaml")
 
 
 def run_cmd(cmd: List[str], trace_error=True):
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if trace_error and p.returncode:
         raise SystemExit(
             f"{cmd} exited with non-zero code with following logs:\n {p.stdout}"
