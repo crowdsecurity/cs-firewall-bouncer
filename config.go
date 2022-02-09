@@ -19,6 +19,9 @@ type nftablesFamilyConfig struct {
 	Blacklist string `yaml:"blacklist"`
 }
 
+var IpsetMode = "ipset"
+var NftablesMode = "nftables"
+
 type bouncerConfig struct {
 	Mode            string    `yaml:"mode"` //ipset,iptables,tc
 	PidDir          string    `yaml:"pid_dir"`
@@ -185,9 +188,10 @@ func validateConfig(config bouncerConfig) error {
 	if config.LogMode != "stdout" && config.LogMode != "file" {
 		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
-
-	if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
-		return fmt.Errorf("Both IPv4 and IPv6 disabled, doing nothing")
+	if config.Mode == NftablesMode {
+		if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
+			return fmt.Errorf("Both IPv4 and IPv6 disabled, doing nothing")
+		}
 	}
 	return nil
 }
