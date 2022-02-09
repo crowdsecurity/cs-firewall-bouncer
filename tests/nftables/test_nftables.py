@@ -27,7 +27,7 @@ def run_cmd(cmd: List[str], trace_error=True):
     return p.stdout
 
 
-def generate_n_decisions(n: int, action="ban", dup_count=0, ipv4=True):
+def generate_n_decisions(n: int, action="ban", dup_count=0, ipv4=True, duration="4h"):
     if dup_count >= n:
         print("generate_n_decisions got dup_count>=n")
         sys.exit(1)
@@ -45,7 +45,7 @@ def generate_n_decisions(n: int, action="ban", dup_count=0, ipv4=True):
                 "scope": "ip",
                 "type": action,
                 "origin": "script",
-                "duration": "4h",
+                "duration": duration,
                 "reason": "for testing",
             }
         )
@@ -110,9 +110,7 @@ class TestNFTables(unittest.TestCase):
         d1, d2, d3 = generate_n_decisions(3, dup_count=1)
         self.lapi.ds.insert_decisions([d1])
         sleep(1)
-        self.assertEqual(
-            get_set_elements("ip", "crowdsec", "crowdsec-blacklists"), {"0.0.0.0"}
-        )
+        self.assertEqual(get_set_elements("ip", "crowdsec", "crowdsec-blacklists"), {"0.0.0.0"})
 
         self.lapi.ds.insert_decisions([d2, d3])
         sleep(1)
@@ -178,7 +176,28 @@ class TestNFTables(unittest.TestCase):
         ) == set_elements
         assert ip_address("::1:0:3") not in set_elements
 
-def get_set_elements(family, table_name, set_name):
+    def test_longest_decision_insertion(self):
+        decisions = [
+            {
+                "value": "123.45.67.12",
+                "scope": "ip",
+                "type": "ban",
+                "origin": "script",
+                "duration": f"{i}h",
+                "reason": "for testing",
+            }
+            for i in range(1, 201)
+        ]
+        self.lapi.ds.insert_decisions(decisions)
+        sleep(1)
+        elems = get_set_elements("ip", "crowdsec", "crowdsec-blacklists", with_timeout=True)
+        assert len(elems) == 1
+        elems = list(elems)
+        assert elems[0][0] == "123.45.67.12"
+        assert abs(elems[0][1] - 200 * 60 * 60) <= 3
+
+
+def get_set_elements(family, table_name, set_name, with_timeout=False):
     output = json.loads(run_cmd(["nft", "-j", "list", "set", family, table_name, set_name]))
     for node in output["nftables"]:
         if "set" not in node or "elem" not in node["set"]:
@@ -186,5 +205,7 @@ def get_set_elements(family, table_name, set_name):
         if not isinstance(node["set"]["elem"][0], dict):
             return set(node["set"]["elem"])
         else:
-            return {elem["elem"]["val"] for elem in node["set"]["elem"]}
+            if not with_timeout:
+                return {elem["elem"]["val"] for elem in node["set"]["elem"]}
+            return {(elem["elem"]["val"], elem["elem"]["timeout"]) for elem in node["set"]["elem"]}
     return set()

@@ -390,13 +390,14 @@ func (n *nft) commitAddedDecisions() error {
 				log.Debugf("skipping %s since it's already in set", decisionIP)
 
 			} else {
+				t, _ := time.ParseDuration(*decision.Duration)
 				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
-					if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
+					if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Timeout: t, Key: decisionIP.To16()}}); err != nil {
 						return err
 					}
 					addedIPV6 = true
 				} else {
-					if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Key: decisionIP.To4()}}); err != nil {
+					if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Timeout: t, Key: decisionIP.To4()}}); err != nil {
 						return err
 					}
 					addedIPV4 = true
@@ -438,20 +439,25 @@ func elementSliceToIPSet(elements []nftables.SetElement) map[string]struct{} {
 	return ipSet
 }
 
-// remove duplicates, normalize decision timeouts
+// remove duplicates, normalize decision timeouts, keep the longest decision when dups are present
 func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
-	vals := make(map[string]struct{})
+	vals := make(map[string]time.Duration)
 	finalDecisions := make([]*models.Decision, 0)
 	for _, d := range decisions {
-		if _, ok := vals[*d.Value]; ok {
-			continue
-		}
-		vals[*d.Value] = struct{}{}
-		if _, err := time.ParseDuration(*d.Duration); err != nil {
-			d.Duration = &defaultTimeout
+		t, err := time.ParseDuration(*d.Duration)
+		if err != nil {
+			t, _ = time.ParseDuration(defaultTimeout)
 		}
 		*d.Value = strings.Split(*d.Value, "/")[0]
-		finalDecisions = append(finalDecisions, d)
+		vals[*d.Value] = maxTime(t, vals[*d.Value])
+	}
+	for ip, duration := range vals {
+		d := duration.String()
+		i := ip // copy it because we don't same value for all decisions as `ip` is same pointer :)
+		finalDecisions = append(finalDecisions, &models.Decision{
+			Duration: &d,
+			Value:    &i,
+		})
 	}
 	return finalDecisions
 }
@@ -494,4 +500,11 @@ func (n *nft) ShutDown() error {
 		}
 	}
 	return nil
+}
+
+func maxTime(a time.Duration, b time.Duration) time.Duration {
+	if a > b {
+		return a
+	}
+	return b
 }
