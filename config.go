@@ -29,7 +29,7 @@ type bouncerConfig struct {
 	LogLevel        log.Level `yaml:"log_level"`
 	LogCompress     *bool     `yaml:"log_compression,omitempty"`
 	LogMaxSize      *int      `yaml:"log_max_size,omitempty"`
-	LogMaxBackups   *int      `yaml:"log_max_backups,omitempty"`
+	LogMaxFiles     *int      `yaml:"log_max_backups,omitempty"`
 	LogMaxAge       *int      `yaml:"log_max_age,omitempty"`
 	APIUrl          string    `yaml:"api_url"`
 	APIKey          string    `yaml:"api_key"`
@@ -130,7 +130,7 @@ func configureLogging(config *bouncerConfig) {
 	var LogOutput *lumberjack.Logger //io.Writer
 
 	/*Configure logging*/
-	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
+	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.LogMaxSize, config.LogMaxFiles, config.LogMaxAge, config.LogCompress); err != nil {
 		log.Fatal(err.Error())
 	}
 	if config.LogMode == "file" {
@@ -141,9 +141,9 @@ func configureLogging(config *bouncerConfig) {
 		if config.LogMaxSize != nil {
 			_maxsize = *config.LogMaxSize
 		}
-		_maxbackups := 3
-		if config.LogMaxBackups != nil {
-			_maxbackups = *config.LogMaxBackups
+		_maxfiles := 3
+		if config.LogMaxFiles != nil {
+			_maxfiles = *config.LogMaxFiles
 		}
 		_maxage := 30
 		if config.LogMaxAge != nil {
@@ -156,7 +156,7 @@ func configureLogging(config *bouncerConfig) {
 		LogOutput = &lumberjack.Logger{
 			Filename:   config.LogDir + "/crowdsec-firewall-bouncer.log",
 			MaxSize:    _maxsize, //megabytes
-			MaxBackups: _maxbackups,
+			MaxBackups: _maxfiles,
 			MaxAge:     _maxage,   //days
 			Compress:   _compress, //disabled by default
 		}
