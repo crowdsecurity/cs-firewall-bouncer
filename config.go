@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	log "github.com/sirupsen/logrus"
@@ -177,14 +178,15 @@ func validateConfig(config bouncerConfig) error {
 	if config.APIUrl == "" {
 		return fmt.Errorf("config does not contain LAPI url")
 	}
+	if !strings.HasSuffix(config.APIUrl, "/") {
+		config.APIUrl += "/"
+	}
 	if config.APIKey == "" {
 		return fmt.Errorf("config does not contain LAPI key")
 	}
-
 	if config.Mode == "" || config.LogMode == "" {
 		return fmt.Errorf("config does not contain mode and log mode")
 	}
-
 	if config.LogMode != "stdout" && config.LogMode != "file" {
 		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
