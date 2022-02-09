@@ -27,6 +27,10 @@ type bouncerConfig struct {
 	LogMode         string    `yaml:"log_mode"`
 	LogDir          string    `yaml:"log_dir"`
 	LogLevel        log.Level `yaml:"log_level"`
+	LogCompress     *bool     `yaml:"log_compression,omitempty"`
+	LogMaxSize      *int      `yaml:"log_max_size,omitempty"`
+	LogMaxBackups   *int      `yaml:"log_max_backups,omitempty"`
+	LogMaxAge       *int      `yaml:"log_max_age,omitempty"`
 	APIUrl          string    `yaml:"api_url"`
 	APIKey          string    `yaml:"api_key"`
 	DisableIPV6     bool      `yaml:"disable_ipv6"`
@@ -138,12 +142,28 @@ func configureLogging(config *bouncerConfig) {
 		if config.LogDir == "" {
 			config.LogDir = "/var/log/"
 		}
+		_maxsize := 500
+		if config.LogMaxSize != nil {
+			_maxsize = *config.LogMaxSize
+		}
+		_maxbackups := 3
+		if config.LogMaxBackups != nil {
+			_maxbackups = *config.LogMaxBackups
+		}
+		_maxage := 30
+		if config.LogMaxAge != nil {
+			_maxage = *config.LogMaxAge
+		}
+		_compress := true
+		if config.LogCompress != nil {
+			_compress = *config.LogCompress
+		}
 		LogOutput = &lumberjack.Logger{
 			Filename:   config.LogDir + "/crowdsec-firewall-bouncer.log",
-			MaxSize:    500, //megabytes
-			MaxBackups: 3,
-			MaxAge:     28,   //days
-			Compress:   true, //disabled by default
+			MaxSize:    _maxsize, //megabytes
+			MaxBackups: _maxbackups,
+			MaxAge:     _maxage,   //days
+			Compress:   _compress, //disabled by default
 		}
 		log.SetOutput(LogOutput)
 		log.SetFormatter(&log.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
