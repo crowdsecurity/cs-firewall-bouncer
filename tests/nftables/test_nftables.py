@@ -21,7 +21,7 @@ def run_cmd(cmd: List[str], trace_error=True):
     p = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
     if trace_error and p.returncode:
         raise SystemExit(
-            f"{cmd} exited with non-zero code with following logs:\n {p.stdout.read().decode()}"
+            f"{cmd} exited with non-zero code with following logs:\n {p.stdout}"
         )
 
     return p.stdout
