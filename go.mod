@@ -32,4 +32,4 @@ exclude github.com/mattn/go-sqlite3 v2.0.3+incompatible
 
 exclude github.com/mattn/go-sqlite3 v2.0.1+incompatible
 
-replace github.com/koneu/natend => ./vendor/koneu/natend
+replace github.com/koneu/natend => ./koneu/natend
