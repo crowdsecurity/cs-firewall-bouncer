@@ -21,6 +21,7 @@ type nftablesFamilyConfig struct {
 }
 
 var IpsetMode = "ipset"
+var IptablesMode = "iptables"
 var NftablesMode = "nftables"
 
 type bouncerConfig struct {

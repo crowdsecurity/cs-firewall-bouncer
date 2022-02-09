@@ -80,7 +80,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		log.Println("IPV6 is disabled")
 	}
 	switch config.Mode {
-	case "iptables", "ipset":
+	case IptablesMode, IpsetMode:
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("iptables and ipset is linux only")
 		}
@@ -88,7 +88,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		if err != nil {
 			return nil, err
 		}
-	case "nftables":
+	case NftablesMode:
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("nftables is linux only")
 		}
