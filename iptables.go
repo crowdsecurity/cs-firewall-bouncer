@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package main
@@ -48,7 +49,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		return nil, fmt.Errorf("unable to find ipset")
 	}
 	ipv4Ctx.ipsetBin = ipsetBin
-	if config.Mode == "ipset" {
+	if config.Mode == IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
 	} else {
 		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
@@ -77,7 +78,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		return ret, nil
 	}
 	ipv6Ctx.ipsetBin = ipsetBin
-	if config.Mode == "ipset" {
+	if config.Mode == IpsetMode {
 		ipv6Ctx.ipsetContentOnly = true
 	} else {
 		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")

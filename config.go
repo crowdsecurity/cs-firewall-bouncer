@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	log "github.com/sirupsen/logrus"
@@ -18,6 +19,10 @@ type nftablesFamilyConfig struct {
 	Chain     string `yaml:"chain"`
 	Blacklist string `yaml:"blacklist"`
 }
+
+var IpsetMode = "ipset"
+var IptablesMode = "iptables"
+var NftablesMode = "nftables"
 
 type bouncerConfig struct {
 	Mode            string    `yaml:"mode"` //ipset,iptables,tc
@@ -169,20 +174,23 @@ func validateConfig(config bouncerConfig) error {
 	if config.APIUrl == "" {
 		return fmt.Errorf("config does not contain LAPI url")
 	}
+	if !strings.HasSuffix(config.APIUrl, "/") {
+		config.APIUrl += "/"
+	}
 	if config.APIKey == "" {
 		return fmt.Errorf("config does not contain LAPI key")
 	}
-
 	if config.Mode == "" || config.LogMode == "" {
 		return fmt.Errorf("config does not contain mode and log mode")
 	}
-
 	if config.LogMode != "stdout" && config.LogMode != "file" {
 		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
 
-	if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
-		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
+	if config.Mode != NftablesMode {
+		if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
+			return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
+		}
 	}
 	return nil
 }
