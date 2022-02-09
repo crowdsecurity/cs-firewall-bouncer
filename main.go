@@ -68,7 +68,7 @@ func main() {
 	var err error
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
-	bouncerVersion := flag.Bool("V", false, "display version and exit")
+	bouncerVersion := flag.Bool("version", false, "display version and exit")
 	testConfig := flag.Bool("t", false, "test config and exit")
 
 	flag.Parse()
