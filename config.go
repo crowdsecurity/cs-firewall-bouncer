@@ -13,16 +13,17 @@ import (
 )
 
 type nftablesFamilyConfig struct {
-	Enabled   bool   `yaml:"enabled"`
-	SetOnly   bool   `yaml:"set-only"`
-	Table     string `yaml:"table"`
-	Chain     string `yaml:"chain"`
-	Blacklist string `yaml:"blacklist"`
+	Enabled bool   `yaml:"enabled"`
+	SetOnly bool   `yaml:"set-only"`
+	Table   string `yaml:"table"`
+	Chain   string `yaml:"chain"`
+	// Blacklist string `yaml:"blacklist"`
 }
 
 var IpsetMode = "ipset"
 var IptablesMode = "iptables"
 var NftablesMode = "nftables"
+var PfMode = "pf"
 
 type bouncerConfig struct {
 	Mode            string    `yaml:"mode"` //ipset,iptables,tc
@@ -85,50 +86,55 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 		config.DenyLogPrefix = "crowdsec drop: "
 	}
 	// for config file backward compatibility
-	if config.BlacklistsIpv4 != "" {
-		config.Nftables.Ipv4.Blacklist = config.BlacklistsIpv4
+	if config.BlacklistsIpv4 == "" {
+		config.BlacklistsIpv4 = "crowdsec4-blacklists"
+	}
+	if config.BlacklistsIpv6 == "" {
+		config.BlacklistsIpv6 = "crowdsec6-blacklists"
 	}
 
-	if config.BlacklistsIpv6 != "" {
-		config.Nftables.Ipv6.Blacklist = config.BlacklistsIpv6
+	switch config.Mode {
+	case NftablesMode:
+		err := nftablesConfig(config)
+		if err != nil {
+			return nil, err
+		}
+	case IpsetMode, IptablesMode:
+		//nothing specific to do
+	case PfMode:
+		//placeholder
+	default:
+		log.Warningf("unexpected %s mode", config.Mode)
 	}
+	return config, nil
+}
 
+func nftablesConfig(config *bouncerConfig) error {
 	// nftables IPv4 specific
 	if config.Nftables.Ipv4.Enabled {
 		if config.Nftables.Ipv4.Table == "" {
 			config.Nftables.Ipv4.Table = "crowdsec"
 		}
-
 		if config.Nftables.Ipv4.Chain == "" {
 			config.Nftables.Ipv4.Chain = "crowdsec-chain"
 		}
-
-		if config.Nftables.Ipv4.Blacklist == "" {
-			config.Nftables.Ipv4.Blacklist = "crowdsec-blacklist"
-		}
 	}
 	// nftables IPv6 specific
-	// What if config.DisableIPV6 (bool) has not been defined?
 	if config.DisableIPV6 {
 		config.Nftables.Ipv6.Enabled = false
 	}
-	// for config file compability
-	config.DisableIPV6 = !config.Nftables.Ipv6.Enabled
-
 	if config.Nftables.Ipv6.Enabled {
 		if config.Nftables.Ipv6.Table == "" {
 			config.Nftables.Ipv6.Table = "crowdsec6"
 		}
-
 		if config.Nftables.Ipv6.Chain == "" {
 			config.Nftables.Ipv6.Chain = "crowdsec6-chain"
 		}
-
-		if config.Nftables.Ipv6.Blacklist == "" {
-			config.Nftables.Ipv6.Blacklist = "crowdsec6-blacklist"
-		}
 	}
-	return config, nil
+	if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
+		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
+	}
+	return nil
 }
 
 func configureLogging(config *bouncerConfig) {
@@ -187,10 +193,5 @@ func validateConfig(config bouncerConfig) error {
 		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
 
-	if config.Mode != NftablesMode {
-		if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
-			return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
-		}
-	}
 	return nil
 }
