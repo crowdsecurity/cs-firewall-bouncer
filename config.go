@@ -18,6 +18,10 @@ type bouncerConfig struct {
 	Daemon          bool      `yaml:"daemonize"`
 	LogMode         string    `yaml:"log_mode"`
 	LogDir          string    `yaml:"log_dir"`
+	MaxSize         int       `yaml:"max_size"`
+	MaxFiles        int       `yaml:"max_files"`
+	MaxAge          int       `yaml:"max_files"`
+	Compress        bool      `yaml:"compress"`
 	LogLevel        log.Level `yaml:"log_level"`
 	APIUrl          string    `yaml:"api_url"`
 	APIKey          string    `yaml:"api_key"`
@@ -35,7 +39,14 @@ type bouncerConfig struct {
 func NewConfig(configPath string) (*bouncerConfig, error) {
 	var LogOutput *lumberjack.Logger //io.Writer
 
-	config := &bouncerConfig{}
+	config := &bouncerConfig{
+		BlacklistsIpv4: "crowdsec-blacklists",
+		BlacklistsIpv6: "crowdsec6-blacklists",
+		MaxSize:        500,
+		MaxFiles:       3,
+		MaxAge:         28,
+		Compress:       true,
+	}
 
 	configBuff, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -64,16 +75,8 @@ func NewConfig(configPath string) (*bouncerConfig, error) {
 		config.DenyLogPrefix = "crowdsec drop: "
 	}
 
-	if config.BlacklistsIpv4 == "" {
-		config.BlacklistsIpv4 = "crowdsec-blacklists"
-	}
-
-	if config.BlacklistsIpv6 == "" {
-		config.BlacklistsIpv6 = "crowdsec6-blacklists"
-	}
-
 	/*Configure logging*/
-	if err = types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
+	if err = types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.MaxSize, config.MaxFiles, config.MaxAge, &config.Compress); err != nil {
 		log.Fatal(err.Error())
 	}
 	if config.LogMode == "file" {
