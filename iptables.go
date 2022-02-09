@@ -16,7 +16,7 @@ type iptables struct {
 	v6 *ipTablesContext
 }
 
-func newIPTables(config *bouncerConfig) (interface{}, error) {
+func newIPTables(config *bouncerConfig) (backend, error) {
 	var err error
 	var ret *iptables = &iptables{}
 	ipv4Ctx := &ipTablesContext{
@@ -132,6 +132,10 @@ func (ipt *iptables) Init() error {
 			return fmt.Errorf("iptables init failed: %s", err.Error())
 		}
 	}
+	return nil
+}
+
+func (ipt *iptables) Commit() error {
 	return nil
 }
 
