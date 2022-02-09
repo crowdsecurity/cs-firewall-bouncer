@@ -39,22 +39,17 @@ const (
 func newPF(config *bouncerConfig) (backend, error) {
 	ret := &pf{}
 
-	anchor := "crowdsec"
-	if config.PF.AnchorName != nil {
-		anchor = *config.PF.AnchorName
-	}
-
 	inetCtx := &pfContext{
 		table:   config.BlacklistsIpv4,
 		proto:   "inet",
-		anchor:  anchor,
+		anchor:  *config.PF.AnchorName,
 		version: "ipv4",
 	}
 
 	inet6Ctx := &pfContext{
 		table:   config.BlacklistsIpv6,
 		proto:   "inet6",
-		anchor:  anchor,
+		anchor:  *config.PF.AnchorName,
 		version: "ipv6",
 	}
 
@@ -73,7 +68,6 @@ func execPfctl(anchor string, arg ...string) *exec.Cmd {
 	if anchor != "" {
 		arg = append([]string{"-a", anchor}, arg...)
 	}
-	log.Debugf("exec: %s %v", pfctlCmd, arg)
 	return exec.Command(pfctlCmd, arg...)
 }
 
@@ -84,10 +78,13 @@ func (ctx *pfContext) checkTable() error {
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return errors.Wrapf(err, "pfctl error : %v - %s", err, string(out))
+		return errors.Wrapf(err, "pfctl error: %v - %s", err, string(out))
 	}
 
 	if !strings.Contains(string(out), ctx.table) {
+		if ctx.anchor != "" {
+			return errors.Errorf("table %s in anchor %s doesn't exist", ctx.table, ctx.anchor)
+		}
 		return errors.Errorf("table %s doesn't exist", ctx.table)
 	}
 
@@ -96,7 +93,7 @@ func (ctx *pfContext) checkTable() error {
 
 func (ctx *pfContext) shutDown() error {
 	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "flush")
-	log.Infof("pf table clean-up : %s", cmd.String())
+	log.Infof("pf table clean-up: %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Errorf("Error while flushing table (%s): %v --> %s", cmd.String(), err, string(out))
 	}
@@ -111,7 +108,7 @@ func (ctx *pfContext) Add(decision *models.Decision) error {
 	}
 	log.Debugf(addBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
 	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "add", *decision.Value)
-	log.Debugf("pfctl add : %s", cmd.String())
+	log.Debugf("pfctl add: %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while adding to table (%s): %v --> %s", cmd.String(), err, string(out))
 	}
@@ -126,7 +123,7 @@ func (ctx *pfContext) Delete(decision *models.Decision) error {
 	}
 	log.Debugf(delBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
 	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "delete", *decision.Value)
-	log.Debugf("pfctl del : %s", cmd.String())
+	log.Debugf("pfctl del: %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while deleting from table (%s): %v --> %s", cmd.String(), err, string(out))
 	}
