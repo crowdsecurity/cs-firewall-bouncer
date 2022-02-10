@@ -107,10 +107,17 @@ func (ctx *pfContext) Add(decision *models.Decision) error {
 		return err
 	}
 	log.Debugf(addBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
+
 	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "add", *decision.Value)
 	log.Debugf("pfctl add: %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while adding to table (%s): %v --> %s", cmd.String(), err, string(out))
+	}
+
+	cmd = execPfctl("", "-k", *decision.Value)
+	log.Debugf("pfctl flush state: %s", cmd.String())
+	if out, err := cmd.CombinedOutput(); err != nil {
+		log.Infof("Error while flushing state (%s): %v --> %s", cmd.String(), err, string(out))
 	}
 
 	return nil

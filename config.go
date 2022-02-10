@@ -119,8 +119,7 @@ func pfConfig(config *bouncerConfig) error {
 	// to avoid using an anchor, it has to be set to an empty string
 	// in the config file
 	if config.PF.AnchorName == nil {
-		defaultAnchor := "crowdsec"
-		config.PF.AnchorName = &defaultAnchor
+		config.PF.AnchorName = types.StrPtr("crowdsec")
 	}
 	return nil
 }
