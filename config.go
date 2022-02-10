@@ -90,7 +90,7 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 	}
 	// for config file backward compatibility
 	if config.BlacklistsIpv4 == "" {
-		config.BlacklistsIpv4 = "crowdsec4-blacklists"
+		config.BlacklistsIpv4 = "crowdsec-blacklists"
 	}
 	if config.BlacklistsIpv6 == "" {
 		config.BlacklistsIpv6 = "crowdsec6-blacklists"
