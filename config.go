@@ -115,7 +115,7 @@ func nftablesConfig(config *bouncerConfig) error {
 		config.Nftables.Ipv4.Enabled = types.BoolPtr(true)
 	}
 	if config.Nftables.Ipv6.Enabled == nil {
-		if config.DisableIPV6 == true {
+		if config.DisableIPV6 {
 			config.Nftables.Ipv4.Enabled = types.BoolPtr(false)
 		} else {
 			config.Nftables.Ipv6.Enabled = types.BoolPtr(true)
