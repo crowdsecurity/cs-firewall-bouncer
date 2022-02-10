@@ -21,41 +21,23 @@ type backendCTX struct {
 }
 
 func (b *backendCTX) Init() error {
-	err := b.firewall.Init()
-	if err != nil {
-		return err
-	}
-	return nil
+	return b.firewall.Init()
 }
 
 func (b *backendCTX) Commit() error {
-	err := b.firewall.Commit()
-	if err != nil {
-		return err
-	}
-	return nil
+	return b.firewall.Commit()
 }
 
 func (b *backendCTX) ShutDown() error {
-	err := b.firewall.ShutDown()
-	if err != nil {
-		return err
-	}
-	return nil
+	return b.firewall.ShutDown()
 }
 
 func (b *backendCTX) Add(decision *models.Decision) error {
-	if err := b.firewall.Add(decision); err != nil {
-		return err
-	}
-	return nil
+	return b.firewall.Add(decision)
 }
 
 func (b *backendCTX) Delete(decision *models.Decision) error {
-	if err := b.firewall.Delete(decision); err != nil {
-		return err
-	}
-	return nil
+	return b.firewall.Delete(decision)
 }
 
 func isPFSupported(runtimeOS string) bool {
