@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package main
@@ -62,7 +63,7 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	// IPv4
 	ret.TableName4 = config.Nftables.Ipv4.Table
 	ret.ChainName4 = config.Nftables.Ipv4.Chain
-	ret.BlacklistsIpv4 = config.Nftables.Ipv4.Blacklist
+	ret.BlacklistsIpv4 = config.BlacklistsIpv4
 	ret.SetOnly4 = config.Nftables.Ipv4.SetOnly
 	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
 		config.Nftables.Ipv4.Enabled, ret.TableName4, ret.ChainName4, ret.BlacklistsIpv4, ret.SetOnly4)
@@ -70,7 +71,7 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	// IPv6
 	ret.TableName6 = config.Nftables.Ipv6.Table
 	ret.ChainName6 = config.Nftables.Ipv6.Chain
-	ret.BlacklistsIpv6 = config.Nftables.Ipv6.Blacklist
+	ret.BlacklistsIpv6 = config.BlacklistsIpv6
 	ret.SetOnly6 = config.Nftables.Ipv6.SetOnly
 	log.Debugf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
 		config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6)

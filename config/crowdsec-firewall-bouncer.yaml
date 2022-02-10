@@ -19,8 +19,8 @@ supported_decisions_types:
 #to change log prefix
 #deny_log_prefix: "crowdsec: "
 #to change the blacklists name
-#blacklists_ipv4: crowdsec-blacklists
-#blacklists_ipv6: crowdsec6-blacklists
+blacklists_ipv4: crowdsec-blacklists
+blacklists_ipv6: crowdsec6-blacklists
 #if present, insert rule in those chains
 iptables_chains:
   - INPUT
@@ -31,13 +31,11 @@ iptables_chains:
 nftables:
   ipv4:
     enabled: true
-    blacklist: crowdsec-blacklist
     set-only: false
     table: crowdsec
     chain: crowdsec-chain
   ipv6:
     enabled: true
-    blacklist: crowdsec6-blacklist
     set-only: false
     table: crowdsec6
     chain: crowdsec6-chain
