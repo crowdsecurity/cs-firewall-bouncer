@@ -80,7 +80,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		}
 	case "pf":
 		if !isPFSupported(runtime.GOOS) {
-			return nil, fmt.Errorf("pf mode is supported only for openbsd and freebsd")
+			log.Warning("pf mode can only work with openbsd and freebsd. It is available on other platforms only for testing purposes")
 		}
 		b.firewall, err = newPF(config)
 		if err != nil {

@@ -54,6 +54,9 @@ type bouncerConfig struct {
 		Ipv4 nftablesFamilyConfig `yaml:"ipv4"`
 		Ipv6 nftablesFamilyConfig `yaml:"ipv6"`
 	} `yaml:"nftables"`
+	PF struct {
+		AnchorName *string `yaml:"anchor_name"`
+	} `yaml:"pf"`
 }
 
 func newConfig(configPath string) (*bouncerConfig, error) {
@@ -102,11 +105,24 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 	case IpsetMode, IptablesMode:
 		//nothing specific to do
 	case PfMode:
-		//placeholder
+		err := pfConfig(config)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		log.Warningf("unexpected %s mode", config.Mode)
 	}
 	return config, nil
+}
+
+func pfConfig(config *bouncerConfig) error {
+	// to avoid using an anchor, it has to be set to an empty string
+	// in the config file
+	if config.PF.AnchorName == nil {
+		defaultAnchor := "crowdsec"
+		config.PF.AnchorName = &defaultAnchor
+	}
+	return nil
 }
 
 func nftablesConfig(config *bouncerConfig) error {
