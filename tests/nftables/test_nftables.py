@@ -18,10 +18,10 @@ CONFIG_PATH = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer.yaml")
 
 
 def run_cmd(cmd: List[str], trace_error=True):
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if trace_error and p.returncode:
         raise SystemExit(
-            f"{cmd} exited with non-zero code with following logs:\n {p.stdout.read().decode()}"
+            f"{cmd} exited with non-zero code with following logs:\n {p.stdout}"
         )
 
     return p.stdout
@@ -86,7 +86,7 @@ class TestNFTables(unittest.TestCase):
             for node in output["nftables"]
             if "set" in node
         }
-        assert ("ip", "crowdsec-blacklists", "ipv4_addr") in sets
+        assert ("ip", "crowdsec4-blacklists", "ipv4_addr") in sets
         rules = {
             node["rule"]["chain"] for node in output["nftables"] if "rule" in node
         }  # maybe stricter check ?
@@ -110,24 +110,24 @@ class TestNFTables(unittest.TestCase):
         d1, d2, d3 = generate_n_decisions(3, dup_count=1)
         self.lapi.ds.insert_decisions([d1])
         sleep(1)
-        self.assertEqual(get_set_elements("ip", "crowdsec", "crowdsec-blacklists"), {"0.0.0.0"})
+        self.assertEqual(get_set_elements("ip", "crowdsec", "crowdsec4-blacklists"), {"0.0.0.0"})
 
         self.lapi.ds.insert_decisions([d2, d3])
         sleep(1)
         assert self.fb.poll() is None
         self.assertEqual(
-            get_set_elements("ip", "crowdsec", "crowdsec-blacklists"), {"0.0.0.0", "0.0.0.1"}
+            get_set_elements("ip", "crowdsec", "crowdsec4-blacklists"), {"0.0.0.0", "0.0.0.1"}
         )
 
         self.lapi.ds.delete_decision_by_id(d1["id"])
         self.lapi.ds.delete_decision_by_id(d2["id"])
         sleep(1)
-        self.assertEqual(get_set_elements("ip", "crowdsec", "crowdsec-blacklists"), set())
+        self.assertEqual(get_set_elements("ip", "crowdsec", "crowdsec4-blacklists"), set())
         assert self.fb.poll() is None
 
         self.lapi.ds.delete_decision_by_id(d3["id"])
         sleep(1)
-        self.assertEqual(get_set_elements("ip", "crowdsec", "crowdsec-blacklists"), set())
+        self.assertEqual(get_set_elements("ip", "crowdsec", "crowdsec4-blacklists"), set())
         assert self.fb.poll() is None
 
     def test_decision_insertion_deletion_ipv4(self):
@@ -136,7 +136,7 @@ class TestNFTables(unittest.TestCase):
         self.lapi.ds.insert_decisions(decisions)
         sleep(1)  # let the bouncer insert the decisions
 
-        set_elements = get_set_elements("ip", "crowdsec", "crowdsec-blacklists")
+        set_elements = get_set_elements("ip", "crowdsec", "crowdsec4-blacklists")
         self.assertEqual(len(set_elements), total_decisions - duplicate_decisions)
         assert {i["value"] for i in decisions} == set_elements
         assert "0.0.0.0" in set_elements
@@ -144,7 +144,7 @@ class TestNFTables(unittest.TestCase):
         self.lapi.ds.delete_decisions_by_ip("0.0.0.0")
         sleep(1)
 
-        set_elements = get_set_elements("ip", "crowdsec", "crowdsec-blacklists")
+        set_elements = get_set_elements("ip", "crowdsec", "crowdsec4-blacklists")
         assert {i["value"] for i in decisions if i["value"] != "0.0.0.0"} == set_elements
         assert len(set_elements) == total_decisions - duplicate_decisions - 1
         assert "0.0.0.0" not in set_elements
@@ -190,7 +190,7 @@ class TestNFTables(unittest.TestCase):
         ]
         self.lapi.ds.insert_decisions(decisions)
         sleep(1)
-        elems = get_set_elements("ip", "crowdsec", "crowdsec-blacklists", with_timeout=True)
+        elems = get_set_elements("ip", "crowdsec", "crowdsec4-blacklists", with_timeout=True)
         assert len(elems) == 1
         elems = list(elems)
         assert elems[0][0] == "123.45.67.12"

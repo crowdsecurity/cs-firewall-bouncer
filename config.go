@@ -33,10 +33,10 @@ type bouncerConfig struct {
 	LogMode         string    `yaml:"log_mode"`
 	LogDir          string    `yaml:"log_dir"`
 	LogLevel        log.Level `yaml:"log_level"`
-	LogCompress     *bool     `yaml:"log_compression,omitempty"`
-	LogMaxSize      *int      `yaml:"log_max_size,omitempty"`
-	LogMaxBackups   *int      `yaml:"log_max_backups,omitempty"`
-	LogMaxAge       *int      `yaml:"log_max_age,omitempty"`
+	CompressLogs    *bool     `yaml:"compress_logs,omitempty"`
+	LogMaxSize      int       `yaml:"log_max_size,omitempty"`
+	LogMaxFiles     int       `yaml:"log_max_files,omitempty"`
+	LogMaxAge       int       `yaml:"log_max_age,omitempty"`
 	APIUrl          string    `yaml:"api_url"`
 	APIKey          string    `yaml:"api_key"`
 	DisableIPV6     bool      `yaml:"disable_ipv6"`
@@ -141,7 +141,7 @@ func configureLogging(config *bouncerConfig) {
 	var LogOutput *lumberjack.Logger //io.Writer
 
 	/*Configure logging*/
-	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel); err != nil {
+	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.LogMaxSize, config.LogMaxFiles, config.LogMaxAge, config.CompressLogs); err != nil {
 		log.Fatal(err.Error())
 	}
 	if config.LogMode == "file" {
@@ -149,25 +149,25 @@ func configureLogging(config *bouncerConfig) {
 			config.LogDir = "/var/log/"
 		}
 		_maxsize := 500
-		if config.LogMaxSize != nil {
-			_maxsize = *config.LogMaxSize
+		if config.LogMaxSize != 0 {
+			_maxsize = config.LogMaxSize
 		}
-		_maxbackups := 3
-		if config.LogMaxBackups != nil {
-			_maxbackups = *config.LogMaxBackups
+		_maxfiles := 3
+		if config.LogMaxFiles != 0 {
+			_maxfiles = config.LogMaxFiles
 		}
 		_maxage := 30
-		if config.LogMaxAge != nil {
-			_maxage = *config.LogMaxAge
+		if config.LogMaxAge != 0 {
+			_maxage = config.LogMaxAge
 		}
 		_compress := true
-		if config.LogCompress != nil {
-			_compress = *config.LogCompress
+		if config.CompressLogs != nil {
+			_compress = *config.CompressLogs
 		}
 		LogOutput = &lumberjack.Logger{
 			Filename:   config.LogDir + "/crowdsec-firewall-bouncer.log",
 			MaxSize:    _maxsize, //megabytes
-			MaxBackups: _maxbackups,
+			MaxBackups: _maxfiles,
 			MaxAge:     _maxage,   //days
 			Compress:   _compress, //disabled by default
 		}
