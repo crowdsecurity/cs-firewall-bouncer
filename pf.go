@@ -42,14 +42,14 @@ func newPF(config *bouncerConfig) (backend, error) {
 	inetCtx := &pfContext{
 		table:   config.BlacklistsIpv4,
 		proto:   "inet",
-		anchor:  *config.PF.AnchorName,
+		anchor:  config.PF.AnchorName,
 		version: "ipv4",
 	}
 
 	inet6Ctx := &pfContext{
 		table:   config.BlacklistsIpv6,
 		proto:   "inet6",
-		anchor:  *config.PF.AnchorName,
+		anchor:  config.PF.AnchorName,
 		version: "ipv6",
 	}
 
