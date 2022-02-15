@@ -1,5 +1,4 @@
 # Go parameters
-#BUILD_VERSION?="$(shell git for-each-ref --sort=-v:refname --count=1 --format '%(refname)'  | cut -d '/' -f3)"
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
@@ -7,7 +6,7 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
 #Current versioning information from env
-BUILD_VERSION?="$(shell git describe --tags `git rev-list --tags --max-count=1`)"
+BUILD_VERSION?="$(shell git describe --tags)"
 BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
 BUILD_TIMESTAMP=$(shell date +%F"_"%T)
 BUILD_TAG?="$(shell git rev-parse HEAD)"
