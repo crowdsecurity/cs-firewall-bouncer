@@ -32,6 +32,11 @@ else
     START=1
 fi
 
+if [ -f /usr/bin/cscli ]; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+    sed -i "s/localhost:8080/localhost:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+fi
+
 
 systemctl --quiet is-enabled crowdsec-firewall-bouncer || systemctl unmask crowdsec-firewall-bouncer && systemctl enable crowdsec-firewall-bouncer
 
@@ -40,3 +45,4 @@ if [ ${START} -eq 0 ] ; then
 else 
     systemctl start crowdsec-firewall-bouncer
 fi
+
