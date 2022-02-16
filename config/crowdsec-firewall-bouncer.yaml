@@ -42,4 +42,4 @@ nftables:
 # packet filter
 pf:
   # an empty string disables the anchor
-  anchor_name: crowdsec
+  anchor_name: ""

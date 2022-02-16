@@ -55,7 +55,7 @@ type bouncerConfig struct {
 		Ipv6 nftablesFamilyConfig `yaml:"ipv6"`
 	} `yaml:"nftables"`
 	PF struct {
-		AnchorName *string `yaml:"anchor_name"`
+		AnchorName string `yaml:"anchor_name"`
 	} `yaml:"pf"`
 }
 
@@ -116,11 +116,6 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 }
 
 func pfConfig(config *bouncerConfig) error {
-	// to avoid using an anchor, it has to be set to an empty string
-	// in the config file
-	if config.PF.AnchorName == nil {
-		config.PF.AnchorName = types.StrPtr("crowdsec")
-	}
 	return nil
 }
 
