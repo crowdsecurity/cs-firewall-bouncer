@@ -44,13 +44,13 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 
 	ret := &nft{}
 
-	if config.Nftables.Ipv4.Enabled {
+	if *config.Nftables.Ipv4.Enabled {
 		log.Debug("nftables: ipv4 enabled")
 		ret.conn = &nftables.Conn{}
 	} else {
 		log.Debug("nftables: ipv4 disabled")
 	}
-	if config.Nftables.Ipv6.Enabled {
+	if *config.Nftables.Ipv6.Enabled {
 		log.Debug("nftables: ipv6 enabled")
 		ret.conn6 = &nftables.Conn{}
 	} else {
@@ -66,7 +66,7 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	ret.BlacklistsIpv4 = config.BlacklistsIpv4
 	ret.SetOnly4 = config.Nftables.Ipv4.SetOnly
 	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
-		config.Nftables.Ipv4.Enabled, ret.TableName4, ret.ChainName4, ret.BlacklistsIpv4, ret.SetOnly4)
+		*config.Nftables.Ipv4.Enabled, ret.TableName4, ret.ChainName4, ret.BlacklistsIpv4, ret.SetOnly4)
 
 	// IPv6
 	ret.TableName6 = config.Nftables.Ipv6.Table
@@ -74,7 +74,7 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	ret.BlacklistsIpv6 = config.BlacklistsIpv6
 	ret.SetOnly6 = config.Nftables.Ipv6.SetOnly
 	log.Debugf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
-		config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6)
+		*config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6)
 
 	return ret, nil
 }

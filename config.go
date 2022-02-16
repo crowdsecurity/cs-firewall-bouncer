@@ -13,7 +13,7 @@ import (
 )
 
 type nftablesFamilyConfig struct {
-	Enabled bool   `yaml:"enabled"`
+	Enabled *bool  `yaml:"enabled"`
 	SetOnly bool   `yaml:"set-only"`
 	Table   string `yaml:"table"`
 	Chain   string `yaml:"chain"`
@@ -120,8 +120,19 @@ func pfConfig(config *bouncerConfig) error {
 }
 
 func nftablesConfig(config *bouncerConfig) error {
-	// nftables IPv4 specific
-	if config.Nftables.Ipv4.Enabled {
+	// deal with defaults in a backward compatible way
+	if config.Nftables.Ipv4.Enabled == nil {
+		config.Nftables.Ipv4.Enabled = types.BoolPtr(true)
+	}
+	if config.Nftables.Ipv6.Enabled == nil {
+		if config.DisableIPV6 {
+			config.Nftables.Ipv4.Enabled = types.BoolPtr(false)
+		} else {
+			config.Nftables.Ipv6.Enabled = types.BoolPtr(true)
+		}
+	}
+
+	if *config.Nftables.Ipv4.Enabled {
 		if config.Nftables.Ipv4.Table == "" {
 			config.Nftables.Ipv4.Table = "crowdsec"
 		}
@@ -129,11 +140,7 @@ func nftablesConfig(config *bouncerConfig) error {
 			config.Nftables.Ipv4.Chain = "crowdsec-chain"
 		}
 	}
-	// nftables IPv6 specific
-	if config.DisableIPV6 {
-		config.Nftables.Ipv6.Enabled = false
-	}
-	if config.Nftables.Ipv6.Enabled {
+	if *config.Nftables.Ipv6.Enabled {
 		if config.Nftables.Ipv6.Table == "" {
 			config.Nftables.Ipv6.Table = "crowdsec6"
 		}
@@ -141,7 +148,7 @@ func nftablesConfig(config *bouncerConfig) error {
 			config.Nftables.Ipv6.Chain = "crowdsec6-chain"
 		}
 	}
-	if !config.Nftables.Ipv4.Enabled && !config.Nftables.Ipv6.Enabled {
+	if !*config.Nftables.Ipv4.Enabled && !*config.Nftables.Ipv6.Enabled {
 		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
 	}
 	return nil
