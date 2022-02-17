@@ -39,6 +39,7 @@ type bouncerConfig struct {
 	LogMaxAge       int       `yaml:"log_max_age,omitempty"`
 	APIUrl          string    `yaml:"api_url"`
 	APIKey          string    `yaml:"api_key"`
+	InsecureSkipVerify  *bool              `yaml:"insecure_skip_verify"` // check if api certificate is bad or not
 	DisableIPV6     bool      `yaml:"disable_ipv6"`
 	DenyAction      string    `yaml:"deny_action"`
 	DenyLog         bool      `yaml:"deny_log"`
