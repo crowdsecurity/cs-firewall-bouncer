@@ -30,6 +30,7 @@ class TestNFTables(unittest.TestCase):
         run_cmd(["nft", "delete", "table", "ip6", "crowdsec6"], trace_error=False)
 
     def test_table_rule_set_are_created(self):
+        sleep(1)
         output = json.loads(run_cmd(["nft", "-j", "list", "tables"]))
         tables = {
             (node["table"]["family"], node["table"]["name"])
