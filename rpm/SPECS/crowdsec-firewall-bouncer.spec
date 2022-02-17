@@ -57,8 +57,9 @@ rm -rf %{buildroot}
 
 systemctl daemon-reload
 
-
 START=0
+CSCLI=/usr/bin/cscli
+
 if [ "$1" == "1" ] ; then
     type cscli > /dev/null
 
@@ -84,6 +85,13 @@ else
     START=1
 fi
 
+if command -v "$CSCLI" >/dev/null; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+    if [ ! -z "$PORT" ]; then
+       sed -i "s/localhost:8080/localhost:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    fi
+fi
+
 if [ ${START} -eq 0 ] ; then
     echo "no api key was generated, won't start service"
 else 
@@ -94,14 +102,6 @@ fi
 %changelog
 * Tue Feb 16 2021 Manuel Sabban <manuel@crowdsec.net>
 - First initial packaging
-
-%preun -p /bin/bash
-
-if [ "$1" == "0" ] ; then
-    systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
-    systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
-fi
-
 
 
 
@@ -120,11 +120,10 @@ Requires: nftables,gettext
 systemctl daemon-reload
 
 START=0
+CSCLI=/usr/bin/cscli
 
 if [ "$1" == "1" ] ; then
-    type cscli > /dev/null
-
-    if [ "$?" -eq "0" ] ; then
+    if command -v "$CSCLI" >/dev/null; then
         START=1
         echo "cscli/crowdsec is present, generating API key"
         unique=`date +%s`
@@ -146,10 +145,24 @@ else
     START=1
 fi
 
+if command -v "$CSCLI" >/dev/null; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+    if [ ! -z "$PORT" ]; then     
+       sed -i "s/localhost:8080/localhost:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    fi
+fi
+
 if [ ${START} -eq 0 ] ; then
     echo "no api key was generated, won't start service"
 else 
     systemctl start crowdsec-firewall-bouncer
+fi
+
+%preun -p /bin/bash
+
+if [ "$1" == "0" ] ; then
+    systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
+    systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
 fi
 
 %preun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
@@ -164,9 +177,6 @@ fi
 
 if [ "$1" == "1" ] ; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
-elif [ "$1" == "0" ] ; then
-    systemctl stop crowdsec-firewall-bouncer
-    systemctl disable crowdsec-firewall-bouncer
 fi
 
 
@@ -174,7 +184,4 @@ fi
 
 if [ "$1" == "1" ] ; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
-elif [ "$1" == "0" ] ; then
-    systemctl stop crowdsec-firewall-bouncer
-    systemctl disable crowdsec-firewall-bouncer
 fi
