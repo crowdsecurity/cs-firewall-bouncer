@@ -3,12 +3,11 @@ systemctl daemon-reload
 
 
 START=0
+CSCLI=/usr/bin/cscli
 
 if [ "$1" = "configure" ]; then
 
-    type cscli > /dev/null
-
-    if [ "$?" -eq "0" ] ; then
+    if command -v "$CSCLI" >/dev/null ; then
         START=1
         echo "cscli/crowdsec is present, generating API key"
         unique=`date +%s`
@@ -30,6 +29,14 @@ if [ "$1" = "configure" ]; then
 else 
 
     START=1
+fi
+
+
+if command -v "$CSCLI" >/dev/null; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+    if [ ! -z "$PORT" ]; then
+       sed -i "s/localhost:8080/localhost:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    fi
 fi
 
 systemctl --quiet is-enabled crowdsec-firewall-bouncer || systemctl unmask crowdsec-firewall-bouncer && systemctl enable crowdsec-firewall-bouncer
