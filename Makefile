@@ -64,7 +64,7 @@ test:
 clean:
 	@$(RM) $(BINARY_NAME)
 	@$(RM) -r ${RELDIR}
-	@$(RM) crowdsec-firewall-bouncer.tgz || ""
+	@$(RM) crowdsec-firewall-bouncer.tgz
 	@$(RM) -r tests/venv
 
 .PHONY: func-tests
