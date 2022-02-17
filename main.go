@@ -117,10 +117,11 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 	bouncer := &csbouncer.StreamBouncer{
-		APIKey:         config.APIKey,
-		APIUrl:         config.APIUrl,
-		TickerInterval: config.UpdateFrequency,
-		UserAgent:      fmt.Sprintf("%s/%s", name, version.VersionStr()),
+		APIKey:             config.APIKey,
+		APIUrl:             config.APIUrl,
+		TickerInterval:     config.UpdateFrequency,
+		InsecureSkipVerify: config.InsecureSkipVerify,
+		UserAgent:          fmt.Sprintf("%s/%s", name, version.VersionStr()),
 	}
 	if err := bouncer.Init(); err != nil {
 		log.Fatalf(err.Error())
