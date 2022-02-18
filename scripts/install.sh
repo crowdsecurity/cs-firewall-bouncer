@@ -16,6 +16,8 @@ check_pkg_manager(){
         PKG="yum"
     elif cat /etc/system-release | grep -q "Amazon Linux release 2 (Karoo)"; then
         PKG="yum"
+    elif cat /etc/os-release | grep -q "suse"; then
+        PKG="zypper"
     elif [ -f /etc/debian_version ]; then
         PKG="apt"
     else
@@ -53,7 +55,7 @@ check_firewall() {
             answer="y"
         fi
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            "$PKG" install -y -qq nftables > /dev/null && echo "nftables successfully installed"
+            "$PKG" install -y nftables > /dev/null && echo "nftables successfully installed"     
         else
             echo "unable to continue without nftables. Please install nftables or iptables to use this bouncer." && exit 1
         fi   
@@ -100,7 +102,7 @@ check_ipset() {
             answer="y"
         fi
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            "$PKG" install -y -qq ipset > /dev/null && echo "ipset successfully installed"
+            "$PKG" install -y ipset > /dev/null && echo "ipset successfully installed"
         else
             echo "unable to continue without ipset. Exiting" && exit 1
         fi      
