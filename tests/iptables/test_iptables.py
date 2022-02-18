@@ -32,56 +32,52 @@ class TestIPTables(unittest.TestCase):
         self.fb.wait()
         self.lapi.stop()
         run_cmd(
-            [
-                "iptables",
-                "-D",
-                CHAIN_NAME,
-                "-m",
-                "set",
-                "--match-set",
-                SET_NAME_IPV4,
-                "src",
-                "-j",
-                "DROP",
-            ],
-            trace_error=False,
+            "iptables",
+            "-D",
+            CHAIN_NAME,
+            "-m",
+            "set",
+            "--match-set",
+            SET_NAME_IPV4,
+            "src",
+            "-j",
+            "DROP",
+            ignore_error=True,
         )
         run_cmd(
-            [
-                "ip6tables",
-                "-D",
-                CHAIN_NAME,
-                "-m",
-                "set",
-                "--match-set",
-                SET_NAME_IPV6,
-                "src",
-                "-j",
-                "DROP",
-            ],
-            trace_error=False,
+            "ip6tables",
+            "-D",
+            CHAIN_NAME,
+            "-m",
+            "set",
+            "--match-set",
+            SET_NAME_IPV6,
+            "src",
+            "-j",
+            "DROP",
+            ignore_error=True,
         )
-        run_cmd(["ipset", "destroy", SET_NAME_IPV4], trace_error=False)
-        run_cmd(["ipset", "destroy", SET_NAME_IPV6], trace_error=False)
+        run_cmd("ipset", "destroy", SET_NAME_IPV4, ignore_error=True)
+        run_cmd("ipset", "destroy", SET_NAME_IPV6, ignore_error=True)
 
     def test_table_rule_set_are_created(self):
         sleep(3)
 
         # IPV4 Chain
-        output = run_cmd(["iptables", "-L", CHAIN_NAME])
+        output = run_cmd("iptables", "-L", CHAIN_NAME)
         rules = [line for line in output.split("\n") if SET_NAME_IPV4 in line]
 
         self.assertEqual(len(rules), 1)
         assert f"match-set {SET_NAME_IPV4} src" in rules[0]
 
         # IPV6 Chain
-        output = run_cmd(["ip6tables", "-L", CHAIN_NAME])
+        output = run_cmd("ip6tables", "-L", CHAIN_NAME)
         rules = [line for line in output.split("\n") if SET_NAME_IPV6 in line]
 
         self.assertEqual(len(rules), 1)
         assert f"match-set {SET_NAME_IPV6} src" in rules[0]
 
-        output = run_cmd(["ipset", "list"])
+        output = run_cmd("ipset", "list")
 
         assert SET_NAME_IPV6 in output
         assert SET_NAME_IPV4 in output
@@ -178,19 +174,13 @@ class TestIPTables(unittest.TestCase):
 
 
 def get_set_elements(set_name, with_timeout=False):
-    output = run_cmd(["ipset", "list", "-o", "xml"])
+    output = run_cmd("ipset", "list", "-o", "xml")
     root = ET.fromstring(output)
     elements = set()
-    for ip_set in root.findall("ipset"):
-        if ip_set.attrib["name"] != set_name:
-            continue
-        for member in ip_set.find("members"):
-
-            if with_timeout:
-                to_add = (member.find("elem").text, int(member.find("timeout").text))
-            else:
-                to_add = member.find("elem").text
-            elements.add(to_add)
-        break
-
+    for member in root.findall(f"ipset[@name='{set_name}']/members/member"):
+        if with_timeout:
+            to_add = (member.find("elem").text, int(member.find("timeout").text))
+        else:
+            to_add = member.find("elem").text
+        elements.add(to_add)
     return elements

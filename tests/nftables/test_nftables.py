@@ -26,12 +26,12 @@ class TestNFTables(unittest.TestCase):
         self.fb.kill()
         self.fb.wait()
         self.lapi.stop()
-        run_cmd(["nft", "delete", "table", "ip", "crowdsec"], trace_error=False)
-        run_cmd(["nft", "delete", "table", "ip6", "crowdsec6"], trace_error=False)
+        run_cmd("nft", "delete", "table", "ip", "crowdsec", ignore_error=True)
+        run_cmd("nft", "delete", "table", "ip6", "crowdsec6", ignore_error=True)
 
     def test_table_rule_set_are_created(self):
         sleep(1)
-        output = json.loads(run_cmd(["nft", "-j", "list", "tables"]))
+        output = json.loads(run_cmd("nft", "-j", "list", "tables"))
         tables = {
             (node["table"]["family"], node["table"]["name"])
             for node in output["nftables"]
@@ -41,7 +41,7 @@ class TestNFTables(unittest.TestCase):
         assert ("ip", "crowdsec") in tables
 
         # IPV4
-        output = json.loads(run_cmd(["nft", "-j", "list", "table", "ip", "crowdsec"]))
+        output = json.loads(run_cmd("nft", "-j", "list", "table", "ip", "crowdsec"))
         sets = {
             (node["set"]["family"], node["set"]["name"], node["set"]["type"])
             for node in output["nftables"]
@@ -54,7 +54,7 @@ class TestNFTables(unittest.TestCase):
         assert "crowdsec-chain" in rules
 
         # IPV6
-        output = json.loads(run_cmd(["nft", "-j", "list", "table", "ip6", "crowdsec6"]))
+        output = json.loads(run_cmd("nft", "-j", "list", "table", "ip6", "crowdsec6"))
         sets = {
             (node["set"]["family"], node["set"]["name"], node["set"]["type"])
             for node in output["nftables"]
@@ -159,7 +159,7 @@ class TestNFTables(unittest.TestCase):
 
 
 def get_set_elements(family, table_name, set_name, with_timeout=False):
-    output = json.loads(run_cmd(["nft", "-j", "list", "set", family, table_name, set_name]))
+    output = json.loads(run_cmd("nft", "-j", "list", "set", family, table_name, set_name))
     for node in output["nftables"]:
         if "set" not in node or "elem" not in node["set"]:
             continue
