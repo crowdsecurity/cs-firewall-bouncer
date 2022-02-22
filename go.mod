@@ -6,7 +6,7 @@ require (
 	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/crowdsecurity/crowdsec v1.3.0
-	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20220222092318-94e36c2b0677
+	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20220222102709-de69a955c07b
 	github.com/go-openapi/loads v0.21.1 // indirect
 	github.com/go-openapi/runtime v0.23.0 // indirect
 	github.com/go-openapi/strfmt v0.21.2 // indirect
