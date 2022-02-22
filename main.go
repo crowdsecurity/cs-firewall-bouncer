@@ -117,8 +117,10 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	log.Debugf("InsecureSkipVerify is set to %t", config.InsecureSkipVerify)
-
+	if config.InsecureSkipVerify != nil {
+		log.Debugf("InsecureSkipVerify is set to %t", *config.InsecureSkipVerify)
+	}
+	
 	bouncer := &csbouncer.StreamBouncer{
 		APIKey:             config.APIKey,
 		APIUrl:             config.APIUrl,
