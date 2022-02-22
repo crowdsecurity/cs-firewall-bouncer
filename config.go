@@ -26,25 +26,26 @@ var NftablesMode = "nftables"
 var PfMode = "pf"
 
 type bouncerConfig struct {
-	Mode            string    `yaml:"mode"` //ipset,iptables,tc
-	PidDir          string    `yaml:"pid_dir"`
-	UpdateFrequency string    `yaml:"update_frequency"`
-	Daemon          bool      `yaml:"daemonize"`
-	LogMode         string    `yaml:"log_mode"`
-	LogDir          string    `yaml:"log_dir"`
-	LogLevel        log.Level `yaml:"log_level"`
-	CompressLogs    *bool     `yaml:"compress_logs,omitempty"`
-	LogMaxSize      int       `yaml:"log_max_size,omitempty"`
-	LogMaxFiles     int       `yaml:"log_max_files,omitempty"`
-	LogMaxAge       int       `yaml:"log_max_age,omitempty"`
-	APIUrl          string    `yaml:"api_url"`
-	APIKey          string    `yaml:"api_key"`
-	DisableIPV6     bool      `yaml:"disable_ipv6"`
-	DenyAction      string    `yaml:"deny_action"`
-	DenyLog         bool      `yaml:"deny_log"`
-	DenyLogPrefix   string    `yaml:"deny_log_prefix"`
-	BlacklistsIpv4  string    `yaml:"blacklists_ipv4"`
-	BlacklistsIpv6  string    `yaml:"blacklists_ipv6"`
+	Mode               string    `yaml:"mode"` //ipset,iptables,tc
+	PidDir             string    `yaml:"pid_dir"`
+	UpdateFrequency    string    `yaml:"update_frequency"`
+	Daemon             bool      `yaml:"daemonize"`
+	LogMode            string    `yaml:"log_mode"`
+	LogDir             string    `yaml:"log_dir"`
+	LogLevel           log.Level `yaml:"log_level"`
+	CompressLogs       *bool     `yaml:"compress_logs,omitempty"`
+	LogMaxSize         int       `yaml:"log_max_size,omitempty"`
+	LogMaxFiles        int       `yaml:"log_max_files,omitempty"`
+	LogMaxAge          int       `yaml:"log_max_age,omitempty"`
+	APIUrl             string    `yaml:"api_url"`
+	APIKey             string    `yaml:"api_key"`
+	InsecureSkipVerify *bool     `yaml:"insecure_skip_verify"` // check if api certificate is bad or not
+	DisableIPV6        bool      `yaml:"disable_ipv6"`
+	DenyAction         string    `yaml:"deny_action"`
+	DenyLog            bool      `yaml:"deny_log"`
+	DenyLogPrefix      string    `yaml:"deny_log_prefix"`
+	BlacklistsIpv4     string    `yaml:"blacklists_ipv4"`
+	BlacklistsIpv6     string    `yaml:"blacklists_ipv6"`
 
 	//specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
