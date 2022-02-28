@@ -14,7 +14,7 @@ BuildRequires:  make
 BuildRequires:  jq
 %{?fc33:BuildRequires: systemd-rpm-macros}
 
-Requires: iptables,ipset,gettext
+Requires: iptables,ipset,gettext,ipset-libs
 
 %define debug_package %{nil}
 
