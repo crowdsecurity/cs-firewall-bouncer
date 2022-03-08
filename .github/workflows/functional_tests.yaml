@@ -19,6 +19,6 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
     - name: Install deps for tests
-      run: sudo apt install -y nftables
+      run: sudo apt install -y nftables iptables ipset
     - name: Run tests
       run: sudo make func-tests
