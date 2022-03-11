@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -eu
+
+die() {
+    echo >&2 "$@"
+    exit 1
+}
+
+# shellcheck disable=SC1007
+THIS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# shellcheck source=./.environment.sh
+. "${THIS_DIR}/.environment.sh"
+
+# "${THIS_DIR}/check-requirements"
+
+if [ $# -ge 1 ]; then
+    "${CROWDSEC_DIR}/tests/lib/bats-core/bin/bats" \
+        --jobs 1 \
+        --print-output-on-failure \
+        -T "$@"
+else
+    "${CROWDSEC_DIR}/tests/lib/bats-core/bin/bats" \
+        --jobs 1 \
+        --print-output-on-failure \
+        -T "${THIS_DIR}/"
+fi
+

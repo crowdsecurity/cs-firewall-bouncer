@@ -91,3 +91,5 @@ release: build
 	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf crowdsec-firewall-bouncer.tgz $(RELDIR)
 
+include tests/bats.mk
+
