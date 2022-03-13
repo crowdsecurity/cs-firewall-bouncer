@@ -78,8 +78,8 @@ if [ "$1" == "1" ] ; then
     fi
 
     TMP=`mktemp -p /tmp/`
-    cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-    BACKEND=iptables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    BACKEND=iptables API_KEY=${API_KEY} envsubst < ${TMP} | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     rm ${TMP}
 else 
     START=1
@@ -138,8 +138,8 @@ if [ "$1" == "1" ] ; then
     fi
 
     TMP=`mktemp -p /tmp/`
-    cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-    BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     rm ${TMP}
 else 
     START=1
