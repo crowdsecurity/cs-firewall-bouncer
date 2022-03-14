@@ -117,6 +117,7 @@ install_firewall_bouncer() {
 }
 
 
+
 if ! [ $(id -u) = 0 ]; then
     echo "Please run the install script as root or with sudo"
     exit 1
@@ -128,6 +129,15 @@ echo "Installing firewall-bouncer"
 install_firewall_bouncer
 gen_apikey
 gen_config_file
+
+if command -v "$CSCLI" >/dev/null; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+    if [ ! -z "$PORT" ]; then
+       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
+       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
+    fi
+fi
+
 systemctl enable crowdsec-firewall-bouncer.service
 if [ "$READY" = "yes" ]; then
     systemctl start crowdsec-firewall-bouncer.service
