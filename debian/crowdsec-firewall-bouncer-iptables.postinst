@@ -36,7 +36,8 @@ fi
 if command -v "$CSCLI" >/dev/null; then
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
     if [ ! -z "$PORT" ]; then
-       sed -i "s/localhost:8080/localhost:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     fi
 fi
 
