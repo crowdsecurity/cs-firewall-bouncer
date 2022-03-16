@@ -60,6 +60,7 @@ systemctl daemon-reload
 START=0
 CSCLI=/usr/bin/cscli
 
+#install
 if [ "$1" == "1" ] ; then
     type cscli > /dev/null
 
@@ -84,22 +85,6 @@ if [ "$1" == "1" ] ; then
 else 
     START=1
 fi
-
-if command -v "$CSCLI" >/dev/null; then
-    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
-    if [ ! -z "$PORT" ]; then
-       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    fi
-fi
-
-if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start or enable service"
-else 
-    systemctl start crowdsec-firewall-bouncer
-    systemctl enable crowdsec-firewall-bouncer
-fi
-
  
 %changelog
 * Tue Feb 16 2021 Manuel Sabban <manuel@crowdsec.net>
@@ -124,6 +109,7 @@ systemctl daemon-reload
 START=0
 CSCLI=/usr/bin/cscli
 
+# install
 if [ "$1" == "1" ] ; then
     if command -v "$CSCLI" >/dev/null; then
         START=1
@@ -147,20 +133,7 @@ else
     START=1
 fi
 
-if command -v "$CSCLI" >/dev/null; then
-    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
-    if [ ! -z "$PORT" ]; then     
-       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    fi
-fi
 
-if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start or enable service"
-else 
-    systemctl start crowdsec-firewall-bouncer
-    systemctl enable crowdsec-firewall-bouncer
-fi
 
 %preun -p /bin/bash
 
@@ -188,4 +161,25 @@ fi
 
 if [ "$1" == "1" ] ; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
+fi
+
+
+%systemd_post crowdsec-firewall-bouncer.service
+
+if command -v "$CSCLI" >/dev/null; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+    if [ ! -z "$PORT" ]; then     
+       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    fi
+fi
+
+
+if [ ${START} -eq 0 ] ; then
+    echo "no api key was generated, won't start or enanble service"
+else 
+    %if 0%{?fc35}
+    systemctl enable crowdsec-firewall-bouncer 
+    %endif
+    systemctl start crowdsec-firewall-bouncer
 fi
