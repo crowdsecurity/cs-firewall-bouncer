@@ -6,10 +6,10 @@ Summary:      Firewall bouncer for Crowdsec (iptables+ipset configuration)
 License:        MIT
 URL:            https://crowdsec.net
 Source0:        https://github.com/crowdsecurity/%{name}/archive/v%(echo $VERSION).tar.gz
+Source1:        80-crowdsec-firewall-bouncer.preset
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  git
-BuildRequires:  golang >= 1.14
 BuildRequires:  make
 BuildRequires:  jq
 %{?fc33:BuildRequires: systemd-rpm-macros}
@@ -39,10 +39,11 @@ rm ${TMP}
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/sbin
+mkdir -p %{buildroot}%{_presetdir}
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
 install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml 
 install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-
+install -m 644 -D %{SOURCE1} %{buildroot}%{_presetdir}
 %clean
 rm -rf %{buildroot}
 
@@ -51,7 +52,7 @@ rm -rf %{buildroot}
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml 
-
+%config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
 %post -p /bin/bash
 
@@ -60,6 +61,7 @@ systemctl daemon-reload
 START=0
 CSCLI=/usr/bin/cscli
 
+#install
 if [ "$1" == "1" ] ; then
     type cscli > /dev/null
 
@@ -85,21 +87,27 @@ else
     START=1
 fi
 
+%systemd_post crowdsec-firewall-bouncer.service
+
 if command -v "$CSCLI" >/dev/null; then
+    START=1
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
-    if [ ! -z "$PORT" ]; then
+    if [ ! -z "$PORT" ]; then     
        sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
        sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     fi
 fi
 
+
 if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start service"
+    echo "no api key was generated, won't start or enanble service"
 else 
+    %if 0%{?fc35}
+    systemctl enable crowdsec-firewall-bouncer 
+    %endif
     systemctl start crowdsec-firewall-bouncer
 fi
 
- 
 %changelog
 * Tue Feb 16 2021 Manuel Sabban <manuel@crowdsec.net>
 - First initial packaging
@@ -123,6 +131,7 @@ systemctl daemon-reload
 START=0
 CSCLI=/usr/bin/cscli
 
+# install
 if [ "$1" == "1" ] ; then
     if command -v "$CSCLI" >/dev/null; then
         START=1
@@ -146,6 +155,8 @@ else
     START=1
 fi
 
+%systemd_post crowdsec-firewall-bouncer.service
+
 if command -v "$CSCLI" >/dev/null; then
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
     if [ ! -z "$PORT" ]; then     
@@ -154,11 +165,16 @@ if command -v "$CSCLI" >/dev/null; then
     fi
 fi
 
+
 if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start service"
+    echo "no api key was generated, won't start or enanble service"
 else 
+    %if 0%{?fc35}
+    systemctl enable crowdsec-firewall-bouncer 
+    %endif
     systemctl start crowdsec-firewall-bouncer
 fi
+
 
 %preun -p /bin/bash
 
@@ -187,3 +203,5 @@ fi
 if [ "$1" == "1" ] ; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
+
+
