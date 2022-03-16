@@ -94,9 +94,10 @@ if command -v "$CSCLI" >/dev/null; then
 fi
 
 if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start service"
+    echo "no api key was generated, won't start or enable service"
 else 
     systemctl start crowdsec-firewall-bouncer
+    systemctl enable crowdsec-firewall-bouncer
 fi
 
  
@@ -155,9 +156,10 @@ if command -v "$CSCLI" >/dev/null; then
 fi
 
 if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start service"
+    echo "no api key was generated, won't start or enable service"
 else 
     systemctl start crowdsec-firewall-bouncer
+    systemctl enable crowdsec-firewall-bouncer
 fi
 
 %preun -p /bin/bash
