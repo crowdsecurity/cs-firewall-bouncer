@@ -1,23 +1,29 @@
 
-CROWDSEC_DIR ?= "~/src/crowdsec"
+# CROWDSEC_DIR ?= "~/src/crowdsec"
 
 define ENV :=
 export CROWDSEC_DIR=$(CROWDSEC_DIR)
 endef
 
+require-%:
+	@ if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
+
 bats-all: bats-clean bats-build bats-test
 
 # Source this to run the scripts outside of the Makefile
-bats-environment:
+bats-environment: require-CROWDSEC_DIR
 	$(file >$(CURDIR)/tests/.environment.sh,$(ENV))
 
-bats-clean:
+bats-clean: require-CROWDSEC_DIR
 	@${MAKE} -C $(CROWDSEC_DIR) bats-clean
 
-bats-build:
+bats-build: require-CROWDSEC_DIR
 	@${MAKE} -C $(CROWDSEC_DIR) bats-build
 
-bats-test:
+bats-test: require-CROWDSEC_DIR
 	@$(CURDIR)/tests/bats/run-tests
 
 # Static checks for the test scripts.
