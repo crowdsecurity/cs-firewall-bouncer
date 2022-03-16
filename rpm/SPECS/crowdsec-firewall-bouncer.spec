@@ -169,8 +169,10 @@ fi
 %systemd_post crowdsec-firewall-bouncer.service
 
 CSCLI=/usr/bin/cscli
+START=0
 
 if command -v "$CSCLI" >/dev/null; then
+    START=1
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
     if [ ! -z "$PORT" ]; then     
        sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
