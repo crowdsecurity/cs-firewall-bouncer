@@ -6,6 +6,7 @@ Summary:      Firewall bouncer for Crowdsec (iptables+ipset configuration)
 License:        MIT
 URL:            https://crowdsec.net
 Source0:        https://github.com/crowdsecurity/%{name}/archive/v%(echo $VERSION).tar.gz
+Source1:        80-crowdsec-firewall-bouncer.preset
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  git
@@ -39,10 +40,11 @@ rm ${TMP}
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/sbin
+mkdir -p %{buildroot}%{_presetdir}
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
 install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml 
 install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-
+install -m 644 -D %{SOURCE1} %{buildroot}%{_presetdir}
 %clean
 rm -rf %{buildroot}
 
@@ -51,7 +53,7 @@ rm -rf %{buildroot}
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml 
-
+%config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
 %post -p /bin/bash
 
@@ -165,6 +167,8 @@ fi
 
 
 %systemd_post crowdsec-firewall-bouncer.service
+
+CSCLI=/usr/bin/cscli
 
 if command -v "$CSCLI" >/dev/null; then
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
