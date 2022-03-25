@@ -169,7 +169,7 @@ func (n *nft) Init() error {
 			})
 			if n.DenyLog {
 				r.Exprs = append(r.Exprs, &expr.Log{
-					Key:  unix.NFTA_LOG_PREFIX,
+					Key:  1 << unix.NFTA_LOG_PREFIX,
 					Data: []byte(n.DenyLogPrefix),
 				})
 			}
@@ -267,7 +267,7 @@ func (n *nft) Init() error {
 			})
 			if n.DenyLog {
 				r.Exprs = append(r.Exprs, &expr.Log{
-					Key:  unix.NFTA_LOG_PREFIX,
+					Key:  1 << unix.NFTA_LOG_PREFIX,,
 					Data: []byte(n.DenyLogPrefix),
 				})
 			}
