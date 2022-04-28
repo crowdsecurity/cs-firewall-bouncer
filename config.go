@@ -63,7 +63,7 @@ type bouncerConfig struct {
 func newConfig(configPath string) (*bouncerConfig, error) {
 	config := &bouncerConfig{}
 
-	log.Warningf("loading config file: %s", configPath)
+	log.Infof("loading config file: %s", configPath)
 
 	configBuff, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -78,7 +78,7 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 	for includedPathIndex := range config.Includes {
 		files, _ := filepath.Glob(config.Includes[includedPathIndex])
 		for s := range files {
-			log.Warningf("loading included config file: %s", files[s])
+			log.Infof("loading included config file: %s", files[s])
 
 			includedConfigBuff, err := ioutil.ReadFile(files[s])
 			if err != nil {
