@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/pkg/errors"
@@ -56,10 +57,13 @@ type bouncerConfig struct {
 	PF struct {
 		AnchorName string `yaml:"anchor_name"`
 	} `yaml:"pf"`
+	Includes []string `yaml:"includes"`
 }
 
 func newConfig(configPath string) (*bouncerConfig, error) {
 	config := &bouncerConfig{}
+
+	log.Warningf("loading config file: %s", configPath)
 
 	configBuff, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -69,6 +73,24 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 	err = yaml.Unmarshal(configBuff, &config)
 	if err != nil {
 		return &bouncerConfig{}, errors.Wrapf(err, "failed to unmarshal %s", configPath)
+	}
+
+	for includedPathIndex := range config.Includes {
+		files, _ := filepath.Glob(config.Includes[includedPathIndex])
+		for s := range files {
+			log.Warningf("loading included config file: %s", files[s])
+
+			includedConfigBuff, err := ioutil.ReadFile(files[s])
+			if err != nil {
+				return &bouncerConfig{}, fmt.Errorf("failed to read %s : %v", files[s], err)
+			}
+
+			err = yaml.Unmarshal(includedConfigBuff, &config)
+			if err != nil {
+				return &bouncerConfig{}, fmt.Errorf("failed to unmarshal %s : %v", files[s], err)
+			}
+		}
+		// note: only first level includes are parsed
 	}
 
 	err = validateConfig(*config)

@@ -44,3 +44,5 @@ nftables:
 pf:
   # an empty string disables the anchor
   anchor_name: ""
+includes:
+  - /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.d/*.yaml
