@@ -22,6 +22,8 @@ jobs:
       uses: actions/checkout@v2
     - name: Build ${{ matrix.target }} binaries
       run: make release
+    - name: Rename .tgz
+      run: mv crowdsec-firewall-bouncer.tgz crowdsec-firewall-bouncer-${{ matrix.target }}.tgz
     - name: Upload to release
       uses: JasonEtco/upload-to-release@master
       with:
