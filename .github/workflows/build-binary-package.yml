@@ -9,6 +9,9 @@ jobs:
   build-binary-package:
     name: Build and upload binary package
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [i386, aarch64, armv7, armhf, amd64]
     steps:
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
@@ -17,11 +20,13 @@ jobs:
       id: go
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
-    - name: Build the binaries
+    - name: Build ${{ matrix.target }} binaries
       run: make release
+    - name: Rename .tgz
+      run: mv crowdsec-firewall-bouncer.tgz crowdsec-firewall-bouncer-${{ matrix.target }}.tgz
     - name: Upload to release
       uses: JasonEtco/upload-to-release@master
       with:
-        args: crowdsec-firewall-bouncer.tgz application/x-gzip
+        args: crowdsec-firewall-bouncer-${{ matrix.target }}.tgz application/x-gzip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
