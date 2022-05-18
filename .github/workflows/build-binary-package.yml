@@ -34,10 +34,10 @@ jobs:
         GOARM: ${{ matrix.target.goarm }}
       run: make release
     - name: Rename .tgz
-      run: mv crowdsec-firewall-bouncer.tgz crowdsec-firewall-bouncer-${{ matrix.target }}.tgz
+      run: mv crowdsec-firewall-bouncer.tgz crowdsec-firewall-bouncer-${{ matrix.target.arch }}.tgz
     - name: Upload to release
       uses: JasonEtco/upload-to-release@master
       with:
-        args: crowdsec-firewall-bouncer-${{ matrix.target }}.tgz application/x-gzip
+        args: crowdsec-firewall-bouncer-${{ matrix.target.arch }}.tgz application/x-gzip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
