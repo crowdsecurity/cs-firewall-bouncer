@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package main
@@ -8,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,9 +19,9 @@ type ipTablesContext struct {
 	version          string
 	ipsetBin         string
 	iptablesBin      string
-	SetName          string     //crowdsec-netfilter
-	StartupCmds      [][]string //-I INPUT -m set --match-set myset src -j DROP
-	ShutdownCmds     [][]string //-D INPUT -m set --match-set myset src -j DROP
+	SetName          string     // crowdsec-netfilter
+	StartupCmds      [][]string // -I INPUT -m set --match-set myset src -j DROP
+	ShutdownCmds     [][]string // -D INPUT -m set --match-set myset src -j DROP
 	CheckIptableCmds [][]string
 	ipsetContentOnly bool
 }
@@ -32,7 +32,7 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 	log.Infof("Checking existing set")
 	/* check if the set already exist */
 	cmd := exec.Command(ctx.ipsetBin, "-L", ctx.SetName)
-	if _, err = cmd.CombinedOutput(); err != nil { //it doesn't exist
+	if _, err = cmd.CombinedOutput(); err != nil { // it doesn't exist
 		if ctx.ipsetContentOnly {
 			/*if we manage ipset content only, error*/
 			log.Errorf("set %s doesn't exist, can't manage content", ctx.SetName)
@@ -45,11 +45,11 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 		}
 		log.Infof("ipset set-up : %s", cmd.String())
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("error while creating set : %v --> %s", err, string(out))
+			return fmt.Errorf("error while creating set : %w --> %s", err, string(out))
 		}
 	}
 
-	//waiting for propagation
+	// waiting for propagation
 	time.Sleep(1 * time.Second)
 
 	// checking if iptables rules exist
@@ -95,7 +95,7 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while inserting in set (%s): %v --> %s", cmd.String(), err, string(out))
 	}
-	//ipset -exist add test 192.168.0.1 timeout 600
+	// ipset -exist add test 192.168.0.1 timeout 600
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (ctx *ipTablesContext) shutDown() error {
 		cmd = exec.Command(ctx.iptablesBin, startCmd...)
 		log.Infof("iptables clean-up : %s", cmd.String())
 		if out, err := cmd.CombinedOutput(); err != nil {
-			if strings.Contains(string(out), "Set " + ctx.SetName + " doesn't exist.") {
+			if strings.Contains(string(out), "Set "+ctx.SetName+" doesn't exist.") {
 				log.Infof("ipset '%s' doesn't exist, skip", ctx.SetName)
 			} else {
 				log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
@@ -144,6 +144,6 @@ func (ctx *ipTablesContext) delete(decision *models.Decision) error {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while deleting from set (%s): %v --> %s", cmd.String(), err, string(out))
 	}
-	//ipset -exist add test 192.168.0.1 timeout 600
+	// ipset -exist add test 192.168.0.1 timeout 600
 	return nil
 }

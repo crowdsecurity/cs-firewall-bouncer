@@ -9,11 +9,10 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-systemd/daemon"
-	log "github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/writer"
-
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/writer"
 	"gopkg.in/tomb.v2"
 )
 
@@ -74,13 +73,13 @@ func main() {
 	var err error
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
-	bouncerVersion := flag.Bool("version", false, "display version and exit")
+	bouncerVersion := flag.Bool("V", false, "display version and exit")
 	testConfig := flag.Bool("t", false, "test config and exit")
 
 	flag.Parse()
 
 	if *bouncerVersion {
-		fmt.Printf("%s", version.ShowStr())
+		fmt.Print(version.ShowStr())
 		os.Exit(0)
 	}
 
@@ -122,7 +121,7 @@ func main() {
 	if err := backend.Init(); err != nil {
 		log.Fatalf(err.Error())
 	}
-	//Not call to fatalf after this point
+	// No call to fatalf after this point
 	defer backendCleanup(backend)
 
 	if config.InsecureSkipVerify != nil {
@@ -175,11 +174,11 @@ func main() {
 					noun = "decision"
 				}
 				if nbDeletedDecisions > 0 {
-					log.Debug("commiting expired decisions")
+					log.Debug("committing expired decisions")
 					if err := backend.Commit(); err != nil {
 						log.Errorf("unable to commit delete decisions %v", err)
 					}
-					log.Debug("commited expired decisions")
+					log.Debug("committed expired decisions")
 					log.Infof("%d %s deleted", nbDeletedDecisions, noun)
 				}
 
@@ -202,11 +201,11 @@ func main() {
 					noun = "decision"
 				}
 				if nbNewDecisions > 0 {
-					log.Debug("commiting added decisions")
+					log.Debug("committing added decisions")
 					if err := backend.Commit(); err != nil {
 						log.Errorf("unable to commit add decisions %v", err)
 					}
-					log.Debug("commited added decisions")
+					log.Debug("committed added decisions")
 					log.Infof("%d %s added", nbNewDecisions, noun)
 				}
 			}

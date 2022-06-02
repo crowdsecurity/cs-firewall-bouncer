@@ -14,6 +14,9 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# built binaries
+/crowdsec-firewall-bouncer
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
