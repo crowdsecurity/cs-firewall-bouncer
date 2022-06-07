@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
 )
@@ -20,13 +20,15 @@ type nftablesFamilyConfig struct {
 	// Blacklist string `yaml:"blacklist"`
 }
 
-var IpsetMode = "ipset"
-var IptablesMode = "iptables"
-var NftablesMode = "nftables"
-var PfMode = "pf"
+var (
+	IpsetMode    = "ipset"
+	IptablesMode = "iptables"
+	NftablesMode = "nftables"
+	PfMode       = "pf"
+)
 
 type bouncerConfig struct {
-	Mode               string    `yaml:"mode"` //ipset,iptables,tc
+	Mode               string    `yaml:"mode"` // ipset,iptables,tc
 	PidDir             string    `yaml:"pid_dir"`
 	UpdateFrequency    string    `yaml:"update_frequency"`
 	Daemon             bool      `yaml:"daemonize"`
@@ -47,7 +49,7 @@ type bouncerConfig struct {
 	BlacklistsIpv4     string    `yaml:"blacklists_ipv4"`
 	BlacklistsIpv6     string    `yaml:"blacklists_ipv6"`
 
-	//specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
+	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
 	supportedDecisionsTypes []string `yaml:"supported_decisions_types"`
 	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
@@ -65,12 +67,12 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 
 	configBuff, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return &bouncerConfig{}, fmt.Errorf("failed to read %s : %v", configPath, err)
+		return &bouncerConfig{}, errors.Wrapf(err, "failed to read %s", configPath)
 	}
 
 	err = yaml.Unmarshal(configBuff, &config)
 	if err != nil {
-		return &bouncerConfig{}, fmt.Errorf("failed to unmarshal %s : %v", configPath, err)
+		return &bouncerConfig{}, errors.Wrapf(err, "failed to unmarshal %s", configPath)
 	}
 
 	err = validateConfig(*config)
@@ -104,7 +106,7 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 			return nil, err
 		}
 	case IpsetMode, IptablesMode:
-		//nothing specific to do
+		// nothing specific to do
 	case PfMode:
 		err := pfConfig(config)
 		if err != nil {
@@ -156,7 +158,7 @@ func nftablesConfig(config *bouncerConfig) error {
 }
 
 func configureLogging(config *bouncerConfig) {
-	var LogOutput *lumberjack.Logger //io.Writer
+	var LogOutput *lumberjack.Logger // io.Writer
 
 	/*Configure logging*/
 	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.LogMaxSize, config.LogMaxFiles, config.LogMaxAge, config.CompressLogs); err != nil {
@@ -184,10 +186,10 @@ func configureLogging(config *bouncerConfig) {
 		}
 		LogOutput = &lumberjack.Logger{
 			Filename:   config.LogDir + "/crowdsec-firewall-bouncer.log",
-			MaxSize:    _maxsize, //megabytes
+			MaxSize:    _maxsize, // megabytes
 			MaxBackups: _maxfiles,
-			MaxAge:     _maxage,   //days
-			Compress:   _compress, //disabled by default
+			MaxAge:     _maxage,   // days
+			Compress:   _compress, // disabled by default
 		}
 		log.SetOutput(LogOutput)
 		log.SetFormatter(&log.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})

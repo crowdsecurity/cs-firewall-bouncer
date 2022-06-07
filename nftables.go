@@ -41,7 +41,6 @@ type nft struct {
 }
 
 func newNFTables(config *bouncerConfig) (backend, error) {
-
 	ret := &nft{}
 
 	if *config.Nftables.Ipv4.Enabled {
@@ -121,7 +120,6 @@ func (n *nft) Init() error {
 			}
 			n.set = set
 			log.Debug("nftables: ipv4 set '" + n.BlacklistsIpv4 + "' configured")
-
 		} else { // Create crowdsec table,chain, blacklist set and rules
 			log.Debug("nftables: ipv4 own table")
 			table := &nftables.Table{
@@ -195,7 +193,6 @@ func (n *nft) Init() error {
 
 	/* ipv6 */
 	if n.conn6 != nil {
-
 		if n.SetOnly6 {
 			// Use to existing nftables configuration
 			var table *nftables.Table
@@ -220,7 +217,6 @@ func (n *nft) Init() error {
 			}
 			n.set6 = set
 			log.Debug("nftables: ipv6 set '" + n.BlacklistsIpv6 + "' configured")
-
 		} else {
 			table := &nftables.Table{
 				Family: nftables.TableFamilyIPv6,
@@ -300,7 +296,7 @@ func (n *nft) Add(decision *models.Decision) error {
 	return nil
 }
 
-// returns a set of currently banned IPs
+// returns a set of currently banned IPs.
 func (n *nft) getCurrentState() (map[string]struct{}, error) {
 	elements, err := n.conn.GetSetElements(n.set)
 	if err != nil {
@@ -316,6 +312,7 @@ func (n *nft) getCurrentState() (map[string]struct{}, error) {
 	}
 	return elementSliceToIPSet(elements), nil
 }
+
 func (n *nft) reset() {
 	n.decisionsToAdd = make([]*models.Decision, 0)
 	n.decisionsToDelete = make([]*models.Decision, 0)
@@ -389,7 +386,6 @@ func (n *nft) commitAddedDecisions() error {
 			decisionIP := net.ParseIP(*decision.Value)
 			if _, ok := currentState[decisionIP.String()]; ok {
 				log.Debugf("skipping %s since it's already in set", decisionIP)
-
 			} else {
 				t, _ := time.ParseDuration(*decision.Duration)
 				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
@@ -440,7 +436,7 @@ func elementSliceToIPSet(elements []nftables.SetElement) map[string]struct{} {
 	return ipSet
 }
 
-// remove duplicates, normalize decision timeouts, keep the longest decision when dups are present
+// remove duplicates, normalize decision timeouts, keep the longest decision when dups are present.
 func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 	vals := make(map[string]time.Duration)
 	finalDecisions := make([]*models.Decision, 0)
@@ -469,7 +465,6 @@ func (n *nft) Delete(decision *models.Decision) error {
 }
 
 func (n *nft) ShutDown() error {
-
 	// continue here
 	if n.conn != nil {
 		if n.SetOnly4 {
