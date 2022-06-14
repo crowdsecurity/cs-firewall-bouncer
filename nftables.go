@@ -211,7 +211,7 @@ func (n *nft) Init() error {
 			}
 			n.table6 = table
 
-			set, err := n.conn.GetSetByName(n.table6, n.BlacklistsIpv6)
+			set, err := n.conn6.GetSetByName(n.table6, n.BlacklistsIpv6)
 			if err != nil {
 				return err
 			}
