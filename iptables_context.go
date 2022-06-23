@@ -90,6 +90,10 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 		return err
 	}
 	log.Debugf("ipset add ban [%s] (for %d seconds)", *decision.Value, int(banDuration.Seconds()))
+	if banDuration.Seconds() > 2147483 {
+		log.Errorf("Ban duration too long (%d seconds), maximum for ipset is 2147483", int(banDuration.Seconds()))
+		return nil
+	}
 	cmd := exec.Command(ctx.ipsetBin, "-exist", "add", ctx.SetName, *decision.Value, "timeout", fmt.Sprintf("%d", int(banDuration.Seconds())))
 	log.Debugf("ipset add : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
