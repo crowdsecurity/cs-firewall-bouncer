@@ -134,6 +134,9 @@ func main() {
 		TickerInterval:     config.UpdateFrequency,
 		InsecureSkipVerify: config.InsecureSkipVerify,
 		UserAgent:          fmt.Sprintf("%s/%s", name, version.VersionStr()),
+		CertPath:           config.CertPath,
+		KeyPath:            config.KeyPath,
+		CAPath:             config.CAPath,
 	}
 	if err := bouncer.Init(); err != nil {
 		log.Errorf(err.Error())

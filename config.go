@@ -41,6 +41,9 @@ type bouncerConfig struct {
 	LogMaxAge          int       `yaml:"log_max_age,omitempty"`
 	APIUrl             string    `yaml:"api_url"`
 	APIKey             string    `yaml:"api_key"`
+	KeyPath            string    `yaml:"key_path"`
+	CertPath           string    `yaml:"cert_path"`
+	CAPath             string    `yaml:"ca_path"`
 	InsecureSkipVerify *bool     `yaml:"insecure_skip_verify"` // check if api certificate is bad or not
 	DisableIPV6        bool      `yaml:"disable_ipv6"`
 	DenyAction         string    `yaml:"deny_action"`
@@ -203,8 +206,8 @@ func validateConfig(config bouncerConfig) error {
 	if !strings.HasSuffix(config.APIUrl, "/") {
 		config.APIUrl += "/"
 	}
-	if config.APIKey == "" {
-		return fmt.Errorf("config does not contain LAPI key")
+	if config.APIKey == "" && config.CertPath == "" && config.KeyPath == "" {
+		return fmt.Errorf("config does not contain LAPI key or certificate")
 	}
 	if config.Mode == "" || config.LogMode == "" {
 		return fmt.Errorf("config does not contain mode and log mode")
