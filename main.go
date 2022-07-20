@@ -124,20 +124,20 @@ func main() {
 	// No call to fatalf after this point
 	defer backendCleanup(backend)
 
-	if config.InsecureSkipVerify != nil {
-		log.Debugf("InsecureSkipVerify is set to %t", *config.InsecureSkipVerify)
+	bouncer := &csbouncer.StreamBouncer{}
+	err = bouncer.Config(*configPath)
+	if err != nil {
+		log.Errorf("unable to configure bouncer: %s", err)
+		return
 	}
-
-	bouncer := &csbouncer.StreamBouncer{
-		APIKey:             config.APIKey,
-		APIUrl:             config.APIUrl,
-		TickerInterval:     config.UpdateFrequency,
-		InsecureSkipVerify: config.InsecureSkipVerify,
-		UserAgent:          fmt.Sprintf("%s/%s", name, version.VersionStr()),
-	}
+	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.VersionStr())
 	if err := bouncer.Init(); err != nil {
 		log.Errorf(err.Error())
 		return
+	}
+
+	if bouncer.InsecureSkipVerify != nil {
+		log.Debugf("InsecureSkipVerify is set to %t", *bouncer.InsecureSkipVerify)
 	}
 
 	t.Go(func() error {
