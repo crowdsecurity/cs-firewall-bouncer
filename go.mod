@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/crowdsecurity/crowdsec v1.3.5-0.20220608140552-1c0fe095768b
+	github.com/crowdsecurity/crowdsec v1.4.0
 	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20220316095558-5aef3b37e4fe
 	github.com/go-bindata/go-bindata v1.0.1-0.20190711162640-ee3c2418e368 // indirect
 	github.com/go-kit/kit v0.10.0 // indirect

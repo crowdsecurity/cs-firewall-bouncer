@@ -359,6 +359,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/crowdsecurity/crowdsec v1.3.5-0.20220608140552-1c0fe095768b h1:xL1AYlh6zyI+t8j81I19PcfMFjiw8P0RDtuVhjb4Qz4=
 github.com/crowdsecurity/crowdsec v1.3.5-0.20220608140552-1c0fe095768b/go.mod h1:du34G8w0vTwVucLoPoI5s1SiZoA7a8ZDAYlzV0ZInRM=
+github.com/crowdsecurity/crowdsec v1.4.0 h1:DkyImTHpXH/zW9BHmYK/36fXTjmapG70odP2aL17C08=
+github.com/crowdsecurity/crowdsec v1.4.0/go.mod h1:du34G8w0vTwVucLoPoI5s1SiZoA7a8ZDAYlzV0ZInRM=
 github.com/crowdsecurity/grokky v0.0.0-20220120093523-d5b3478363fa h1:pcHZgbBbIkNDO1cAgipEgaGeFJ0se+FOPvq6A4d/g9c=
 github.com/crowdsecurity/grokky v0.0.0-20220120093523-d5b3478363fa/go.mod h1:fx5UYUYAFIrOUNAkFCUOM2wJcsp9EWSQE9R0/9kaFJg=
 github.com/crowdsecurity/machineid v1.0.2/go.mod h1:XWUSlnS0R0+u/JK5ulidwlbceNT3ZOCKteoVQEn6Luo=

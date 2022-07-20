@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/pkg/errors"
@@ -28,29 +27,23 @@ var (
 )
 
 type bouncerConfig struct {
-	Mode               string    `yaml:"mode"` // ipset,iptables,tc
-	PidDir             string    `yaml:"pid_dir"`
-	UpdateFrequency    string    `yaml:"update_frequency"`
-	Daemon             bool      `yaml:"daemonize"`
-	LogMode            string    `yaml:"log_mode"`
-	LogDir             string    `yaml:"log_dir"`
-	LogLevel           log.Level `yaml:"log_level"`
-	CompressLogs       *bool     `yaml:"compress_logs,omitempty"`
-	LogMaxSize         int       `yaml:"log_max_size,omitempty"`
-	LogMaxFiles        int       `yaml:"log_max_files,omitempty"`
-	LogMaxAge          int       `yaml:"log_max_age,omitempty"`
-	APIUrl             string    `yaml:"api_url"`
-	APIKey             string    `yaml:"api_key"`
-	KeyPath            string    `yaml:"key_path"`
-	CertPath           string    `yaml:"cert_path"`
-	CAPath             string    `yaml:"ca_path"`
-	InsecureSkipVerify *bool     `yaml:"insecure_skip_verify"` // check if api certificate is bad or not
-	DisableIPV6        bool      `yaml:"disable_ipv6"`
-	DenyAction         string    `yaml:"deny_action"`
-	DenyLog            bool      `yaml:"deny_log"`
-	DenyLogPrefix      string    `yaml:"deny_log_prefix"`
-	BlacklistsIpv4     string    `yaml:"blacklists_ipv4"`
-	BlacklistsIpv6     string    `yaml:"blacklists_ipv6"`
+	Mode            string    `yaml:"mode"` // ipset,iptables,tc
+	PidDir          string    `yaml:"pid_dir"`
+	UpdateFrequency string    `yaml:"update_frequency"`
+	Daemon          bool      `yaml:"daemonize"`
+	LogMode         string    `yaml:"log_mode"`
+	LogDir          string    `yaml:"log_dir"`
+	LogLevel        log.Level `yaml:"log_level"`
+	CompressLogs    *bool     `yaml:"compress_logs,omitempty"`
+	LogMaxSize      int       `yaml:"log_max_size,omitempty"`
+	LogMaxFiles     int       `yaml:"log_max_files,omitempty"`
+	LogMaxAge       int       `yaml:"log_max_age,omitempty"`
+	DisableIPV6     bool      `yaml:"disable_ipv6"`
+	DenyAction      string    `yaml:"deny_action"`
+	DenyLog         bool      `yaml:"deny_log"`
+	DenyLogPrefix   string    `yaml:"deny_log_prefix"`
+	BlacklistsIpv4  string    `yaml:"blacklists_ipv4"`
+	BlacklistsIpv6  string    `yaml:"blacklists_ipv6"`
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
@@ -164,7 +157,7 @@ func configureLogging(config *bouncerConfig) {
 	var LogOutput *lumberjack.Logger // io.Writer
 
 	/*Configure logging*/
-	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.LogMaxSize, config.LogMaxFiles, config.LogMaxAge, config.CompressLogs); err != nil {
+	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.LogMaxSize, config.LogMaxFiles, config.LogMaxAge, config.CompressLogs, false); err != nil {
 		log.Fatal(err.Error())
 	}
 	if config.LogMode == "file" {
@@ -200,15 +193,7 @@ func configureLogging(config *bouncerConfig) {
 }
 
 func validateConfig(config bouncerConfig) error {
-	if config.APIUrl == "" {
-		return fmt.Errorf("config does not contain LAPI url")
-	}
-	if !strings.HasSuffix(config.APIUrl, "/") {
-		config.APIUrl += "/"
-	}
-	if config.APIKey == "" && config.CertPath == "" && config.KeyPath == "" {
-		return fmt.Errorf("config does not contain LAPI key or certificate")
-	}
+
 	if config.Mode == "" || config.LogMode == "" {
 		return fmt.Errorf("config does not contain mode and log mode")
 	}
