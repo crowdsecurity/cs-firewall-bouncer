@@ -2,6 +2,8 @@ module github.com/crowdsecurity/cs-firewall-bouncer
 
 go 1.14
 
+replace github.com/crowdsecurity/go-cs-bouncer => /home/shivam/work/go-cs-bouncer
+
 require (
 	github.com/antonmedv/expr v1.9.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
@@ -18,6 +20,7 @@ require (
 	github.com/mdlayher/netlink v1.6.0 // indirect
 	github.com/mdlayher/socket v0.2.1 // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8

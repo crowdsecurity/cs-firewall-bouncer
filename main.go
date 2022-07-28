@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -11,6 +13,8 @@ import (
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"gopkg.in/tomb.v2"
@@ -145,6 +149,18 @@ func main() {
 		return fmt.Errorf("stream api init failed")
 	})
 
+	if config.PrometheusConfig.Enabled {
+		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
+		go func() {
+			http.Handle("/metrics", promhttp.Handler())
+			listenOn := net.JoinHostPort(
+				config.PrometheusConfig.ListenAddress,
+				config.PrometheusConfig.ListenPort,
+			)
+			log.Infof("Serving metrics at %s", listenOn+"/metrics")
+			log.Error(http.ListenAndServe(listenOn, nil))
+		}()
+	}
 	t.Go(func() error {
 		log.Printf("Processing new and deleted decisions . . .")
 		for {
