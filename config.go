@@ -11,6 +11,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type PrometheusConfig struct {
+	Enabled       bool   `yaml:"enabled"`
+	ListenAddress string `yaml:"listen_addr"`
+	ListenPort    string `yaml:"listen_port"`
+}
+
 type nftablesFamilyConfig struct {
 	Enabled *bool  `yaml:"enabled"`
 	SetOnly bool   `yaml:"set-only"`
@@ -56,6 +62,8 @@ type bouncerConfig struct {
 	PF struct {
 		AnchorName string `yaml:"anchor_name"`
 	} `yaml:"pf"`
+	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
+	
 }
 
 func newConfig(configPath string) (*bouncerConfig, error) {
