@@ -63,7 +63,6 @@ type bouncerConfig struct {
 		AnchorName string `yaml:"anchor_name"`
 	} `yaml:"pf"`
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
-	
 }
 
 func newConfig(configPath string) (*bouncerConfig, error) {
