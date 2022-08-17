@@ -19,10 +19,10 @@ jobs:
             {"goarch": "amd64", "arch": "amd64", "goarm": ""}
           ]
     steps:
-    - name: Set up Go 1.18
+    - name: Set up Go 1.19
       uses: actions/setup-go@v1
       with:
-        go-version: 1.18
+        go-version: 1.19
       id: go
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
