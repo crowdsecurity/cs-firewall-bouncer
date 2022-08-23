@@ -25,9 +25,10 @@ check_pkg_manager(){
 }
 
 check_firewall() {
+    FW_BACKEND=""
+
     iptables="true"
     which iptables > /dev/null
-    FW_BACKEND=""
     if [[ $? != 0 ]]; then 
         echo "iptables is not present"
         iptables="false"
