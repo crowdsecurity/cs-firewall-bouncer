@@ -1,20 +1,17 @@
+#!/bin/sh
 
 systemctl daemon-reload
 
-
-START=0
 CSCLI=/usr/bin/cscli
 
 if [ "$1" = "configure" ]; then
 
     if command -v "$CSCLI" >/dev/null ; then
-        START=1
         echo "cscli/crowdsec is present, generating API key"
         unique=`date +%s`
         API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
         if [ $? -eq 1 ] ; then
             echo "failed to create API token, service won't be started."
-            START=0
             API_KEY="<API_KEY>"
         else
             echo "API Key : ${API_KEY}"
@@ -22,15 +19,11 @@ if [ "$1" = "configure" ]; then
     fi
 
     TMP=`mktemp -p /tmp/`
-    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml "${TMP}"
     BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    rm ${TMP}
+    rm "${TMP}"
 
-else 
-
-    START=1
 fi
-
 
 if command -v "$CSCLI" >/dev/null; then
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
@@ -42,7 +35,8 @@ fi
 
 systemctl --quiet is-enabled crowdsec-firewall-bouncer || systemctl unmask crowdsec-firewall-bouncer && systemctl enable crowdsec-firewall-bouncer
 
-if [ ${START} -eq 0 ] ; then
+CONFIG_API_KEY=`sed -n 's/^api_key:\s*//p' /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml | tail -1 | grep -v '<API_KEY>'`
+if [ -z "${CONFIG_API_KEY}" ]; then
     echo "no api key was generated, won't start service"
 else 
     systemctl start crowdsec-firewall-bouncer
