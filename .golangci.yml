@@ -37,10 +37,12 @@ linters:
     - interfacer        # Linter that suggests narrower interface types
     - maligned          # Tool to detect Go structs that would take less memory if their fields were sorted
     - scopelint         # Scopelint checks for unpinned variables in go programs
+    - ifshort           # Checks that your code uses short syntax for if-statements whenever possible
 
     #
     # Enabled
     #
+    # - asasalint           # check for pass []any as any in variadic func(...any)
     # - asciicheck          # Simple linter to check that your code does not contain non-ASCII identifiers
     # - bidichk             # Checks for dangerous unicode character sequences
     # - bodyclose           # checks whether HTTP response body is closed successfully
@@ -60,6 +62,7 @@ linters:
     # - exportloopref       # checks for pointers to enclosing loop variables
     # - forcetypeassert     # finds forced type assertions
     # - funlen              # Tool for detection of long functions
+    # - gci                 # Gci control golang package import order and make it always deterministic.
     # - gochecknoinits      # Checks that no init functions are present in Go code
     # - godot               # Check if comments end in a period
     # - gofmt               # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
@@ -71,9 +74,9 @@ linters:
     # - gosimple            # (megacheck): Linter for Go source code that specializes in simplifying a code
     # - govet               # (vet, vetshadow): Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
     # - grouper             # An analyzer to analyze expression groups.
-    # - ifshort             # Checks that your code uses short syntax for if-statements whenever possible
     # - importas            # Enforces consistent import aliases
     # - ineffassign         # Detects when assignments to existing variables are not used
+    # - lll                 # Reports long lines
     # - makezero            # Finds slice declarations with non-zero initial length
     # - misspell            # Finds commonly misspelled English words in comments
     # - nakedret            # Finds naked returns in functions greater than a specified function length
@@ -102,12 +105,10 @@ linters:
     #
     # Recommended? (easy)
     #
-    - gci                   # Gci control golang package import order and make it always deterministic.
+    - gocritic              # Provides diagnostics that check for bugs, performance and style issues.
     - gosec                 # (gas): Inspects source code for security problems
     - revive                # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
-    - gocritic              # Provides diagnostics that check for bugs, performance and style issues.
     - wrapcheck             # Checks that errors returned from external packages are wrapped
-    - lll                   # Reports long lines
 
     #
     # Recommended? (requires some work)
@@ -141,7 +142,7 @@ linters:
     - testpackage           # linter that makes you use a separate _test package
 
     #
-    # Too strict (for now?)
+    # Too strict / too many false positives (for now?)
     #
     - forbidigo             # Forbids identifiers
     - tagliatelle           # Checks the struct tags.
@@ -149,6 +150,7 @@ linters:
     - gochecknoglobals      # check that no global variables exist
     - exhaustruct           # Checks if all structure fields are initialized
     - goconst               # Finds repeated strings that could be replaced by a constant
+    - nosnakecase           # nosnakecase is a linter that detects snake case of variable naming and function name.
 
     #
     # Under evaluation
@@ -156,8 +158,9 @@ linters:
 
     - prealloc              # Finds slice declarations that could potentially be preallocated
 
-
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 10
   exclude-rules:
     - path: go.mod
       text: "local replacement are not allowed: github.com/koneu/natend"

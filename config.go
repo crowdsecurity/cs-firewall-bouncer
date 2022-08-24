@@ -82,15 +82,19 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 
 	if config.PidDir == "" {
 		log.Warningf("missing 'pid_dir' directive in '%s', using default: '/var/run/'", configPath)
+
 		config.PidDir = "/var/run/"
 	}
+
 	if config.DenyLog && config.DenyLogPrefix == "" {
 		config.DenyLogPrefix = "crowdsec drop: "
 	}
+
 	// for config file backward compatibility
 	if config.BlacklistsIpv4 == "" {
 		config.BlacklistsIpv4 = "crowdsec-blacklists"
 	}
+
 	if config.BlacklistsIpv6 == "" {
 		config.BlacklistsIpv6 = "crowdsec6-blacklists"
 	}
@@ -111,6 +115,7 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 	default:
 		log.Warningf("unexpected %s mode", config.Mode)
 	}
+
 	return config, nil
 }
 
@@ -123,6 +128,7 @@ func nftablesConfig(config *bouncerConfig) error {
 	if config.Nftables.Ipv4.Enabled == nil {
 		config.Nftables.Ipv4.Enabled = types.BoolPtr(true)
 	}
+
 	if config.Nftables.Ipv6.Enabled == nil {
 		if config.DisableIPV6 {
 			config.Nftables.Ipv4.Enabled = types.BoolPtr(false)
@@ -135,51 +141,67 @@ func nftablesConfig(config *bouncerConfig) error {
 		if config.Nftables.Ipv4.Table == "" {
 			config.Nftables.Ipv4.Table = "crowdsec"
 		}
+
 		if config.Nftables.Ipv4.Chain == "" {
 			config.Nftables.Ipv4.Chain = "crowdsec-chain"
 		}
 	}
+
 	if *config.Nftables.Ipv6.Enabled {
 		if config.Nftables.Ipv6.Table == "" {
 			config.Nftables.Ipv6.Table = "crowdsec6"
 		}
+
 		if config.Nftables.Ipv6.Chain == "" {
 			config.Nftables.Ipv6.Chain = "crowdsec6-chain"
 		}
 	}
+
 	if !*config.Nftables.Ipv4.Enabled && !*config.Nftables.Ipv6.Enabled {
 		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
 	}
+
 	return nil
 }
 
 func configureLogging(config *bouncerConfig) {
 	var LogOutput *lumberjack.Logger // io.Writer
 
-	/*Configure logging*/
-	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.LogMaxSize, config.LogMaxFiles, config.LogMaxAge, config.CompressLogs, false); err != nil {
+	/* Configure logging */
+	if err := types.SetDefaultLoggerConfig(config.LogMode, config.LogDir, config.LogLevel, config.LogMaxSize,
+		config.LogMaxFiles, config.LogMaxAge, config.CompressLogs, false); err != nil {
 		log.Fatal(err.Error())
 	}
+
 	if config.LogMode == "file" {
 		if config.LogDir == "" {
 			config.LogDir = "/var/log/"
 		}
+
 		_maxsize := 500
+
 		if config.LogMaxSize != 0 {
 			_maxsize = config.LogMaxSize
 		}
+
 		_maxfiles := 3
+
 		if config.LogMaxFiles != 0 {
 			_maxfiles = config.LogMaxFiles
 		}
+
 		_maxage := 30
+
 		if config.LogMaxAge != 0 {
 			_maxage = config.LogMaxAge
 		}
+
 		_compress := true
+
 		if config.CompressLogs != nil {
 			_compress = *config.CompressLogs
 		}
+
 		LogOutput = &lumberjack.Logger{
 			Filename:   config.LogDir + "/crowdsec-firewall-bouncer.log",
 			MaxSize:    _maxsize, // megabytes
@@ -193,10 +215,10 @@ func configureLogging(config *bouncerConfig) {
 }
 
 func validateConfig(config bouncerConfig) error {
-
 	if config.Mode == "" || config.LogMode == "" {
 		return fmt.Errorf("config does not contain mode and log mode")
 	}
+
 	if config.LogMode != "stdout" && config.LogMode != "file" {
 		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}

@@ -104,6 +104,7 @@ func (ctx *pfContext) Add(decision *models.Decision) error {
 	if err != nil {
 		return err
 	}
+
 	log.Debugf(addBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
 
 	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "add", *decision.Value)
@@ -126,6 +127,7 @@ func (ctx *pfContext) Delete(decision *models.Decision) error {
 	if err != nil {
 		return err
 	}
+
 	log.Debugf(delBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
 	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "delete", *decision.Value)
 	log.Debugf("pfctl del: %s", cmd.String())
@@ -142,6 +144,7 @@ func initPF(ctx *pfContext) error {
 	if err := ctx.checkTable(); err != nil {
 		return errors.Wrap(err, "pf init failed")
 	}
+
 	log.Infof("%s initiated for %s", backendName, ctx.version)
 
 	return nil
