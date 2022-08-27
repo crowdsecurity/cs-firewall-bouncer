@@ -78,6 +78,9 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	return ret, nil
 }
 
+func (n *nft) MonitorDroppedPackets() {
+}
+
 func (n *nft) Init() error {
 	log.Debug("nftables: Init()")
 	/* ip4 */
@@ -127,7 +130,6 @@ func (n *nft) Init() error {
 				Name:   n.TableName4,
 			}
 			n.table = n.conn.AddTable(table)
-
 			chain := n.conn.AddChain(&nftables.Chain{
 				Name:     n.ChainName4,
 				Table:    n.table,
@@ -159,12 +161,16 @@ func (n *nft) Init() error {
 				Offset:       12,
 				Len:          4,
 			})
+
 			// [ lookup reg 1 set whitelist ]
 			r.Exprs = append(r.Exprs, &expr.Lookup{
 				SourceRegister: 1,
 				SetName:        n.set.Name,
 				SetID:          n.set.ID,
 			})
+
+			r.Exprs = append(r.Exprs, &expr.Counter{})
+
 			if n.DenyLog {
 				r.Exprs = append(r.Exprs, &expr.Log{
 					Key:  1 << unix.NFTA_LOG_PREFIX,

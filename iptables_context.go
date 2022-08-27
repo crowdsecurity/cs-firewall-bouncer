@@ -24,6 +24,7 @@ type ipTablesContext struct {
 	ShutdownCmds     [][]string // -D INPUT -m set --match-set myset src -j DROP
 	CheckIptableCmds [][]string
 	ipsetContentOnly bool
+	Chains           []string
 }
 
 func (ctx *ipTablesContext) CheckAndCreate() error {

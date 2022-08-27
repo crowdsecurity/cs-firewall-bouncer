@@ -25,7 +25,7 @@ type nftablesFamilyConfig struct {
 	// Blacklist string `yaml:"blacklist"`
 }
 
-var (
+const (
 	IpsetMode    = "ipset"
 	IptablesMode = "iptables"
 	NftablesMode = "nftables"

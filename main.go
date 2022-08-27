@@ -26,6 +26,16 @@ const (
 
 var t tomb.Tomb
 
+var totalDroppedPackets = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "total_dropped_packets_via_cs_rule",
+	Help: "Denotes the number of total dropped packets because of rule(s) created by crowdsec",
+})
+
+var totalDroppedBytes = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "total_dropped_bytes_via_cs_rule",
+	Help: "Denotes the number of total dropped bytes because of rule(s) created by crowdsec",
+})
+
 func termHandler(sig os.Signal, backend *backendCTX) error {
 	if err := backend.ShutDown(); err != nil {
 		return err
@@ -150,6 +160,10 @@ func main() {
 	})
 
 	if config.PrometheusConfig.Enabled {
+		if config.Mode == IptablesMode  {
+			go backend.MonitorDroppedPackets()
+			prometheus.MustRegister(totalDroppedBytes, totalDroppedPackets)
+		}
 		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 		go func() {
 			http.Handle("/metrics", promhttp.Handler())
