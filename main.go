@@ -160,7 +160,7 @@ func main() {
 	})
 
 	if config.PrometheusConfig.Enabled {
-		if config.Mode == IptablesMode  {
+		if config.Mode == IptablesMode || config.Mode == NftablesMode {
 			go backend.MonitorDroppedPackets()
 			prometheus.MustRegister(totalDroppedBytes, totalDroppedPackets)
 		}

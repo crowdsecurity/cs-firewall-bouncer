@@ -4,8 +4,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -79,6 +81,43 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 }
 
 func (n *nft) MonitorDroppedPackets() {
+	type Counter struct {
+		Nftables []struct {
+			Rule struct {
+				Expr []struct {
+					Counter *struct {
+						Packets int `json:"packets"`
+						Bytes   int `json:"bytes"`
+					} `json:"counter,omitempty"`
+				} `json:"expr"`
+			} `json:"rule,omitempty"`
+		} `json:"nftables"`
+	}
+
+	path, err := exec.LookPath("nft")
+	if err != nil {
+		log.Error("can't monitor dropped packets: ", err)
+		return
+	}
+	t := time.NewTicker(MetricCollectionInterval)
+	for range t.C {
+		out, err := exec.Command(path, "-j", "list", "chain", "ip", n.TableName4, n.ChainName4).CombinedOutput()
+		if err != nil {
+			log.Error("can't monitor dropped packets: ", err)
+			return
+		}
+		parsedOut := Counter{}
+		json.Unmarshal(out, &parsedOut)
+		for _, r := range parsedOut.Nftables {
+			for _, expr := range r.Rule.Expr {
+				if expr.Counter != nil {
+					totalDroppedPackets.Set(float64(expr.Counter.Packets))
+					totalDroppedBytes.Set(float64(expr.Counter.Bytes))
+				}
+			}
+		}
+	}
+
 }
 
 func (n *nft) Init() error {
