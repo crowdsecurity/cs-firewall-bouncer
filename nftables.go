@@ -107,7 +107,9 @@ func (n *nft) MonitorDroppedPackets() {
 			return
 		}
 		parsedOut := Counter{}
-		json.Unmarshal(out, &parsedOut)
+		if err := json.Unmarshal(out, &parsedOut); err != nil {
+			log.Error("error while reading nft command output", err)
+		}
 		for _, r := range parsedOut.Nftables {
 			for _, expr := range r.Rule.Expr {
 				if expr.Counter != nil {
