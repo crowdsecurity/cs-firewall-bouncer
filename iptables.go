@@ -154,7 +154,8 @@ func (ipt *iptables) Commit() error {
 }
 
 func (ipt *iptables) MonitorDroppedPackets() {
-	collect := func(binaryPath string, chains []string, setName string) (droppedPackets, droppedBytes float64) {
+	collect := func(binaryPath string, chains []string, setName string) (float64, float64) {
+		var droppedPackets, droppedBytes float64
 		for _, chain := range chains {
 			out, err := exec.Command(binaryPath, "-L", chain, "-v").CombinedOutput()
 			if err != nil {
