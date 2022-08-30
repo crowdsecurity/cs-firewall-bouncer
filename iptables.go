@@ -157,7 +157,7 @@ func (ipt *iptables) MonitorDroppedPackets() {
 	collect := func(binaryPath string, chains []string, setName string) (float64, float64) {
 		var droppedPackets, droppedBytes float64
 		for _, chain := range chains {
-			out, err := exec.Command(binaryPath, "-L", chain, "-v").CombinedOutput()
+			out, err := exec.Command(binaryPath, "-L", chain, "-v", "-x").CombinedOutput()
 			if err != nil {
 				log.Error(string(out), err)
 				continue
