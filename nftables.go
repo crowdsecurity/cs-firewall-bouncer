@@ -122,11 +122,13 @@ func (n *nft) CollectMetrics() {
 			return 0, 0, err
 		}
 		var tdp, tdb float64
+	OUT:
 		for _, r := range parsedOut.Nftables {
 			for _, expr := range r.Rule.Expr {
 				if expr.Counter != nil {
 					tdp = float64(expr.Counter.Packets)
 					tdb = float64(expr.Counter.Bytes)
+					break OUT
 				}
 			}
 		}
