@@ -27,18 +27,18 @@ const (
 var t tomb.Tomb
 
 var totalDroppedPackets = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "dropped_packets_via_cs_rule_total",
+	Name: "fw_bouncer_dropped_packets",
 	Help: "Denotes the number of total dropped packets because of rule(s) created by crowdsec",
 })
 
 var totalDroppedBytes = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "dropped_bytes_via_cs_rule_total",
+	Name: "fw_bouncer_dropped_bytes",
 	Help: "Denotes the number of total dropped bytes because of rule(s) created by crowdsec",
 })
 
 var totalActiveBannedIPs = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "active_banned_ips_total",
-	Help: "Denotes the number of total IPs which are banned",
+	Name: "fw_bouncer_banned_ips",
+	Help: "Denotes the number of IPs which are currently banned",
 })
 
 func termHandler(sig os.Signal, backend *backendCTX) error {
