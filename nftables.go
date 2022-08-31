@@ -80,7 +80,7 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	return ret, nil
 }
 
-func (n *nft) MonitorDroppedPackets() {
+func (n *nft) CollectMetrics() {
 	type Counter struct {
 		Nftables []struct {
 			Rule struct {
@@ -94,30 +94,84 @@ func (n *nft) MonitorDroppedPackets() {
 		} `json:"nftables"`
 	}
 
+	type Set struct {
+		Nftables []struct {
+			Set struct {
+				Elem []struct {
+					Elem struct {
+					} `json:"elem"`
+				} `json:"elem"`
+			} `json:"set,omitempty"`
+		} `json:"nftables"`
+	}
+
 	path, err := exec.LookPath("nft")
 	if err != nil {
 		log.Error("can't monitor dropped packets: ", err)
 		return
 	}
 	t := time.NewTicker(MetricCollectionInterval)
-	for range t.C {
-		out, err := exec.Command(path, "-j", "list", "chain", "ip", n.TableName4, n.ChainName4).CombinedOutput()
+
+	collectDroppedPackets := func(family string, tableName string, chainName string) (float64, float64, error) {
+		out, err := exec.Command(path, "-j", "list", "chain", family, tableName, chainName).CombinedOutput()
 		if err != nil {
-			log.Error("can't monitor dropped packets: ", err)
-			return
+			return 0, 0, err
 		}
 		parsedOut := Counter{}
 		if err := json.Unmarshal(out, &parsedOut); err != nil {
-			log.Error("error while reading nft command output", err)
+			return 0, 0, err
 		}
+		var tdp, tdb float64
 		for _, r := range parsedOut.Nftables {
 			for _, expr := range r.Rule.Expr {
 				if expr.Counter != nil {
-					totalDroppedPackets.Set(float64(expr.Counter.Packets))
-					totalDroppedBytes.Set(float64(expr.Counter.Bytes))
+					tdp = float64(expr.Counter.Packets)
+					tdb = float64(expr.Counter.Bytes)
 				}
 			}
 		}
+		return tdp, tdb, nil
+	}
+
+	collectActiveBannedIPs := func(family string, tableName string, setName string) (float64, error) {
+		out, err := exec.Command(path, "-j", "list", "set", family, tableName, setName).CombinedOutput()
+		if err != nil {
+			return 0, err
+		}
+		set := Set{}
+		if err := json.Unmarshal(out, &set); err != nil {
+			return 0, err
+		}
+		ret := 0
+		for _, r := range set.Nftables {
+			ret += len(r.Set.Elem)
+		}
+		return float64(ret), nil
+	}
+
+	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes, bannedIP4, bannedIP6 float64
+	for range t.C {
+		ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets("ip", n.TableName4, n.ChainName4)
+		if err != nil {
+			log.Error("can't collect dropped packets for ipv4 from nft: ", err)
+		}
+		bannedIP4, err = collectActiveBannedIPs("ip", n.TableName4, n.BlacklistsIpv4)
+		if err != nil {
+			log.Error("can't collect total banned IPs for ipv4 from nft:", err)
+		}
+		if n.conn6 != nil {
+			ip6DroppedPackets, ip6DroppedBytes, err = collectDroppedPackets("ip6", n.TableName6, n.ChainName6)
+			if err != nil {
+				log.Error("can't collect dropped packets for ipv6 from nft: ", err)
+			}
+			bannedIP6, err = collectActiveBannedIPs("ip6", n.TableName6, n.BlacklistsIpv6)
+			if err != nil {
+				log.Error("can't collect total banned IPs for ipv6 from nft:", err)
+			}
+		}
+		totalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
+		totalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
+		totalActiveBannedIPs.Set(bannedIP4 + bannedIP6)
 	}
 
 }
@@ -308,6 +362,9 @@ func (n *nft) Init() error {
 				SetName:        n.set6.Name,
 				SetID:          n.set6.ID,
 			})
+
+			r.Exprs = append(r.Exprs, &expr.Counter{})
+
 			if n.DenyLog {
 				r.Exprs = append(r.Exprs, &expr.Log{
 					Key:  1 << unix.NFTA_LOG_PREFIX,

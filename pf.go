@@ -191,7 +191,7 @@ func (pf *pf) Add(decision *models.Decision) error {
 	return nil
 }
 
-func (pf *pf) MonitorDroppedPackets() {
+func (pf *pf) CollectMetrics() {
 }
 
 func (pf *pf) Delete(decision *models.Decision) error {

@@ -36,6 +36,11 @@ var totalDroppedBytes = prometheus.NewGauge(prometheus.GaugeOpts{
 	Help: "Denotes the number of total dropped bytes because of rule(s) created by crowdsec",
 })
 
+var totalActiveBannedIPs = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "total_active_banned_ips",
+	Help: "Denotes the number of total IPs which are banned",
+})
+
 func termHandler(sig os.Signal, backend *backendCTX) error {
 	if err := backend.ShutDown(); err != nil {
 		return err
@@ -161,8 +166,8 @@ func main() {
 
 	if config.PrometheusConfig.Enabled {
 		if config.Mode == IptablesMode || config.Mode == NftablesMode {
-			go backend.MonitorDroppedPackets()
-			prometheus.MustRegister(totalDroppedBytes, totalDroppedPackets)
+			go backend.CollectMetrics()
+			prometheus.MustRegister(totalDroppedBytes, totalDroppedPackets, totalActiveBannedIPs)
 		}
 		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 		go func() {
