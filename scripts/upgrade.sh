@@ -9,11 +9,15 @@ fi
 BIN_PATH_INSTALLED="/usr/local/bin/crowdsec-firewall-bouncer"
 BIN_PATH="./crowdsec-firewall-bouncer"
 
-FG_RED=""
-RESET=""
-if command -v tput > /dev/null; then
+if [ ! -t 0 ]; then
+    FG_RED=""
+    RESET=""
+elif tput sgr0 > /dev/null; then
     FG_RED="$(tput setaf 1)"
     RESET="$(tput sgr0)"
+else
+    FG_RED="$(printf '%b' '\033[31m')"
+    RESET="$(printf '%b' '\033[0m')"
 fi
 
 upgrade_bin() {
