@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/crowdsecurity/crowdsec/pkg/types"
 	"github.com/pkg/errors"
@@ -61,7 +61,7 @@ type bouncerConfig struct {
 func newConfig(configPath string) (*bouncerConfig, error) {
 	config := &bouncerConfig{}
 
-	configBuff, err := ioutil.ReadFile(configPath)
+	configBuff, err := os.ReadFile(configPath)
 	if err != nil {
 		return &bouncerConfig{}, errors.Wrapf(err, "failed to read %s", configPath)
 	}
