@@ -131,7 +131,7 @@ install_firewall_bouncer
 gen_apikey
 gen_config_file
 
-if command -v "$CSCLI" >/dev/null; then
+if command -v cscli >/dev/null; then
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
     if [ ! -z "$PORT" ]; then
        sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
