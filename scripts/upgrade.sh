@@ -1,28 +1,38 @@
-#!/usr/bin/env bash
+#!/bin/sh
+
+#shellcheck disable=SC2312
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Please run $0 as root or with sudo"
+    exit 1
+fi
+
 BIN_PATH_INSTALLED="/usr/local/bin/crowdsec-firewall-bouncer"
 BIN_PATH="./crowdsec-firewall-bouncer"
 
-RED='\033[0;31m'
-NC='\033[0m'
+if [ ! -t 0 ]; then
+    FG_RED=""
+    RESET=""
+elif tput sgr0 > /dev/null; then
+    FG_RED="$(tput setaf 1)"
+    RESET="$(tput sgr0)"
+else
+    FG_RED="$(printf '%b' '\033[31m')"
+    RESET="$(printf '%b' '\033[0m')"
+fi
 
 upgrade_bin() {
-    rm "${BIN_PATH_INSTALLED}" || (echo "crowdsec-firewall-bouncer is not installed, exiting." && exit 1)
-    install -v -m 755 -D "${BIN_PATH}" "${BIN_PATH_INSTALLED}"
+    rm "$BIN_PATH_INSTALLED" || (echo "crowdsec-firewall-bouncer is not installed, exiting." && exit 1)
+    install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
 }
-
 
 log_err() {
-    msg=$1
     date=$(date +%x:%X)
-    echo -e "${RED}ERR${NC}[${date}] crowdsec-firewall-bouncer: ${msg}" 1>&2
+    echo "${FG_RED}ERR${RESET}[${date}] crowdsec-firewall-bouncer: $1" >&2
 }
-
-if ! [ $(id -u) = 0 ]; then
-    log_err "Please run the upgrade script as root or with sudo"
-    exit 1
-fi
 
 systemctl stop crowdsec-firewall-bouncer
 upgrade_bin
 systemctl start crowdsec-firewall-bouncer
+
 echo "crowdsec-firewall-bouncer upgraded successfully."
+exit 0
