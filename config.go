@@ -47,7 +47,7 @@ type bouncerConfig struct {
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
-	supportedDecisionsTypes []string `yaml:"supported_decisions_types"`
+	SupportedDecisionsTypes []string `yaml:"supported_decisions_types"`
 	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
 	Nftables struct {
 		Ipv4 nftablesFamilyConfig `yaml:"ipv4"`
@@ -76,8 +76,8 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 		return &bouncerConfig{}, err
 	}
 
-	if len(config.supportedDecisionsTypes) == 0 {
-		config.supportedDecisionsTypes = []string{"ban"}
+	if len(config.SupportedDecisionsTypes) == 0 {
+		config.SupportedDecisionsTypes = []string{"ban"}
 	}
 
 	if config.PidDir == "" {
