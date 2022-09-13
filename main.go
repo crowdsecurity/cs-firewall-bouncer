@@ -155,7 +155,7 @@ func main() {
 			case decisions := <-bouncer.Stream:
 				nbDeletedDecisions := 0
 				for _, decision := range decisions.Deleted {
-					if !inSlice(strings.ToLower(*decision.Type), config.supportedDecisionsTypes) {
+					if !inSlice(strings.ToLower(*decision.Type), config.SupportedDecisionsTypes) {
 						log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *decision.Value, *decision.Type)
 						continue
 					}
@@ -184,7 +184,7 @@ func main() {
 
 				nbNewDecisions := 0
 				for _, decision := range decisions.New {
-					if !inSlice(strings.ToLower(*decision.Type), config.supportedDecisionsTypes) {
+					if !inSlice(strings.ToLower(*decision.Type), config.SupportedDecisionsTypes) {
 						log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *decision.Value, *decision.Type)
 						continue
 					}
