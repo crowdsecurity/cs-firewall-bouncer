@@ -4,13 +4,22 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	IPTablesDroppedPacketIdx = 0
+	IPTablesDroppedByteIdx   = 1
+	MetricCollectionInterval = time.Second * 10
 )
 
 type iptables struct {
@@ -28,6 +37,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		StartupCmds:      [][]string{},
 		ShutdownCmds:     [][]string{},
 		CheckIptableCmds: [][]string{},
+		Chains:           []string{},
 	}
 	ipv6Ctx := &ipTablesContext{
 		Name:             "ipset",
@@ -36,6 +46,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		StartupCmds:      [][]string{},
 		ShutdownCmds:     [][]string{},
 		CheckIptableCmds: [][]string{},
+		Chains:           []string{},
 	}
 
 	var target string
@@ -57,6 +68,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to find iptables")
 		}
+		ipv4Ctx.Chains = config.IptablesChains
 		for _, v := range config.IptablesChains {
 			ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
 				[]string{"-I", v, "-m", "set", "--match-set", ipv4Ctx.SetName, "src", "-j", target})
@@ -86,6 +98,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to find ip6tables")
 		}
+		ipv6Ctx.Chains = config.IptablesChains
 		for _, v := range config.IptablesChains {
 			ipv6Ctx.StartupCmds = append(ipv6Ctx.StartupCmds,
 				[]string{"-I", v, "-m", "set", "--match-set", ipv6Ctx.SetName, "src", "-j", target})
@@ -139,6 +152,79 @@ func (ipt *iptables) Init() error {
 
 func (ipt *iptables) Commit() error {
 	return nil
+}
+
+func (ipt *iptables) CollectMetrics() {
+	type Ipsets struct {
+		Ipset []struct {
+			Name   string `xml:"name,attr"`
+			Header struct {
+				Numentries string `xml:"numentries"`
+			} `xml:"header"`
+		} `xml:"ipset"`
+	}
+
+	collectDroppedPackets := func(binaryPath string, chains []string, setName string) (float64, float64) {
+		var droppedPackets, droppedBytes float64
+		for _, chain := range chains {
+			out, err := exec.Command(binaryPath, "-L", chain, "-v", "-x").CombinedOutput()
+			if err != nil {
+				log.Error(string(out), err)
+				continue
+			}
+			for _, line := range strings.Split(string(out), "\n") {
+				if !strings.Contains(line, setName) {
+					continue
+				}
+				parts := strings.Fields(line)
+				tdp, err := strconv.ParseFloat(parts[IPTablesDroppedPacketIdx], 64)
+				if err != nil {
+					log.Error(err.Error())
+				}
+				droppedPackets += tdp
+				tdb, err := strconv.ParseFloat(parts[IPTablesDroppedByteIdx], 64)
+				if err != nil {
+					log.Error(err.Error())
+				}
+				droppedBytes += tdb
+			}
+		}
+		return droppedPackets, droppedBytes
+	}
+
+	t := time.NewTicker(MetricCollectionInterval)
+	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes float64
+	for range t.C {
+		ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
+		if ipt.v6 != nil {
+			ip6DroppedPackets, ip6DroppedBytes = collectDroppedPackets(ipt.v6.iptablesBin, ipt.v6.Chains, ipt.v6.SetName)
+		}
+		totalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
+		totalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
+
+		out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		ipsets := Ipsets{}
+		if err := xml.Unmarshal(out, &ipsets); err != nil {
+			log.Error(err)
+			continue
+		}
+		var newCount float64 = 0
+		for _, ipset := range ipsets.Ipset {
+			if ipset.Name == ipt.v4.SetName || (ipt.v6 != nil && ipset.Name == ipt.v6.SetName) {
+				count, err := strconv.ParseFloat(ipset.Header.Numentries, 64)
+				if err != nil {
+					log.Error("error while parsing  Numentries from ipsets", err)
+					continue
+				}
+				newCount += count
+			}
+		}
+		totalActiveBannedIPs.Set(newCount)
+	}
 }
 
 func (ipt *iptables) Add(decision *models.Decision) error {

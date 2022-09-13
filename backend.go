@@ -14,6 +14,7 @@ type backend interface {
 	Add(*models.Decision) error
 	Delete(*models.Decision) error
 	Commit() error
+	CollectMetrics()
 }
 
 type backendCTX struct {
@@ -38,6 +39,10 @@ func (b *backendCTX) Add(decision *models.Decision) error {
 
 func (b *backendCTX) Delete(decision *models.Decision) error {
 	return b.firewall.Delete(decision)
+}
+
+func (b *backendCTX) CollectMetrics() {
+	b.firewall.CollectMetrics()
 }
 
 func isPFSupported(runtimeOS string) bool {

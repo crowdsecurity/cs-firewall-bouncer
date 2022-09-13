@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -11,6 +13,8 @@ import (
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"gopkg.in/tomb.v2"
@@ -21,6 +25,21 @@ const (
 )
 
 var t tomb.Tomb
+
+var totalDroppedPackets = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "fw_bouncer_dropped_packets",
+	Help: "Denotes the number of total dropped packets because of rule(s) created by crowdsec",
+})
+
+var totalDroppedBytes = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "fw_bouncer_dropped_bytes",
+	Help: "Denotes the number of total dropped bytes because of rule(s) created by crowdsec",
+})
+
+var totalActiveBannedIPs = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "fw_bouncer_banned_ips",
+	Help: "Denotes the number of IPs which are currently banned",
+})
 
 func termHandler(sig os.Signal, backend *backendCTX) error {
 	if err := backend.ShutDown(); err != nil {
@@ -145,6 +164,22 @@ func main() {
 		return fmt.Errorf("stream api init failed")
 	})
 
+	if config.PrometheusConfig.Enabled {
+		if config.Mode == IptablesMode || config.Mode == NftablesMode {
+			go backend.CollectMetrics()
+			prometheus.MustRegister(totalDroppedBytes, totalDroppedPackets, totalActiveBannedIPs)
+		}
+		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
+		go func() {
+			http.Handle("/metrics", promhttp.Handler())
+			listenOn := net.JoinHostPort(
+				config.PrometheusConfig.ListenAddress,
+				config.PrometheusConfig.ListenPort,
+			)
+			log.Infof("Serving metrics at %s", listenOn+"/metrics")
+			log.Error(http.ListenAndServe(listenOn, nil))
+		}()
+	}
 	t.Go(func() error {
 		log.Printf("Processing new and deleted decisions . . .")
 		for {
