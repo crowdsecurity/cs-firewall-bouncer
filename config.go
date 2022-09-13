@@ -76,8 +76,8 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 		return &bouncerConfig{}, err
 	}
 
-	if len(config.supportedDecisionsTypes) == 0 {
-		config.supportedDecisionsTypes = []string{"ban"}
+	if len(config.SupportedDecisionsTypes) == 0 {
+		config.SupportedDecisionsTypes = []string{"ban"}
 	}
 
 	if config.PidDir == "" {
