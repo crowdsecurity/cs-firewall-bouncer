@@ -173,7 +173,7 @@ func (ipt *iptables) CollectMetrics() {
 				continue
 			}
 			for _, line := range strings.Split(string(out), "\n") {
-				if !strings.Contains(line, setName) {
+				if !strings.Contains(line, setName) || strings.Contains(line, "LOG") {
 					continue
 				}
 				parts := strings.Fields(line)
