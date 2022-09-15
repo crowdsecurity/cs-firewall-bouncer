@@ -6,7 +6,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/crowdsecurity/crowdsec v1.4.1
 	github.com/crowdsecurity/go-cs-bouncer v0.0.0-20220915145905-5f39e2043da0
-	github.com/google/nftables v0.0.0-20220906152720-cbeb0fb1eccf
+	github.com/google/nftables v0.0.0-20220808154552-2eca00135732
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.13.0
 	github.com/sirupsen/logrus v1.9.0
