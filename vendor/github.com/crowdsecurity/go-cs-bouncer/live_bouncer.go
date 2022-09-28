@@ -11,10 +11,11 @@ import (
 )
 
 type LiveBouncer struct {
-	APIKey    string
-	APIUrl    string
-	APIClient *apiclient.ApiClient
-	UserAgent string
+	APIKey             string
+	APIUrl             string
+	APIClient          *apiclient.ApiClient
+	UserAgent          string
+	InsecureSkipVerify *bool
 }
 
 func (b *LiveBouncer) Init() error {
@@ -28,10 +29,17 @@ func (b *LiveBouncer) Init() error {
 		APIKey: b.APIKey,
 	}
 
+	if b.InsecureSkipVerify == nil {
+		apiclient.InsecureSkipVerify = false
+	} else {
+		apiclient.InsecureSkipVerify = *b.InsecureSkipVerify
+	}
+
 	b.APIClient, err = apiclient.NewDefaultClient(apiURL, "v1", b.UserAgent, t.Client())
 	if err != nil {
 		return errors.Wrapf(err, "api client init")
 	}
+
 	return nil
 }
 

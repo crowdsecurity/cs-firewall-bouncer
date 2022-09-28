@@ -21,6 +21,7 @@ type StreamBouncer struct {
 	APIClient              *apiclient.ApiClient
 	UserAgent              string
 	Scopes                 []string
+	InsecureSkipVerify     *bool
 }
 
 func (b *StreamBouncer) Init() error {
@@ -35,6 +36,12 @@ func (b *StreamBouncer) Init() error {
 	}
 	t := &apiclient.APIKeyTransport{
 		APIKey: b.APIKey,
+	}
+
+	if b.InsecureSkipVerify == nil {
+		apiclient.InsecureSkipVerify = false
+	} else {
+		apiclient.InsecureSkipVerify = *b.InsecureSkipVerify
 	}
 
 	b.APIClient, err = apiclient.NewDefaultClient(apiURL, "v1", b.UserAgent, t.Client())
@@ -55,7 +62,8 @@ func (b *StreamBouncer) Run() {
 
 	data, resp, err := b.APIClient.Decisions.GetStream(context.Background(), true, b.Scopes) // true means we just started the bouncer
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Errorf(err.Error())
+		return
 	}
 	if resp != nil && resp.Response != nil {
 		resp.Response.Body.Close()

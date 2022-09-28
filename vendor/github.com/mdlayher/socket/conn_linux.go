@@ -33,6 +33,22 @@ func (c *Conn) RemoveBPF() error {
 	return c.SetsockoptInt(unix.SOL_SOCKET, unix.SO_DETACH_FILTER, 0)
 }
 
+// SetsockoptPacketMreq wraps setsockopt(2) for unix.PacketMreq values.
+func (c *Conn) SetsockoptPacketMreq(level, opt int, mreq *unix.PacketMreq) error {
+	const op = "setsockopt"
+
+	var err error
+	doErr := c.control(op, func(fd int) error {
+		err = unix.SetsockoptPacketMreq(fd, level, opt, mreq)
+		return err
+	})
+	if doErr != nil {
+		return doErr
+	}
+
+	return os.NewSyscallError(op, err)
+}
+
 // SetsockoptSockFprog wraps setsockopt(2) for unix.SockFprog values.
 func (c *Conn) SetsockoptSockFprog(level, opt int, fprog *unix.SockFprog) error {
 	const op = "setsockopt"
