@@ -30,6 +30,12 @@ func termHandler(sig os.Signal, backend *backendCTX) error {
 	return nil
 }
 
+func backendCleanup(backend *backendCTX) {
+	if err := backend.ShutDown(); err != nil {
+		log.Errorf("unable to shutdown backend: %s", err)
+	}
+}
+
 func HandleSignals(backend *backendCTX) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan,
@@ -116,24 +122,36 @@ func main() {
 	if err := backend.Init(); err != nil {
 		log.Fatalf(err.Error())
 	}
-	bouncer := &csbouncer.StreamBouncer{
-		APIKey:         config.APIKey,
-		APIUrl:         config.APIUrl,
-		TickerInterval: config.UpdateFrequency,
-		UserAgent:      fmt.Sprintf("%s/%s", name, version.VersionStr()),
-	}
-	if err := bouncer.Init(); err != nil {
-		log.Fatalf(err.Error())
+	//Not call to fatalf after this point
+	defer backendCleanup(backend)
+
+	if config.InsecureSkipVerify != nil {
+		log.Debugf("InsecureSkipVerify is set to %t", *config.InsecureSkipVerify)
 	}
 
-	go bouncer.Run()
+	bouncer := &csbouncer.StreamBouncer{
+		APIKey:             config.APIKey,
+		APIUrl:             config.APIUrl,
+		TickerInterval:     config.UpdateFrequency,
+		InsecureSkipVerify: config.InsecureSkipVerify,
+		UserAgent:          fmt.Sprintf("%s/%s", name, version.VersionStr()),
+	}
+	if err := bouncer.Init(); err != nil {
+		log.Errorf(err.Error())
+		return
+	}
+
+	t.Go(func() error {
+		bouncer.Run()
+		return fmt.Errorf("stream api init failed")
+	})
 
 	t.Go(func() error {
 		log.Printf("Processing new and deleted decisions . . .")
 		for {
 			select {
 			case <-t.Dying():
-				log.Infoln("terminating bouncer process")
+				log.Errorf("terminating bouncer process")
 				return nil
 			case decisions := <-bouncer.Stream:
 				nbDeletedDecisions := 0
@@ -194,17 +212,17 @@ func main() {
 			}
 		}
 	})
-
 	if config.Daemon {
 		sent, err := daemon.SdNotify(false, "READY=1")
 		if !sent && err != nil {
 			log.Errorf("Failed to notify: %v", err)
 		}
-		HandleSignals(backend)
+		go HandleSignals(backend)
 	}
 
 	err = t.Wait()
+
 	if err != nil {
-		log.Fatalf("process return with error: %s", err)
+		log.Errorf("process return with error: %s", err)
 	}
 }

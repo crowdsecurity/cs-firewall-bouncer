@@ -22,8 +22,8 @@ if [ "$1" = "configure" ]; then
     fi
 
     TMP=`mktemp -p /tmp/`
-    cp /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-    BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} > /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
+    BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     rm ${TMP}
 
 else 
@@ -35,7 +35,8 @@ fi
 if command -v "$CSCLI" >/dev/null; then
     PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
     if [ ! -z "$PORT" ]; then
-       sed -i "s/localhost:8080/localhost:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     fi
 fi
 

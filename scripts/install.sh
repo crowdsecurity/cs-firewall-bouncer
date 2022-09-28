@@ -88,7 +88,7 @@ gen_apikey() {
 }
 
 gen_config_file() {
-    API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst < ./config/crowdsec-firewall-bouncer.yaml > "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
+    API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst < ./config/crowdsec-firewall-bouncer.yaml | install -m 0600 /dev/stdin "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
 }
 
 check_ipset() {
@@ -111,10 +111,11 @@ check_ipset() {
 install_firewall_bouncer() {
 	install -v -m 755 -D "${BIN_PATH}" "${BIN_PATH_INSTALLED}"
 	mkdir -p "${CONFIG_DIR}"
-	cp "./config/crowdsec-firewall-bouncer.yaml" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
+	install -m 0600 "./config/crowdsec-firewall-bouncer.yaml" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
 	CFG=${CONFIG_DIR} PID=${PID_DIR} BIN=${BIN_PATH_INSTALLED} envsubst < ./config/crowdsec-firewall-bouncer.service > "${SYSTEMD_PATH_FILE}"
 	systemctl daemon-reload
 }
+
 
 
 if ! [ $(id -u) = 0 ]; then
@@ -128,6 +129,15 @@ echo "Installing firewall-bouncer"
 install_firewall_bouncer
 gen_apikey
 gen_config_file
+
+if command -v "$CSCLI" >/dev/null; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
+    if [ ! -z "$PORT" ]; then
+       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
+       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
+    fi
+fi
+
 systemctl enable crowdsec-firewall-bouncer.service
 if [ "$READY" = "yes" ]; then
     systemctl start crowdsec-firewall-bouncer.service

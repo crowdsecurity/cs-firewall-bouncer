@@ -24,8 +24,8 @@ override_dh_auto_install:
 
 	mkdir -p debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec/bouncers/
 	mkdir -p debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec/bouncers/
-	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec/bouncers/
-	cp config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec/bouncers/
+	install -m 0600 config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec/bouncers/
+	install -m 0600 config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec/bouncers/
 
 	mkdir -p debian/crowdsec-firewall-bouncer-iptables/etc/systemd/system/
 	mkdir -p debian/crowdsec-firewall-bouncer-nftables/etc/systemd/system/

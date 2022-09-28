@@ -9,8 +9,9 @@ log_compression: true
 log_max_size: 100
 log_max_backups: 3
 log_max_age: 30
-api_url: http://localhost:8080/
+api_url: http://127.0.0.1:8080/
 api_key: ${API_KEY}
+insecure_skip_verify: false
 disable_ipv6: false
 deny_action: DROP
 deny_log: false
