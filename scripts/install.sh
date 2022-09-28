@@ -9,7 +9,6 @@ fi
 BIN_PATH_INSTALLED="/usr/local/bin/crowdsec-firewall-bouncer"
 BIN_PATH="./crowdsec-firewall-bouncer"
 CONFIG_DIR="/etc/crowdsec/bouncers/"
-PID_DIR="/var/run/crowdsec/"
 SYSTEMD_PATH_FILE="/etc/systemd/system/crowdsec-firewall-bouncer.service"
 
 # Default package manager is apt
@@ -122,7 +121,7 @@ install_firewall_bouncer() {
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
     mkdir -p "$CONFIG_DIR"
     install -m 0600 "./config/crowdsec-firewall-bouncer.yaml" "${CONFIG_DIR}crowdsec-firewall-bouncer.yaml"
-    CFG=${CONFIG_DIR} PID=${PID_DIR} BIN=${BIN_PATH_INSTALLED} envsubst <./config/crowdsec-firewall-bouncer.service >"$SYSTEMD_PATH_FILE"
+    CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst <./config/crowdsec-firewall-bouncer.service >"$SYSTEMD_PATH_FILE"
     systemctl daemon-reload
 }
 

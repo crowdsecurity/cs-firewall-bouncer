@@ -5,21 +5,25 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
-#Current versioning information from env
+# Current versioning information from env
 BUILD_VERSION?="$(shell git describe --tags)"
 BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
 BUILD_TIMESTAMP=$(shell date +%F"_"%T)
 BUILD_TAG?="$(shell git rev-parse HEAD)"
-LDFLAGS_VARS=\
+
+LD_OPTS_VARS=\
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Version=$(BUILD_VERSION) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.BuildDate=$(BUILD_TIMESTAMP) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Tag=$(BUILD_TAG) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.GoVersion=$(BUILD_GOVERSION)
-LDFLAGS_DYNAMIC=-s -w $(LDFLAGS_VARS)
-LDFLAGS_STATIC=-s -w -extldflags '-static' $(LDFLAGS_VARS)
+
+ifdef BUILD_STATIC
+	export LD_OPTS=-ldflags "-a -v -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
+else
+	export LD_OPTS=-ldflags "-a -v -s -w $(LD_OPTS_VARS)"
+endif
 
 PREFIX?="/"
-PID_DIR = $(PREFIX)"/var/run/"
 BINARY_NAME=crowdsec-firewall-bouncer
 
 #Golang version info
@@ -52,14 +56,11 @@ goversion:
 lint:
 	golangci-lint run
 
-static: goversion clean
-	$(GOBUILD) -ldflags "$(LDFLAGS_STATIC)" -o $(BINARY_NAME) -v -a -tags netgo
-
 build: goversion clean
-	$(GOBUILD) -ldflags "$(LDFLAGS_DYNAMIC)" -o $(BINARY_NAME) -v
+	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME)
 
 test:
-	@$(GOTEST) -ldflags "$(LDFLAGS_DYNAMIC)" -v ./...
+	@$(GOTEST) $(LD_OPTS) ./...
 
 clean:
 	@$(RM) $(BINARY_NAME)
@@ -90,4 +91,3 @@ release: build
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf crowdsec-firewall-bouncer.tgz $(RELDIR)
-
