@@ -22,6 +22,8 @@ supported_decisions_types:
 #to change the blacklists name
 blacklists_ipv4: crowdsec-blacklists
 blacklists_ipv6: crowdsec6-blacklists
+#type of ipset to use
+ipset_type: nethash
 #if present, insert rule in those chains
 iptables_chains:
   - INPUT

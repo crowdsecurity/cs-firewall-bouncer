@@ -20,6 +20,7 @@ type ipTablesContext struct {
 	ipsetBin         string
 	iptablesBin      string
 	SetName          string     // crowdsec-netfilter
+	SetType          string
 	StartupCmds      [][]string // -I INPUT -m set --match-set myset src -j DROP
 	ShutdownCmds     [][]string // -D INPUT -m set --match-set myset src -j DROP
 	CheckIptableCmds [][]string
@@ -40,9 +41,9 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 			return errors.Wrapf(err, "set %s doesn't exist", ctx.SetName)
 		}
 		if ctx.version == "v6" {
-			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300", "family", "inet6")
+			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300", "family", "inet6")
 		} else {
-			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, "nethash", "timeout", "300")
+			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300")
 		}
 		log.Infof("ipset set-up : %s", cmd.String())
 		if out, err := cmd.CombinedOutput(); err != nil {
