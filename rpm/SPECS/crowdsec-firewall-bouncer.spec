@@ -31,7 +31,7 @@ Requires: iptables,ipset,gettext,ipset-libs
 
 %build
 BUILD_VERSION=%{local_version} make
-TMP=`mktemp -p /tmp/`
+TMP=$(mktemp -p /tmp/)
 cp config/%{name}.service ${TMP}
 BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst < ${TMP} > config/%{name}.service
 rm ${TMP}
@@ -41,7 +41,7 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/sbin
 mkdir -p %{buildroot}%{_presetdir}
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
-install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml 
+install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 install -m 644 -D %{SOURCE1} %{buildroot}%{_presetdir}
 %clean
@@ -51,7 +51,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
-%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml 
+%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
 %post -p /bin/bash
@@ -59,18 +59,16 @@ rm -rf %{buildroot}
 systemctl daemon-reload
 
 START=0
-CSCLI=/usr/bin/cscli
 
 #install
-if [ "$1" == "1" ] ; then
-    type cscli > /dev/null
+if [ "$1" == "1" ]; then
 
-    if [ "$?" -eq "0" ] ; then
+    if command -v cscli >/dev/null; then
         START=1
         echo "cscli/crowdsec is present, generating API key"
-        unique=`date +%s`
-        API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
-        if [ $? -eq 1 ] ; then
+        unique=$(date +%s)
+        API_KEY=$(cscli -oraw bouncers add FirewallBouncer-"$unique")
+        if [ $? -eq 1 ]; then
             echo "failed to create API token, service won't be started."
             START=0
             API_KEY="<API_KEY>"
@@ -79,31 +77,31 @@ if [ "$1" == "1" ] ; then
         fi
     fi
 
-    TMP=`mktemp -p /tmp/`
-    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-    BACKEND=iptables API_KEY=${API_KEY} envsubst < ${TMP} | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    rm ${TMP}
-else 
+    TMP=$(mktemp -p /tmp/)
+    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml "$TMP"
+    BACKEND=iptables API_KEY="$API_KEY" envsubst < "$TMP" | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    rm "$TMP"
+else
     START=1
 fi
 
 %systemd_post crowdsec-firewall-bouncer.service
 
-if command -v "$CSCLI" >/dev/null; then
+if command -v cscli >/dev/null; then
     START=1
-    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
-    if [ ! -z "$PORT" ]; then     
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
+    if [ "$PORT" != "" ]; then
        sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
        sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     fi
 fi
 
 
-if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start or enanble service"
-else 
+if [ "$START" -eq 0 ]; then
+    echo "no api key was generated, won't start or enable the service"
+else
     %if 0%{?fc35}
-    systemctl enable crowdsec-firewall-bouncer 
+    systemctl enable crowdsec-firewall-bouncer
     %endif
     systemctl start crowdsec-firewall-bouncer
 fi
@@ -122,23 +120,22 @@ Requires: nftables,gettext
 %files -n crowdsec-firewall-bouncer-nftables
 /usr/bin/%{name}
 %{_unitdir}/%{name}.service
-%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml 
+%config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 
 %post -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
 systemctl daemon-reload
 
 START=0
-CSCLI=/usr/bin/cscli
 
 # install
-if [ "$1" == "1" ] ; then
-    if command -v "$CSCLI" >/dev/null; then
+if [ "$1" == "1" ]; then
+    if command -v cscli >/dev/null; then
         START=1
         echo "cscli/crowdsec is present, generating API key"
-        unique=`date +%s`
-        API_KEY=`cscli -oraw bouncers add FirewallBouncer-${unique}`
-        if [ $? -eq 1 ] ; then
+        unique=$(date +%s)
+        API_KEY=$(cscli -oraw bouncers add FirewallBouncer-"$unique")
+        if [ $? -eq 1 ]; then
             echo "failed to create API token, service won't be started."
             START=0
             API_KEY="<API_KEY>"
@@ -147,30 +144,30 @@ if [ "$1" == "1" ] ; then
         fi
     fi
 
-    TMP=`mktemp -p /tmp/`
-    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml ${TMP}
-    BACKEND=nftables API_KEY=${API_KEY} envsubst < ${TMP} | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    rm ${TMP}
-else 
+    TMP=$(mktemp -p /tmp/)
+    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml "$TMP"
+    BACKEND=nftables API_KEY="$API_KEY" envsubst < "$TMP" | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+    rm "$TMP"
+else
     START=1
 fi
 
 %systemd_post crowdsec-firewall-bouncer.service
 
-if command -v "$CSCLI" >/dev/null; then
-    PORT=$(cscli config show --key "Config.API.Server.ListenURI"|cut -d ":" -f2)
-    if [ ! -z "$PORT" ]; then     
+if command -v cscli >/dev/null; then
+    PORT=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
+    if [ "$PORT" != "" ]; then
        sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
        sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
     fi
 fi
 
 
-if [ ${START} -eq 0 ] ; then
-    echo "no api key was generated, won't start or enanble service"
-else 
+if [ "$START" -eq 0 ]; then
+    echo "no api key was generated, won't start or enable the service"
+else
     %if 0%{?fc35}
-    systemctl enable crowdsec-firewall-bouncer 
+    systemctl enable crowdsec-firewall-bouncer
     %endif
     systemctl start crowdsec-firewall-bouncer
 fi
@@ -178,14 +175,14 @@ fi
 
 %preun -p /bin/bash
 
-if [ "$1" == "0" ] ; then
+if [ "$1" == "0" ]; then
     systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
     systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
 fi
 
 %preun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
-if [ "$1" == "0" ] ; then
+if [ "$1" == "0" ]; then
     systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
     systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
 fi
@@ -193,14 +190,14 @@ fi
 
 %postun -p /bin/bash
 
-if [ "$1" == "1" ] ; then
+if [ "$1" == "1" ]; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
 
 
 %postun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
-if [ "$1" == "1" ] ; then
+if [ "$1" == "1" ]; then
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
 
