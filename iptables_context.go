@@ -19,7 +19,7 @@ type ipTablesContext struct {
 	version          string
 	ipsetBin         string
 	iptablesBin      string
-	SetName          string     // crowdsec-netfilter
+	SetName          string // crowdsec-netfilter
 	SetType          string
 	StartupCmds      [][]string // -I INPUT -m set --match-set myset src -j DROP
 	ShutdownCmds     [][]string // -D INPUT -m set --match-set myset src -j DROP
