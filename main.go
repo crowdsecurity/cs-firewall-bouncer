@@ -11,13 +11,15 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-systemd/daemon"
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
-	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"gopkg.in/tomb.v2"
+
+	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 )
 
 const (
