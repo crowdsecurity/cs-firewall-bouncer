@@ -44,6 +44,11 @@ linters:
     - varcheck          # The owner seems to have abandoned the linter.  Replaced by unused.
 
     #
+    # Disabled
+    #
+    - gci               # Gci control golang package import order and make it always deterministic.
+
+    #
     # Enabled
     #
 
@@ -66,7 +71,6 @@ linters:
     # - exportloopref       # checks for pointers to enclosing loop variables
     # - forcetypeassert     # finds forced type assertions
     # - funlen              # Tool for detection of long functions
-    # - gci                 # Gci control golang package import order and make it always deterministic.
     # - gochecknoinits      # Checks that no init functions are present in Go code
     # - godot               # Check if comments end in a period
     # - gofmt               # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
