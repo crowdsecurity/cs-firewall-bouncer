@@ -51,6 +51,7 @@ type bouncerConfig struct {
 	DenyLogPrefix   string    `yaml:"deny_log_prefix"`
 	BlacklistsIpv4  string    `yaml:"blacklists_ipv4"`
 	BlacklistsIpv6  string    `yaml:"blacklists_ipv6"`
+	SetType         string    `yaml:"ipset_type"`
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
@@ -105,6 +106,9 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 
 	if config.BlacklistsIpv6 == "" {
 		config.BlacklistsIpv6 = "crowdsec6-blacklists"
+	}
+	if config.SetType == "" {
+		config.SetType = "nethash"
 	}
 
 	switch config.Mode {
