@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -68,14 +67,14 @@ type bouncerConfig struct {
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
 }
 
-// returns a io.Reader to the patched configuration file (with .yaml.local)
-func configReader(configPath string) (io.Reader, error) {
+// returns the byte content of the patched configuration file (with .yaml.local)
+func mergedConfig(configPath string) ([]byte, error) {
 	patcher := yamlpatch.NewPatcher(configPath, ".local")
 	data, err := patcher.MergedPatchContent()
 	if err != nil {
 		return nil, err
 	}
-	return bytes.NewReader(data), nil
+	return data, nil
 
 }
 
