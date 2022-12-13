@@ -118,7 +118,12 @@ func main() {
 		log.Fatalf("configuration file is required")
 	}
 
-	config, err := newConfig(*configPath)
+	reader, err := configReader(*configPath)
+	if err != nil {
+		log.Fatalf("unable to read config file: %s", err)
+	}
+
+	config, err := newConfig(reader)
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
@@ -146,7 +151,7 @@ func main() {
 	defer backendCleanup(backend)
 
 	bouncer := &csbouncer.StreamBouncer{}
-	err = bouncer.Config(*configPath)
+	err = bouncer.ConfigReader(reader)
 	if err != nil {
 		log.Errorf("unable to configure bouncer: %s", err)
 		return
