@@ -17,9 +17,9 @@ LD_OPTS_VARS=\
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Tag=$(BUILD_TAG)
 
 ifdef BUILD_STATIC
-	export LD_OPTS=-ldflags "-a -v -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
+	export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
 else
-	export LD_OPTS=-ldflags "-a -v -s -w $(LD_OPTS_VARS)"
+	export LD_OPTS=-ldflags "-a -s -w $(LD_OPTS_VARS)"
 endif
 
 PREFIX?="/"
