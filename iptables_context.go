@@ -42,9 +42,11 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 			return errors.Wrapf(err, "set %s doesn't exist", ctx.SetName)
 		}
 		if ctx.version == "v6" {
-			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300", "family", "inet6", "maxelem", fmt.Sprintf("%d", ctx.SetSize))
+			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300", "family",
+				"inet6", "maxelem", fmt.Sprintf("%d", ctx.SetSize))
 		} else {
-			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300", "maxelem", fmt.Sprintf("%d", ctx.SetSize))
+			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300",
+				"maxelem", fmt.Sprintf("%d", ctx.SetSize))
 		}
 		log.Infof("ipset set-up : %s", cmd.String())
 		if out, err := cmd.CombinedOutput(); err != nil {
