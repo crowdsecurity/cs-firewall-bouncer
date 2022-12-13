@@ -67,7 +67,7 @@ type bouncerConfig struct {
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
 }
 
-// returns the byte content of the patched configuration file (with .yaml.local)
+// mergedConfig() returns the byte content of the patched configuration file (with .yaml.local).
 func mergedConfig(configPath string) ([]byte, error) {
 	patcher := yamlpatch.NewPatcher(configPath, ".local")
 	data, err := patcher.MergedPatchContent()
@@ -87,7 +87,7 @@ func newConfig(reader io.Reader) (*bouncerConfig, error) {
 	}
 	err = yaml.Unmarshal(fcontent, &config)
 	if err != nil {
-		return &bouncerConfig{}, fmt.Errorf("failed to unmarshal: %w")
+		return &bouncerConfig{}, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
 	err = validateConfig(*config)

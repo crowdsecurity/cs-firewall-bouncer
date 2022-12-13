@@ -7,7 +7,6 @@ require (
 	github.com/crowdsecurity/crowdsec v1.4.1
 	github.com/crowdsecurity/go-cs-bouncer v0.0.2-0.20221213104739-135edd169942
 	github.com/google/nftables v0.0.0-20220808154552-2eca00135732
-	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.13.0
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/sys v0.0.0-20220913175220-63ea55921009
@@ -43,6 +42,7 @@ require (
 	github.com/mdlayher/socket v0.2.3 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
