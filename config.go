@@ -52,6 +52,7 @@ type bouncerConfig struct {
 	BlacklistsIpv4  string    `yaml:"blacklists_ipv4"`
 	BlacklistsIpv6  string    `yaml:"blacklists_ipv6"`
 	SetType         string    `yaml:"ipset_type"`
+	SetSize         int       `yaml:"ipset_size"`
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
@@ -109,6 +110,10 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 	}
 	if config.SetType == "" {
 		config.SetType = "nethash"
+	}
+
+	if config.SetSize == 0 {
+		config.SetSize = 65536
 	}
 
 	switch config.Mode {
