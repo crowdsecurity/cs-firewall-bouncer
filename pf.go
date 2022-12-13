@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -76,14 +75,14 @@ func (ctx *pfContext) checkTable() error {
 	cmd := execPfctl(ctx.anchor, "-s", "Tables")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrapf(err, "pfctl error: %v - %s", err, string(out))
+		return fmt.Errorf("pfctl error: %s - %w", out, err)
 	}
 
 	if !strings.Contains(string(out), ctx.table) {
 		if ctx.anchor != "" {
-			return errors.Errorf("table %s in anchor %s doesn't exist", ctx.table, ctx.anchor)
+			return fmt.Errorf("table %s in anchor %s doesn't exist", ctx.table, ctx.anchor)
 		}
-		return errors.Errorf("table %s doesn't exist", ctx.table)
+		return fmt.Errorf("table %s doesn't exist", ctx.table)
 	}
 
 	return nil
@@ -139,10 +138,10 @@ func (ctx *pfContext) Delete(decision *models.Decision) error {
 
 func initPF(ctx *pfContext) error {
 	if err := ctx.shutDown(); err != nil {
-		return errors.Wrap(err, "pf table flush failed")
+		return fmt.Errorf("pf table flush failed: %w", err)
 	}
 	if err := ctx.checkTable(); err != nil {
-		return errors.Wrap(err, "pf init failed")
+		return fmt.Errorf("pf init failed: %w", err)
 	}
 
 	log.Infof("%s initiated for %s", backendName, ctx.version)
@@ -152,11 +151,11 @@ func initPF(ctx *pfContext) error {
 
 func (pf *pf) Init() error {
 	if _, err := os.Stat(pfDevice); err != nil {
-		return errors.Wrapf(err, "%s device not found", pfDevice)
+		return fmt.Errorf("%s device not found: %w", pfDevice, err)
 	}
 
 	if _, err := exec.LookPath(pfctlCmd); err != nil {
-		return errors.Wrapf(err, "%s command not found", pfctlCmd)
+		return fmt.Errorf("%s command not found: %w", pfctlCmd, err)
 	}
 
 	if err := initPF(pf.inet); err != nil {

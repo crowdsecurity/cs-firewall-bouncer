@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,7 +37,7 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 		if ctx.ipsetContentOnly {
 			/*if we manage ipset content only, error*/
 			log.Errorf("set %s doesn't exist, can't manage content", ctx.SetName)
-			return errors.Wrapf(err, "set %s doesn't exist", ctx.SetName)
+			return fmt.Errorf("set %s doesn't exist: %w", ctx.SetName, err)
 		}
 		if ctx.version == "v6" {
 			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300", "family", "inet6")
@@ -77,7 +76,7 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 			log.Infof("iptables set-up : %s", cmd.String())
 			if out, err := cmd.CombinedOutput(); err != nil {
 				log.Warningf("Error inserting set in iptables (%s): %v : %s", cmd.String(), err, string(out))
-				return errors.Wrapf(err, "while inserting set in iptables")
+				return fmt.Errorf("while inserting set in iptables: %w", err)
 			}
 		}
 	}

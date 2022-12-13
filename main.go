@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"net"
@@ -118,7 +119,12 @@ func main() {
 		log.Fatalf("configuration file is required")
 	}
 
-	config, err := newConfig(*configPath)
+	configBytes, err := mergedConfig(*configPath)
+	if err != nil {
+		log.Fatalf("unable to read config file: %s", err)
+	}
+
+	config, err := newConfig(bytes.NewReader(configBytes))
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
@@ -146,7 +152,7 @@ func main() {
 	defer backendCleanup(backend)
 
 	bouncer := &csbouncer.StreamBouncer{}
-	err = bouncer.Config(*configPath)
+	err = bouncer.ConfigReader(bytes.NewReader(configBytes))
 	if err != nil {
 		log.Errorf("unable to configure bouncer: %s", err)
 		return

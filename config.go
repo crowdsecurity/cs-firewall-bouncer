@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/yaml.v2"
@@ -67,17 +67,27 @@ type bouncerConfig struct {
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
 }
 
-func newConfig(configPath string) (*bouncerConfig, error) {
+// mergedConfig() returns the byte content of the patched configuration file (with .yaml.local).
+func mergedConfig(configPath string) ([]byte, error) {
+	patcher := yamlpatch.NewPatcher(configPath, ".local")
+	data, err := patcher.MergedPatchContent()
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+
+}
+
+func newConfig(reader io.Reader) (*bouncerConfig, error) {
 	config := &bouncerConfig{}
 
-	patcher := yamlpatch.NewPatcher(configPath, ".local")
-	fcontent, err := patcher.MergedPatchContent()
+	fcontent, err := io.ReadAll(reader)
 	if err != nil {
 		return &bouncerConfig{}, err
 	}
 	err = yaml.Unmarshal(fcontent, &config)
 	if err != nil {
-		return &bouncerConfig{}, errors.Wrapf(err, "failed to unmarshal %s", configPath)
+		return &bouncerConfig{}, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
 	err = validateConfig(*config)
@@ -90,7 +100,7 @@ func newConfig(configPath string) (*bouncerConfig, error) {
 	}
 
 	if config.PidDir == "" {
-		log.Warningf("missing 'pid_dir' directive in '%s', using default: '/var/run/'", configPath)
+		log.Warningf("missing 'pid_dir' directive, using default: '/var/run/'")
 
 		config.PidDir = "/var/run/"
 	}
