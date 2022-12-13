@@ -7,15 +7,14 @@ GOGET=$(GOCMD) get
 
 # Current versioning information from env
 BUILD_VERSION?="$(shell git describe --tags)"
-BUILD_GOVERSION="$(shell go version | cut -d " " -f3 | sed -r 's/[go]+//g')"
+BUILD_GOVERSION="$(shell go env GOVERSION | sed s/go//)"
 BUILD_TIMESTAMP=$(shell date +%F"_"%T)
 BUILD_TAG?="$(shell git rev-parse HEAD)"
 
 LD_OPTS_VARS=\
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Version=$(BUILD_VERSION) \
 -X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.BuildDate=$(BUILD_TIMESTAMP) \
--X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Tag=$(BUILD_TAG) \
--X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.GoVersion=$(BUILD_GOVERSION)
+-X github.com/crowdsecurity/cs-firewall-bouncer/pkg/version.Tag=$(BUILD_TAG)
 
 ifdef BUILD_STATIC
 	export LD_OPTS=-ldflags "-a -v -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
@@ -26,11 +25,14 @@ endif
 PREFIX?="/"
 BINARY_NAME=crowdsec-firewall-bouncer
 
-#Golang version info
-GO_MAJOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
-GO_MINOR_VERSION = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
 MINIMUM_SUPPORTED_GO_MAJOR_VERSION = 1
 MINIMUM_SUPPORTED_GO_MINOR_VERSION = 13
+
+#Golang version info
+go_major_minor = $(subst ., ,$(BUILD_GOVERSION))
+GO_MAJOR_VERSION = $(word 1, $(go_major_minor))
+GO_MINOR_VERSION = $(word 2, $(go_major_minor))
+
 GO_VERSION_VALIDATION_ERR_MSG = Golang version ($(BUILD_GOVERSION)) is not supported, please use at least $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION).$(MINIMUM_SUPPORTED_GO_MINOR_VERSION)
 
 RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
