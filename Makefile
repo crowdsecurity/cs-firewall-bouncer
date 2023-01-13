@@ -64,7 +64,15 @@ build: goversion clean
 test:
 	@$(GOTEST) $(LD_OPTS) ./...
 
-clean:
+clean-debian:
+	@$(RM) -r debian/crowdsec-firewall-bouncer-iptables
+	@$(RM) -r debian/crowdsec-firewall-bouncer-nftables
+	@$(RM) -r debian/files
+	@$(RM) -r debian/*.substvars
+	@$(RM) -r debian/*.debhelper
+	@$(RM) -r debian/*-stamp
+
+clean: clean-debian
 	@$(RM) $(BINARY_NAME)
 	@$(RM) -r ${RELDIR}
 	@$(RM) crowdsec-firewall-bouncer.tgz
