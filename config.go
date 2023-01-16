@@ -62,7 +62,8 @@ type bouncerConfig struct {
 		Ipv4 nftablesFamilyConfig `yaml:"ipv4"`
 		Ipv6 nftablesFamilyConfig `yaml:"ipv6"`
 	} `yaml:"nftables"`
-	PF struct {
+	NftablesHooks []string `yaml:"nftables_hooks"`
+	PF            struct {
 		AnchorName string `yaml:"anchor_name"`
 	} `yaml:"pf"`
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
@@ -186,6 +187,10 @@ func nftablesConfig(config *bouncerConfig) error {
 
 	if !*config.Nftables.Ipv4.Enabled && !*config.Nftables.Ipv6.Enabled {
 		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
+	} else {
+		if config.NftablesHooks == nil || len(config.NftablesHooks) == 0 {
+			config.NftablesHooks = []string{"input"}
+		}
 	}
 
 	return nil
