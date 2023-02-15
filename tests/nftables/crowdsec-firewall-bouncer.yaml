@@ -15,6 +15,10 @@ supported_decisions_types:
 iptables_chains:
   - INPUT
 
+nftables_hooks:
+  - input
+  - forward
+
 nftables:
   ipv4:
     enabled: true

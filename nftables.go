@@ -20,6 +20,15 @@ import (
 
 var defaultTimeout = "4h"
 
+var HookNameToHookID = map[string]nftables.ChainHook{
+	"prerouting":  nftables.ChainHookPrerouting,
+	"input":       nftables.ChainHookInput,
+	"forward":     nftables.ChainHookForward,
+	"output":      nftables.ChainHookOutput,
+	"postrouting": nftables.ChainHookPostrouting,
+	"ingress":     nftables.ChainHookIngress,
+}
+
 type nft struct {
 	conn              *nftables.Conn
 	conn6             *nftables.Conn
@@ -40,6 +49,7 @@ type nft struct {
 	ChainName6        string
 	TableName6        string
 	SetOnly6          bool
+	Hooks             []string
 }
 
 func newNFTables(config *bouncerConfig) (backend, error) {
@@ -60,6 +70,7 @@ func newNFTables(config *bouncerConfig) (backend, error) {
 	ret.DenyAction = config.DenyAction
 	ret.DenyLog = config.DenyLog
 	ret.DenyLogPrefix = config.DenyLogPrefix
+	ret.Hooks = config.NftablesHooks
 
 	// IPv4
 	ret.TableName4 = config.Nftables.Ipv4.Table
@@ -227,13 +238,7 @@ func (n *nft) Init() error {
 				Name:   n.TableName4,
 			}
 			n.table = n.conn.AddTable(table)
-			chain := n.conn.AddChain(&nftables.Chain{
-				Name:     n.ChainName4,
-				Table:    n.table,
-				Type:     nftables.ChainTypeFilter,
-				Hooknum:  nftables.ChainHookInput,
-				Priority: nftables.ChainPriorityFilter,
-			})
+
 			set := &nftables.Set{
 				Name:       n.BlacklistsIpv4,
 				Table:      n.table,
@@ -246,46 +251,56 @@ func (n *nft) Init() error {
 			}
 			n.set = set
 
-			r := &nftables.Rule{
-				Table: n.table,
-				Chain: chain,
-				Exprs: []expr.Any{},
-			}
-			// [ payload load 4b @ network header + 16 => reg 1 ]
-			r.Exprs = append(r.Exprs, &expr.Payload{
-				DestRegister: 1,
-				Base:         expr.PayloadBaseNetworkHeader,
-				Offset:       12,
-				Len:          4,
-			})
-
-			// [ lookup reg 1 set whitelist ]
-			r.Exprs = append(r.Exprs, &expr.Lookup{
-				SourceRegister: 1,
-				SetName:        n.set.Name,
-				SetID:          n.set.ID,
-			})
-
-			r.Exprs = append(r.Exprs, &expr.Counter{})
-
-			if n.DenyLog {
-				r.Exprs = append(r.Exprs, &expr.Log{
-					Key:  1 << unix.NFTA_LOG_PREFIX,
-					Data: []byte(n.DenyLogPrefix),
+			for _, hook := range n.Hooks {
+				chain := n.conn.AddChain(&nftables.Chain{
+					Name:     n.ChainName4 + "-" + hook,
+					Table:    n.table,
+					Type:     nftables.ChainTypeFilter,
+					Hooknum:  HookNameToHookID[hook],
+					Priority: nftables.ChainPriorityFilter,
 				})
-			}
-			if strings.EqualFold(n.DenyAction, "REJECT") {
-				r.Exprs = append(r.Exprs, &expr.Reject{
-					Type: unix.NFT_REJECT_ICMP_UNREACH,
-					Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
-				})
-			} else {
-				r.Exprs = append(r.Exprs, &expr.Verdict{
-					Kind: expr.VerdictDrop,
-				})
-			}
 
-			n.conn.AddRule(r)
+				r := &nftables.Rule{
+					Table: n.table,
+					Chain: chain,
+					Exprs: []expr.Any{},
+				}
+				// [ payload load 4b @ network header + 16 => reg 1 ]
+				r.Exprs = append(r.Exprs, &expr.Payload{
+					DestRegister: 1,
+					Base:         expr.PayloadBaseNetworkHeader,
+					Offset:       12,
+					Len:          4,
+				})
+
+				// [ lookup reg 1 set whitelist ]
+				r.Exprs = append(r.Exprs, &expr.Lookup{
+					SourceRegister: 1,
+					SetName:        n.set.Name,
+					SetID:          n.set.ID,
+				})
+
+				r.Exprs = append(r.Exprs, &expr.Counter{})
+
+				if n.DenyLog {
+					r.Exprs = append(r.Exprs, &expr.Log{
+						Key:  1 << unix.NFTA_LOG_PREFIX,
+						Data: []byte(n.DenyLogPrefix),
+					})
+				}
+				if strings.EqualFold(n.DenyAction, "REJECT") {
+					r.Exprs = append(r.Exprs, &expr.Reject{
+						Type: unix.NFT_REJECT_ICMP_UNREACH,
+						Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
+					})
+				} else {
+					r.Exprs = append(r.Exprs, &expr.Verdict{
+						Kind: expr.VerdictDrop,
+					})
+				}
+
+				n.conn.AddRule(r)
+			}
 
 			if err := n.conn.Flush(); err != nil {
 				return err
@@ -327,13 +342,6 @@ func (n *nft) Init() error {
 			}
 			n.table6 = n.conn6.AddTable(table)
 
-			chain := n.conn6.AddChain(&nftables.Chain{
-				Name:     n.ChainName6,
-				Table:    n.table6,
-				Type:     nftables.ChainTypeFilter,
-				Hooknum:  nftables.ChainHookInput,
-				Priority: nftables.ChainPriorityFilter,
-			})
 			set := &nftables.Set{
 				Name:       n.BlacklistsIpv6,
 				Table:      n.table6,
@@ -345,47 +353,55 @@ func (n *nft) Init() error {
 				return err
 			}
 			n.set6 = set
-
-			r := &nftables.Rule{
-				Table: n.table6,
-				Chain: chain,
-				Exprs: []expr.Any{},
-			}
-			// [ payload load 4b @ network header + 16 => reg 1 ]
-			r.Exprs = append(r.Exprs, &expr.Payload{
-				DestRegister: 1,
-				Base:         expr.PayloadBaseNetworkHeader,
-				Offset:       8,
-				Len:          16,
-			})
-			// [ lookup reg 1 set whitelist ]
-			r.Exprs = append(r.Exprs, &expr.Lookup{
-				SourceRegister: 1,
-				SetName:        n.set6.Name,
-				SetID:          n.set6.ID,
-			})
-
-			r.Exprs = append(r.Exprs, &expr.Counter{})
-
-			if n.DenyLog {
-				r.Exprs = append(r.Exprs, &expr.Log{
-					Key:  1 << unix.NFTA_LOG_PREFIX,
-					Data: []byte(n.DenyLogPrefix),
+			for _, hook := range n.Hooks {
+				chain := n.conn6.AddChain(&nftables.Chain{
+					Name:     n.ChainName6 + "-" + hook,
+					Table:    n.table6,
+					Type:     nftables.ChainTypeFilter,
+					Hooknum:  HookNameToHookID[hook],
+					Priority: nftables.ChainPriorityFilter,
 				})
-			}
-			if strings.EqualFold(n.DenyAction, "REJECT") {
-				r.Exprs = append(r.Exprs, &expr.Reject{
-					Type: unix.NFT_REJECT_ICMP_UNREACH,
-					Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
-				})
-			} else {
-				r.Exprs = append(r.Exprs, &expr.Verdict{
-					Kind: expr.VerdictDrop,
-				})
-			}
 
-			n.conn6.AddRule(r)
+				r := &nftables.Rule{
+					Table: n.table6,
+					Chain: chain,
+					Exprs: []expr.Any{},
+				}
+				// [ payload load 4b @ network header + 16 => reg 1 ]
+				r.Exprs = append(r.Exprs, &expr.Payload{
+					DestRegister: 1,
+					Base:         expr.PayloadBaseNetworkHeader,
+					Offset:       8,
+					Len:          16,
+				})
+				// [ lookup reg 1 set whitelist ]
+				r.Exprs = append(r.Exprs, &expr.Lookup{
+					SourceRegister: 1,
+					SetName:        n.set6.Name,
+					SetID:          n.set6.ID,
+				})
 
+				r.Exprs = append(r.Exprs, &expr.Counter{})
+
+				if n.DenyLog {
+					r.Exprs = append(r.Exprs, &expr.Log{
+						Key:  1 << unix.NFTA_LOG_PREFIX,
+						Data: []byte(n.DenyLogPrefix),
+					})
+				}
+				if strings.EqualFold(n.DenyAction, "REJECT") {
+					r.Exprs = append(r.Exprs, &expr.Reject{
+						Type: unix.NFT_REJECT_ICMP_UNREACH,
+						Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
+					})
+				} else {
+					r.Exprs = append(r.Exprs, &expr.Verdict{
+						Kind: expr.VerdictDrop,
+					})
+				}
+
+				n.conn6.AddRule(r)
+			}
 			if err := n.conn6.Flush(); err != nil {
 				return err
 			}
