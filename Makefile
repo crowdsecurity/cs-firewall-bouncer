@@ -26,7 +26,7 @@ PREFIX?="/"
 BINARY_NAME=crowdsec-firewall-bouncer
 
 MINIMUM_SUPPORTED_GO_MAJOR_VERSION = 1
-MINIMUM_SUPPORTED_GO_MINOR_VERSION = 13
+MINIMUM_SUPPORTED_GO_MINOR_VERSION = 20
 
 #Golang version info
 go_major_minor = $(subst ., ,$(BUILD_GOVERSION))
