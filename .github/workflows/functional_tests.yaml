@@ -9,8 +9,13 @@ on:
 jobs:
   install_crowdsec:
     name: Build
-    runs-on: golang:1.20.1-bullseye
+    runs-on: ubuntu-latest
     steps:
+    - name: Set up Go 1.20.1
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.20.1
+      id: go
     - name: Check out code into the Go module directory
       uses: actions/checkout@v3
       with:
