@@ -1,16 +1,16 @@
 module github.com/crowdsecurity/cs-firewall-bouncer
 
-go 1.19
+go 1.20
 
 require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/crowdsecurity/crowdsec v1.4.1
+	github.com/crowdsecurity/crowdsec v1.4.6
 	github.com/crowdsecurity/go-cs-bouncer v0.0.2-0.20221213104739-135edd169942
 	github.com/google/nftables v0.0.0-20220808154552-2eca00135732
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
-	golang.org/x/sys v0.0.0-20220913175220-63ea55921009
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0
+	golang.org/x/sys v0.6.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -43,11 +43,11 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	go.mongodb.org/mongo-driver v1.10.2 // indirect
-	golang.org/x/net v0.0.0-20220909164309-bea034e7d591 // indirect
+	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
