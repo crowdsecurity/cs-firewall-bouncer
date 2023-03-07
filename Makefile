@@ -7,7 +7,6 @@ GOGET=$(GOCMD) get
 
 # Current versioning information from env
 BUILD_VERSION?="$(shell git describe --tags)"
-BUILD_GOVERSION=$(shell go env GOVERSION | sed s/go//)
 BUILD_TIMESTAMP=$(shell date +%F"_"%T)
 BUILD_TAG?=$(shell git rev-parse HEAD)
 
@@ -25,34 +24,12 @@ endif
 PREFIX?="/"
 BINARY_NAME=crowdsec-firewall-bouncer
 
-MINIMUM_SUPPORTED_GO_MAJOR_VERSION = 1
-MINIMUM_SUPPORTED_GO_MINOR_VERSION = 13
-
-#Golang version info
-go_major_minor = $(subst ., ,$(BUILD_GOVERSION))
-GO_MAJOR_VERSION = $(word 1, $(go_major_minor))
-GO_MINOR_VERSION = $(word 2, $(go_major_minor))
-
-GO_VERSION_VALIDATION_ERR_MSG = Golang version ($(BUILD_GOVERSION)) is not supported, please use at least $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION).$(MINIMUM_SUPPORTED_GO_MINOR_VERSION)
-
 RELDIR = "crowdsec-firewall-bouncer-${BUILD_VERSION}"
 
 PYTHON=python3
 PIP=pip
 
 all: clean build
-
-goversion:
-	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
-		exit 0 ;\
-	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MAJOR_VERSION) ]; then \
-		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
-		exit 1; \
-	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_SUPPORTED_GO_MINOR_VERSION) ] ; then \
-		echo '$(GO_VERSION_VALIDATION_ERR_MSG)';\
-		exit 1; \
-	fi
-
 
 .PHONY: lint
 lint:
@@ -101,3 +78,5 @@ release: build
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
 	@tar cvzf crowdsec-firewall-bouncer.tgz $(RELDIR)
+
+include mk/goversion.mk
