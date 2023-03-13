@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"net"
@@ -16,8 +17,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
-	"gopkg.in/tomb.v2"
+	"golang.org/x/sync/errgroup"
 
+	"github.com/crowdsecurity/crowdsec/pkg/models"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
@@ -26,8 +28,6 @@ import (
 const (
 	name = "crowdsec-firewall-bouncer"
 )
-
-var t tomb.Tomb
 
 var totalDroppedPackets = prometheus.NewGauge(prometheus.GaugeOpts{
 	Name: "fw_bouncer_dropped_packets",
@@ -80,6 +80,66 @@ func HandleSignals(backend *backendCTX) {
 	code := <-exitChan
 	log.Infof("Shutting down firewall-bouncer service")
 	os.Exit(code)
+}
+
+func deleteDecisions(backend *backendCTX, decisions []*models.Decision, config *bouncerConfig) {
+	nbDeletedDecisions := 0
+	for _, d := range decisions {
+		if !inSlice(strings.ToLower(*d.Type), config.SupportedDecisionsTypes) {
+			log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *d.Value, *d.Type)
+			continue
+		}
+		if err := backend.Delete(d); err != nil {
+			if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
+				log.Errorf("unable to delete decision for '%s': %s", *d.Value, err)
+			}
+		} else {
+			log.Debugf("deleted '%s'", *d.Value)
+		}
+		nbDeletedDecisions++
+	}
+
+	noun := "decisions"
+	if nbDeletedDecisions == 1 {
+		noun = "decision"
+	}
+	if nbDeletedDecisions > 0 {
+		log.Debug("committing expired decisions")
+		if err := backend.Commit(); err != nil {
+			log.Errorf("unable to commit delete decisions %v", err)
+		}
+		log.Debug("committed expired decisions")
+		log.Infof("%d %s deleted", nbDeletedDecisions, noun)
+	}
+}
+
+func addDecisions(backend *backendCTX, decisions []*models.Decision, config *bouncerConfig) {
+	nbNewDecisions := 0
+	for _, d := range decisions {
+		if !inSlice(strings.ToLower(*d.Type), config.SupportedDecisionsTypes) {
+			log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *d.Value, *d.Type)
+			continue
+		}
+		if err := backend.Add(d); err != nil {
+			log.Errorf("unable to insert decision for '%s': %s", *d.Value, err)
+		} else {
+			log.Debugf("Adding '%s' for '%s'", *d.Value, *d.Duration)
+		}
+		nbNewDecisions++
+	}
+
+	noun := "decisions"
+	if nbNewDecisions == 1 {
+		noun = "decision"
+	}
+	if nbNewDecisions > 0 {
+		log.Debug("committing added decisions")
+		if err := backend.Commit(); err != nil {
+			log.Errorf("unable to commit add decisions %v", err)
+		}
+		log.Debug("committed added decisions")
+		log.Infof("%d %s added", nbNewDecisions, noun)
+	}
 }
 
 func inSlice(s string, slice []string) bool {
@@ -167,8 +227,10 @@ func main() {
 		log.Debugf("InsecureSkipVerify is set to %t", *bouncer.InsecureSkipVerify)
 	}
 
-	t.Go(func() error {
-		bouncer.Run()
+	g, ctx := errgroup.WithContext(context.Background())
+
+	g.Go(func() error {
+		bouncer.Run(ctx)
 		return fmt.Errorf("stream api init failed")
 	})
 
@@ -188,72 +250,24 @@ func main() {
 			log.Error(http.ListenAndServe(listenOn, nil))
 		}()
 	}
-	t.Go(func() error {
-		log.Printf("Processing new and deleted decisions . . .")
+	g.Go(func() error {
+		log.Infof("Processing new and deleted decisions . . .")
 		for {
 			select {
-			case <-t.Dying():
-				log.Errorf("terminating bouncer process")
+			case <-ctx.Done():
+				log.Info("terminating bouncer process")
+				// XXX: no promserver shutdown?
 				return nil
 			case decisions := <-bouncer.Stream:
-				nbDeletedDecisions := 0
-				for _, decision := range decisions.Deleted {
-					if !inSlice(strings.ToLower(*decision.Type), config.SupportedDecisionsTypes) {
-						log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *decision.Value, *decision.Type)
-						continue
-					}
-					if err := backend.Delete(decision); err != nil {
-						if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
-							log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
-						}
-					} else {
-						log.Debugf("deleted '%s'", *decision.Value)
-					}
-					nbDeletedDecisions++
+				if decisions == nil {
+					continue
 				}
-
-				noun := "decisions"
-				if nbDeletedDecisions == 1 {
-					noun = "decision"
-				}
-				if nbDeletedDecisions > 0 {
-					log.Debug("committing expired decisions")
-					if err := backend.Commit(); err != nil {
-						log.Errorf("unable to commit delete decisions %v", err)
-					}
-					log.Debug("committed expired decisions")
-					log.Infof("%d %s deleted", nbDeletedDecisions, noun)
-				}
-
-				nbNewDecisions := 0
-				for _, decision := range decisions.New {
-					if !inSlice(strings.ToLower(*decision.Type), config.SupportedDecisionsTypes) {
-						log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *decision.Value, *decision.Type)
-						continue
-					}
-					if err := backend.Add(decision); err != nil {
-						log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
-					} else {
-						log.Debugf("Adding '%s' for '%s'", *decision.Value, *decision.Duration)
-					}
-					nbNewDecisions++
-				}
-
-				noun = "decisions"
-				if nbNewDecisions == 1 {
-					noun = "decision"
-				}
-				if nbNewDecisions > 0 {
-					log.Debug("committing added decisions")
-					if err := backend.Commit(); err != nil {
-						log.Errorf("unable to commit add decisions %v", err)
-					}
-					log.Debug("committed added decisions")
-					log.Infof("%d %s added", nbNewDecisions, noun)
-				}
+				deleteDecisions(backend, decisions.Deleted, config)
+				addDecisions(backend, decisions.New, config)
 			}
 		}
 	})
+
 	if config.Daemon {
 		sent, err := daemon.SdNotify(false, "READY=1")
 		if !sent && err != nil {
@@ -262,9 +276,7 @@ func main() {
 		go HandleSignals(backend)
 	}
 
-	err = t.Wait()
-
-	if err != nil {
+	if err := g.Wait(); err != nil {
 		log.Errorf("process return with error: %s", err)
 	}
 }
