@@ -58,11 +58,8 @@ clean: clean-debian
 
 .PHONY: func-tests
 func-tests: build
-	( \
-	$(PYTHON) -m venv test/venv ; \
-	tests/venv/bin/$(PIP) install -r test/requirements.txt ; \
-	sudo test/venv/bin/$(PYTHON) -B -m unittest -v ; \
-	)
+	pipenv install --dev
+	pipenv run pytest -v
 
 .PHONY: release
 release: build
