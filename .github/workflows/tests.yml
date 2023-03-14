@@ -61,8 +61,8 @@ jobs:
     - name: Install functional test dependencies
       run: |
         sudo apt install -y nftables iptables ipset
-        python3 -m pip install --upgrade pipenv wheel
-        pipenv install --deploy
+        sudo python3 -m pip install --upgrade pipenv wheel
+        sudo pipenv install --deploy
         docker network create net-test
 
     - name: Run functional tests
@@ -72,7 +72,7 @@ jobs:
         CROWDSEC_TEST_NETWORK: net-test
         CROWDSEC_TEST_TIMEOUT: 60
       run: |
-        pipenv run pytest --durations=0 --color=yes
+        sudo pipenv run pytest --durations=0 --color=yes
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
