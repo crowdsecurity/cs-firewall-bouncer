@@ -93,9 +93,9 @@ func deleteDecisions(backend *backendCTX, decisions []*models.Decision, config *
 			if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
 				log.Errorf("unable to delete decision for '%s': %s", *d.Value, err)
 			}
-		} else {
-			log.Debugf("deleted '%s'", *d.Value)
+			continue
 		}
+		log.Debugf("deleted '%s'", *d.Value)
 		nbDeletedDecisions++
 	}
 
@@ -106,7 +106,8 @@ func deleteDecisions(backend *backendCTX, decisions []*models.Decision, config *
 	if nbDeletedDecisions > 0 {
 		log.Debug("committing expired decisions")
 		if err := backend.Commit(); err != nil {
-			log.Errorf("unable to commit delete decisions %v", err)
+			log.Errorf("unable to commit expired decisions %v", err)
+			return
 		}
 		log.Debug("committed expired decisions")
 		log.Infof("%d %s deleted", nbDeletedDecisions, noun)
@@ -122,9 +123,10 @@ func addDecisions(backend *backendCTX, decisions []*models.Decision, config *bou
 		}
 		if err := backend.Add(d); err != nil {
 			log.Errorf("unable to insert decision for '%s': %s", *d.Value, err)
-		} else {
-			log.Debugf("Adding '%s' for '%s'", *d.Value, *d.Duration)
+			continue
 		}
+
+		log.Debugf("Adding '%s' for '%s'", *d.Value, *d.Duration)
 		nbNewDecisions++
 	}
 
@@ -136,6 +138,7 @@ func addDecisions(backend *backendCTX, decisions []*models.Decision, config *bou
 		log.Debug("committing added decisions")
 		if err := backend.Commit(); err != nil {
 			log.Errorf("unable to commit add decisions %v", err)
+			return
 		}
 		log.Debug("committed added decisions")
 		log.Infof("%d %s added", nbNewDecisions, noun)
@@ -205,7 +208,7 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	if err := backend.Init(); err != nil {
+	if err = backend.Init(); err != nil {
 		log.Fatalf(err.Error())
 	}
 	// No call to fatalf after this point
@@ -256,7 +259,6 @@ func main() {
 			select {
 			case <-ctx.Done():
 				log.Info("terminating bouncer process")
-				// XXX: no promserver shutdown?
 				return nil
 			case decisions := <-bouncer.Stream:
 				if decisions == nil {
