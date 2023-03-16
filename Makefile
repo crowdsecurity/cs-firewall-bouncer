@@ -38,6 +38,7 @@ lint:
 build: goversion clean
 	$(GOBUILD) $(LD_OPTS) $(BUILD_VENDOR_FLAGS) -o $(BINARY_NAME)
 
+.PHONY: test
 test:
 	@$(GOTEST) $(LD_OPTS) ./...
 
@@ -53,15 +54,12 @@ clean: clean-debian
 	@$(RM) $(BINARY_NAME)
 	@$(RM) -r ${RELDIR}
 	@$(RM) crowdsec-firewall-bouncer.tgz
-	@$(RM) -r tests/venv
+	@$(RM) -r test/venv
 
 .PHONY: func-tests
 func-tests: build
-	( \
-	$(PYTHON) -m venv tests/venv ; \
-	tests/venv/bin/$(PIP) install -r tests/requirements.txt ; \
-	sudo tests/venv/bin/$(PYTHON) -B -m unittest -v ; \
-	)
+	pipenv install --dev
+	pipenv run pytest -v
 
 .PHONY: release
 release: build

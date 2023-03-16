@@ -1,0 +1,86 @@
+name: Build + tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        go-version: ["1.20.1"]
+
+    name: "Build + tests"
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+          ~/Library/Caches/go-build
+          %LocalAppData%\go-build
+        key: ${{ runner.os }}-${{ matrix.go-version }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.go-version }}-go-
+
+    - name: Build
+      run: |
+        make build
+
+    - name: Run unit tests
+      run: |
+        go install github.com/kyoh86/richgo@v0.3.12
+        set -o pipefail
+        make test | richgo testfilter
+      env:
+        RICHGO_FORCE_COLOR: 1
+
+    - name: Cache virtualenvs
+      id: cache-pipenv
+      uses: actions/cache@v3
+      with:
+        path: ~/.local/share/virtualenvs
+        key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+
+    - name: Install functional test dependencies
+      run: |
+        sudo apt install -y nftables iptables ipset
+        sudo python3 -m pip install --upgrade pipenv wheel
+        sudo pipenv install --deploy
+        docker network create net-test
+
+    - name: Run functional tests
+      env:
+        CROWDSEC_TEST_VERSION: dev
+        CROWDSEC_TEST_FLAVORS: full
+        CROWDSEC_TEST_NETWORK: net-test
+        CROWDSEC_TEST_TIMEOUT: 60
+      run: |
+        sudo pipenv run pytest --durations=0 --color=yes
+
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: v1.51
+        args: --issues-exit-code=1 --timeout 10m
+        only-new-issues: false
+        # the cache is already managed above, enabling it here
+        # gives errors when extracting
+        skip-pkg-cache: true
+        skip-build-cache: true
