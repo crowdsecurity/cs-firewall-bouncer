@@ -10,8 +10,7 @@ ExecStartPre=${BIN} -c ${CFG}crowdsec-firewall-bouncer.yaml -t
 ExecStartPost=/bin/sleep 0.1
 Restart=always
 RestartSec=10
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
-
-
