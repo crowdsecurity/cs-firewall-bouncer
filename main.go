@@ -59,27 +59,14 @@ func backendCleanup(backend *backendCTX) {
 
 func HandleSignals(backend *backendCTX) {
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan,
-		syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGTERM)
 
-	exitChan := make(chan int)
-	go func() {
-		for {
-			s := <-signalChan
-			switch s {
-			// kill -SIGTERM XXXX
-			case syscall.SIGTERM:
-				if err := termHandler(s, backend); err != nil {
-					log.Fatalf("shutdown fail: %s", err)
-				}
-				exitChan <- 0
-			}
-		}
-	}()
-
-	code := <-exitChan
+	s := <-signalChan
+	if err := termHandler(s, backend); err != nil {
+		log.Fatalf("shutdown fail: %s", err)
+	}
 	log.Infof("Shutting down firewall-bouncer service")
-	os.Exit(code)
+	os.Exit(0)
 }
 
 func deleteDecisions(backend *backendCTX, decisions []*models.Decision, config *bouncerConfig) {
