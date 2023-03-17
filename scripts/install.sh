@@ -21,11 +21,13 @@ API_KEY=""
 
 check_pkg_manager(){
     if [ -f /etc/redhat-release ]; then
-        PKG="yum"
-    elif grep -q "Amazon Linux release 2 (Karoo)" </etc/system-release; then
-        PKG="yum"
+        PKG="yum install -y"
+    elif grep -q "Amazon Linux release 2 (Karoo)" /etc/system-release 2>/dev/null; then
+        PKG="yum install -y"
+    elif grep -q "suse" /etc/os-release 2>/dev/null; then
+        PKG="zypper install -y"
     elif [ -f /etc/debian_version ]; then
-        PKG="apt"
+        PKG="apt install -y -qq"
     else
         echo "Distribution is not supported, exiting."
         exit
@@ -61,7 +63,7 @@ check_firewall() {
             answer="y"
         fi
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            "$PKG" install -y -qq nftables > /dev/null && echo "nftables successfully installed"
+            $PKG nftables > /dev/null && echo "nftables successfully installed"
         else
             echo "unable to continue without nftables. Please install nftables or iptables to use this bouncer."
             exit 1
@@ -108,7 +110,7 @@ check_ipset() {
             answer="y"
         fi
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            "$PKG" install -y -qq ipset > /dev/null && echo "ipset successfully installed"
+            $PKG ipset > /dev/null && echo "ipset successfully installed"
         else
             echo "unable to continue without ipset. Exiting"
             exit 1
