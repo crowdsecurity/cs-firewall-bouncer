@@ -65,6 +65,7 @@ type bouncerConfig struct {
 	NftablesHooks []string `yaml:"nftables_hooks"`
 	PF            struct {
 		AnchorName string `yaml:"anchor_name"`
+		BatchSize  int    `yaml:"batch_size"`
 	} `yaml:"pf"`
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
 }

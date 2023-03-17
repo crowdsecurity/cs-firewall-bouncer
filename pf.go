@@ -4,149 +4,64 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	log "github.com/sirupsen/logrus"
 )
 
-type pfContext struct {
-	proto   string
-	anchor  string
-	table   string
-	version string
-}
-
 type pf struct {
-	inet  *pfContext
-	inet6 *pfContext
+	inet              *pfContext
+	inet6             *pfContext
+	decisionsToAdd    []*models.Decision
+	decisionsToDelete []*models.Decision
 }
 
 const (
-	backendName = "pf"
-
 	pfctlCmd = "/sbin/pfctl"
 	pfDevice = "/dev/pf"
-
-	addBanFormat = "%s: add ban on %s for %s sec (%s)"
-	delBanFormat = "%s: del ban on %s for %s sec (%s)"
 )
 
 func newPF(config *bouncerConfig) (backend, error) {
 	ret := &pf{}
 
+	batchSize := config.PF.BatchSize
+	if batchSize == 0 {
+		batchSize = 2000
+	}
+
 	inetCtx := &pfContext{
-		table:   config.BlacklistsIpv4,
-		proto:   "inet",
-		anchor:  config.PF.AnchorName,
-		version: "ipv4",
+		table:     config.BlacklistsIpv4,
+		proto:     "inet",
+		anchor:    config.PF.AnchorName,
+		version:   "ipv4",
+		batchSize: batchSize,
 	}
 
 	inet6Ctx := &pfContext{
-		table:   config.BlacklistsIpv6,
-		proto:   "inet6",
-		anchor:  config.PF.AnchorName,
-		version: "ipv6",
+		table:     config.BlacklistsIpv6,
+		proto:     "inet6",
+		anchor:    config.PF.AnchorName,
+		version:   "ipv6",
+		batchSize: batchSize,
 	}
 
 	ret.inet = inetCtx
 
-	if config.DisableIPV6 {
-		return ret, nil
+	if !config.DisableIPV6 {
+		ret.inet6 = inet6Ctx
 	}
-
-	ret.inet6 = inet6Ctx
 
 	return ret, nil
 }
 
+// execPfctl runs a pfctl command by prepending the anchor name if we have one.
 func execPfctl(anchor string, arg ...string) *exec.Cmd {
 	if anchor != "" {
 		arg = append([]string{"-a", anchor}, arg...)
 	}
+	log.Tracef("Running: %s %s", pfctlCmd, arg)
 	return exec.Command(pfctlCmd, arg...)
-}
-
-func (ctx *pfContext) checkTable() error {
-	log.Infof("Checking pf table: %s", ctx.table)
-
-	cmd := execPfctl(ctx.anchor, "-s", "Tables")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("pfctl error: %s - %w", out, err)
-	}
-
-	if !strings.Contains(string(out), ctx.table) {
-		if ctx.anchor != "" {
-			return fmt.Errorf("table %s in anchor %s doesn't exist", ctx.table, ctx.anchor)
-		}
-		return fmt.Errorf("table %s doesn't exist", ctx.table)
-	}
-
-	return nil
-}
-
-func (ctx *pfContext) shutDown() error {
-	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "flush")
-	log.Infof("pf table clean-up: %s", cmd.String())
-	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Errorf("Error while flushing table (%s): %v --> %s", cmd.String(), err, string(out))
-	}
-
-	return nil
-}
-
-func (ctx *pfContext) Add(decision *models.Decision) error {
-	banDuration, err := time.ParseDuration(*decision.Duration)
-	if err != nil {
-		return err
-	}
-
-	log.Debugf(addBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
-
-	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "add", *decision.Value)
-	log.Debugf("pfctl add: %s", cmd.String())
-	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Infof("Error while adding to table (%s): %v --> %s", cmd.String(), err, string(out))
-	}
-
-	cmd = execPfctl("", "-k", *decision.Value)
-	log.Debugf("pfctl flush state: %s", cmd.String())
-	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Infof("Error while flushing state (%s): %v --> %s", cmd.String(), err, string(out))
-	}
-
-	return nil
-}
-
-func (ctx *pfContext) Delete(decision *models.Decision) error {
-	banDuration, err := time.ParseDuration(*decision.Duration)
-	if err != nil {
-		return err
-	}
-
-	log.Debugf(delBanFormat, backendName, *decision.Value, strconv.Itoa(int(banDuration.Seconds())), *decision.Scenario)
-	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "delete", *decision.Value)
-	log.Debugf("pfctl del: %s", cmd.String())
-	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Infof("Error while deleting from table (%s): %v --> %s", cmd.String(), err, string(out))
-	}
-	return nil
-}
-
-func initPF(ctx *pfContext) error {
-	if err := ctx.shutDown(); err != nil {
-		return fmt.Errorf("pf table flush failed: %w", err)
-	}
-	if err := ctx.checkTable(); err != nil {
-		return fmt.Errorf("pf init failed: %w", err)
-	}
-
-	log.Infof("%s initiated for %s", backendName, ctx.version)
-
-	return nil
 }
 
 func (pf *pf) Init() error {
@@ -158,12 +73,12 @@ func (pf *pf) Init() error {
 		return fmt.Errorf("%s command not found: %w", pfctlCmd, err)
 	}
 
-	if err := initPF(pf.inet); err != nil {
+	if err := pf.inet.init(); err != nil {
 		return err
 	}
 
 	if pf.inet6 != nil {
-		if err := initPF(pf.inet6); err != nil {
+		if err := pf.inet6.init(); err != nil {
 			return err
 		}
 	}
@@ -172,21 +87,82 @@ func (pf *pf) Init() error {
 }
 
 func (pf *pf) Commit() error {
+	defer pf.reset()
+	if err := pf.commitDeletedDecisions(); err != nil {
+		return err
+	}
+	if err := pf.commitAddedDecisions(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (pf *pf) Add(decision *models.Decision) error {
-	if strings.Contains(*decision.Value, ":") && pf.inet6 != nil { // inet6
+	pf.decisionsToAdd = append(pf.decisionsToAdd, decision)
+	return nil
+}
+
+func (pf *pf) reset() {
+	pf.decisionsToAdd = make([]*models.Decision, 0)
+	pf.decisionsToDelete = make([]*models.Decision, 0)
+}
+
+func (pf *pf) commitDeletedDecisions() error {
+	ipv4decisions := make([]*models.Decision, 0)
+	ipv6decisions := make([]*models.Decision, 0)
+
+	for _, d := range pf.decisionsToDelete {
+		if strings.Contains(*d.Value, ":") && pf.inet6 != nil {
+			ipv6decisions = append(ipv6decisions, d)
+		} else {
+			ipv4decisions = append(ipv4decisions, d)
+		}
+	}
+
+	if len(ipv6decisions) > 0 {
 		if pf.inet6 == nil {
-			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
-			return nil
+			log.Debugf("not removing '%d' decisions because ipv6 is disabled", len(ipv6decisions))
+		} else {
+			if err := pf.inet6.delete(ipv6decisions); err != nil {
+				return err
+			}
 		}
-		if err := pf.inet6.Add(decision); err != nil {
-			return fmt.Errorf("failed to add ban ip '%s' to inet6 table", *decision.Value)
+	}
+
+	if len(ipv4decisions) > 0 {
+		if err := pf.inet.delete(ipv4decisions); err != nil {
+			return err
 		}
-	} else { // inet
-		if err := pf.inet.Add(decision); err != nil {
-			return fmt.Errorf("failed adding ban ip '%s' to inet table", *decision.Value)
+	}
+
+	return nil
+}
+
+func (pf *pf) commitAddedDecisions() error {
+	ipv4decisions := make([]*models.Decision, 0)
+	ipv6decisions := make([]*models.Decision, 0)
+
+	for _, d := range pf.decisionsToAdd {
+		if strings.Contains(*d.Value, ":") && pf.inet6 != nil {
+			ipv6decisions = append(ipv6decisions, d)
+		} else {
+			ipv4decisions = append(ipv4decisions, d)
+		}
+	}
+
+	if len(ipv6decisions) > 0 {
+		if pf.inet6 == nil {
+			log.Debugf("not adding '%d' decisions because ipv6 is disabled", len(ipv6decisions))
+		} else {
+			if err := pf.inet6.add(ipv6decisions); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(ipv4decisions) > 0 {
+		if err := pf.inet.add(ipv4decisions); err != nil {
+			return err
 		}
 	}
 
@@ -197,20 +173,7 @@ func (pf *pf) CollectMetrics() {
 }
 
 func (pf *pf) Delete(decision *models.Decision) error {
-	if strings.Contains(*decision.Value, ":") { // ipv6
-		if pf.inet6 == nil {
-			log.Debugf("not removing '%s' because ipv6 is disabled", *decision.Value)
-			return nil
-		}
-		if err := pf.inet6.Delete(decision); err != nil {
-			return fmt.Errorf("failed to remove ban ip '%s' from inet6 table", *decision.Value)
-		}
-	} else { // ipv4
-		if err := pf.inet.Delete(decision); err != nil {
-			return fmt.Errorf("failed to remove ban ip '%s' from inet6 table", *decision.Value)
-		}
-	}
-
+	pf.decisionsToDelete = append(pf.decisionsToDelete, decision)
 	return nil
 }
 
