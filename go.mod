@@ -5,13 +5,13 @@ go 1.20
 require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/crowdsecurity/crowdsec v1.4.6
-	github.com/crowdsecurity/go-cs-bouncer v0.0.2-0.20221213104739-135edd169942
+	github.com/crowdsecurity/go-cs-bouncer v0.0.3
 	github.com/google/nftables v0.0.0-20220808154552-2eca00135732
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
+	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.6.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -48,8 +48,8 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	go.mongodb.org/mongo-driver v1.10.2 // indirect
 	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sync v0.0.0-20220907140024-f12130a52804 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
