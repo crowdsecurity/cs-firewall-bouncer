@@ -106,14 +106,12 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 
 	log.Tracef("New banned IPs: %v", bannedIPs)
 
-	// Reset state for all IPs that were just banned, to drop any existing connections
-
 	stateIPs, err := getStateIPs()
 	if err != nil {
 		return fmt.Errorf("error while getting state IPs: %w", err)
 	}
 
-	// flush the states of connections coming from an IP if it's both in stateIPs and bannedIPs
+	// Reset the states of connections coming from an IP if it's both in stateIPs and bannedIPs
 
 	for ip := range bannedIPs {
 		if stateIPs[ip] {
