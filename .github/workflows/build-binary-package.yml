@@ -1,74 +1,37 @@
 # .github/workflows/build-docker-image.yml
 name: build-binary-package
 
-on: 
+on:
   release:
     types: prereleased
 
+env:
+  PROGRAM_NAME: crowdsec-blocklist-mirror
+
 jobs:
-  build-binary-package:
-    name: Build and upload binary package
+  build:
+    name: Build and upload all platforms
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        static: [false, true]
-        target:
-          - goarch: 386
-            arch: i386
-            goarm: ""
-          - goarch: arm64
-            arch: aarch64
-            goarm: ""
-          - goarch: arm
-            arch: armv7
-            goarm: "7"
-          - goarch: arm
-            arch: armhf
-            goarm: "6"
-          - goarch: amd64
-            arch: amd64
-            goarm: ""
+
     steps:
+
     - name: Set up Go 1.20.1
       uses: actions/setup-go@v3
       with:
         go-version: 1.20.1
-      id: go
-    - name: Check out code into the Go module directory
+
+    - name: Check out repository
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - name: Build ${{ matrix.target.arch }} binaries
-      env:
-        GOARCH: ${{ matrix.target.goarch }}
-        GOARM: ${{ matrix.target.goarm }}
+    - name: Build all versions
       run: |
-        make release
-        mv crowdsec-firewall-bouncer.tgz crowdsec-firewall-bouncer-${{ matrix.target.arch }}.tgz
-      if: ${{ !matrix.static }}
-
-    - name: Build ${{ matrix.target.arch }} binaries (static)
-      env:
-        GOARCH: ${{ matrix.target.goarch }}
-        GOARM: ${{ matrix.target.goarm }}
-      run: |
-        make release BUILD_STATIC=yes
-        mv crowdsec-firewall-bouncer.tgz crowdsec-firewall-bouncer-${{ matrix.target.arch }}-static.tgz
-      if: ${{ matrix.static }}
+        make platform-all
 
     - name: Upload to release
-      uses: JasonEtco/upload-to-release@master
-      with:
-        args: crowdsec-firewall-bouncer-${{ matrix.target.arch }}.tgz application/x-gzip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: ${{ !matrix.static }}
-
-    - name: Upload to release (static)
-      uses: JasonEtco/upload-to-release@master
-      with:
-        args: crowdsec-firewall-bouncer-${{ matrix.target.arch }}-static.tgz application/x-gzip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: ${{ matrix.static }}
+      run: |
+        tag_name="${GITHUB_REF##*/}"
+        hub release edit $(find . -name "$PROGRAM_NAME*" -maxdepth 1 -printf "-a %p ") -m "" "$tag_name"
