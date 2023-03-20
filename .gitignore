@@ -16,8 +16,8 @@
 
 # built binaries
 /crowdsec-firewall-bouncer
+/crowdsec-firewall-bouncer-*
 /crowdsec-firewall-bouncer.tgz
-/crowdsec-firewall-bouncer*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
