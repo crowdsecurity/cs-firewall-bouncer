@@ -58,47 +58,60 @@ rm -rf %{buildroot}
 
 systemctl daemon-reload
 
-START=0
+BACKEND=iptables
+CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 
-#install
-if [ "$1" == "1" ]; then
+START=1
 
-    if command -v cscli >/dev/null; then
-        START=1
-        echo "cscli/crowdsec is present, generating API key"
-        unique=$(date +%s)
-        API_KEY=$(cscli -oraw bouncers add FirewallBouncer-"$unique")
-        if [ $? -eq 1 ]; then
-            echo "failed to create API token, service won't be started."
-            START=0
-            API_KEY="<API_KEY>"
-        else
-            echo "API Key : ${API_KEY}"
-        fi
+do_configure() {
+    before=$(cat "$CONFIG")
+    # shellcheck disable=SC2016
+    after=$(envsubst '$BACKEND $API_KEY' < "$CONFIG")
+
+    # are both BACKEND and API_KEY already set?
+    if [ "$before" = "$after" ]; then
+        return
     fi
 
-    TMP=$(mktemp -p /tmp/)
-    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml "$TMP"
-    BACKEND=iptables API_KEY="$API_KEY" envsubst < "$TMP" | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    rm "$TMP"
-else
-    START=1
+    # if we can't set the key, the user will take care of it
+    API_KEY="<API_KEY>"
+
+    if command -v cscli >/dev/null; then
+        echo "cscli/crowdsec is present, generating API key" >&2
+        unique=$(date +%s)
+        bouncer_id="FirewallBouncer-$unique"
+        API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
+        if [ $? -eq 1 ]; then
+            echo "failed to create API token" >&2
+            START=0
+        else
+            echo "API Key: ${API_KEY}" >&2
+            echo "$bouncer_id" > "$CONFIG.id"
+        fi
+    else
+        START=0
+    fi
+
+    # shellcheck disable=SC2016
+    echo "$before" | BACKEND=$BACKEND API_KEY="$API_KEY" envsubst '$BACKEND $API_KEY' | install -m 0600 /dev/stdin "$CONFIG"
+}
+
+if [ "$1" = "configure" ]; then
+    do_configure
 fi
 
 %systemd_post crowdsec-firewall-bouncer.service
 
 if command -v cscli >/dev/null; then
-    START=1
     PORT=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
     if [ "$PORT" != "" ]; then
-       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" "$CONFIG"
+       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" "$CONFIG"
     fi
 fi
 
-
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, won't start or enable the service"
+    echo "no api key was generated, won't start or enable the service" >&2
 else
     %if 0%{?fc35}
     systemctl enable crowdsec-firewall-bouncer
@@ -126,30 +139,46 @@ Requires: nftables,gettext
 
 systemctl daemon-reload
 
-START=0
+BACKEND=nftables
+CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 
-# install
-if [ "$1" == "1" ]; then
-    if command -v cscli >/dev/null; then
-        START=1
-        echo "cscli/crowdsec is present, generating API key"
-        unique=$(date +%s)
-        API_KEY=$(cscli -oraw bouncers add FirewallBouncer-"$unique")
-        if [ $? -eq 1 ]; then
-            echo "failed to create API token, service won't be started."
-            START=0
-            API_KEY="<API_KEY>"
-        else
-            echo "API Key : ${API_KEY}"
-        fi
+START=1
+
+do_configure() {
+    before=$(cat "$CONFIG")
+    # shellcheck disable=SC2016
+    after=$(envsubst '$BACKEND $API_KEY' < "$CONFIG")
+
+    # are both BACKEND and API_KEY already set?
+    if [ "$before" = "$after" ]; then
+        return
     fi
 
-    TMP=$(mktemp -p /tmp/)
-    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml "$TMP"
-    BACKEND=nftables API_KEY="$API_KEY" envsubst < "$TMP" | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    rm "$TMP"
-else
-    START=1
+    # if we can't set the key, the user will take care of it
+    API_KEY="<API_KEY>"
+
+    if command -v cscli >/dev/null; then
+        echo "cscli/crowdsec is present, generating API key" >&2
+        unique=$(date +%s)
+        bouncer_id="FirewallBouncer-$unique"
+        API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
+        if [ $? -eq 1 ]; then
+            echo "failed to create API token" >&2
+            START=0
+        else
+            echo "API Key: ${API_KEY}" >&2
+            echo "$bouncer_id" > "$CONFIG.id"
+        fi
+    else
+        START=0
+    fi
+
+    # shellcheck disable=SC2016
+    echo "$before" | BACKEND=$BACKEND API_KEY="$API_KEY" envsubst '$BACKEND $API_KEY' | install -m 0600 /dev/stdin "$CONFIG"
+}
+
+if [ "$1" = "configure" ]; then
+    do_configure
 fi
 
 %systemd_post crowdsec-firewall-bouncer.service
@@ -157,21 +186,19 @@ fi
 if command -v cscli >/dev/null; then
     PORT=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
     if [ "$PORT" != "" ]; then
-       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" "$CONFIG"
+       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" "$CONFIG"
     fi
 fi
 
-
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, won't start or enable the service"
+    echo "no api key was generated, won't start or enable the service" >&2
 else
     %if 0%{?fc35}
     systemctl enable crowdsec-firewall-bouncer
     %endif
     systemctl start crowdsec-firewall-bouncer
 fi
-
 
 %preun -p /bin/bash
 
@@ -190,15 +217,34 @@ fi
 
 %postun -p /bin/bash
 
-if [ "$1" == "1" ]; then
+CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+
+if [ "$1" == "0" ]; then
+    # If the bouncer ID was stored and wasn't deleted, try and unregister it from
+    # the API, without failing if that doesn't work for some reason:
+    if [ -f "$CONFIG.id" ]; then
+        bouncer_id=$(cat "$CONFIG.id")
+        cscli -oraw bouncers delete "$bouncer_id" 2>/dev/null || true
+        rm -f "$CONFIG.id"
+    fi
+else
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
 
 
 %postun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
 
-if [ "$1" == "1" ]; then
+CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+
+if [ "$1" == "0" ]; then
+    # If the bouncer ID was stored and wasn't deleted, try and unregister it from
+    # the API, without failing if that doesn't work for some reason:
+    if [ -f "$CONFIG.id" ]; then
+        bouncer_id=$(cat "$CONFIG.id")
+        cscli -oraw bouncers delete "$bouncer_id" 2>/dev/null || true
+        rm -f "$CONFIG.id"
+    fi
+else
     systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
-
 
