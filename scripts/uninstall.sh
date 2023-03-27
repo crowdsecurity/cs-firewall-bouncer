@@ -3,7 +3,6 @@
 set -e
 
 set_colors() {
-    #shellcheck disable=SC2034
     if [ ! -t 0 ]; then
         # terminal is not interactive; no colors
         FG_RED=""
