@@ -54,9 +54,8 @@ BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
 BIN_PATH="./$BOUNCER"
 
 upgrade_bin() {
-    # shellcheck disable=SC2310
     if [ ! -f "$BIN_PATH" ]; then
-        msg err "$BIN_PATH binary not found, exiting."
+        msg err "$BIN_PATH not found, exiting."
         exit 1
     fi
     if [ ! -e "$BIN_PATH_INSTALLED" ]; then

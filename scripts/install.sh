@@ -3,7 +3,6 @@
 set -e
 
 set_colors() {
-    #shellcheck disable=SC2034
     if [ ! -t 0 ]; then
         # terminal is not interactive; no colors
         FG_RED=""
@@ -165,6 +164,10 @@ set_local_port() {
 }
 
 install_bouncer() {
+    if [ ! -f "$BIN_PATH" ]; then
+        msg err "$BIN_PATH not found, exiting."
+        exit 1
+    fi
     if [ -e "$BIN_PATH_INSTALLED" ]; then
         msg warn "$BIN_PATH_INSTALLED is already installed. Exiting"
         exit 1
