@@ -53,7 +53,7 @@ rm -rf %{buildroot}
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
-%post -p /bin/bash
+%post -p /bin/sh
 
 systemctl daemon-reload
 
@@ -134,7 +134,7 @@ Requires: nftables,gettext
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 
-%post -p /bin/bash -n crowdsec-firewall-bouncer-nftables
+%post -p /bin/sh -n crowdsec-firewall-bouncer-nftables
 
 systemctl daemon-reload
 
@@ -199,22 +199,22 @@ else
     systemctl start crowdsec-firewall-bouncer
 fi
 
-%preun -p /bin/bash
+%preun -p /bin/sh
 
-if [ "$1" == "0" ]; then
+if [ "$1" = "0" ]; then
     systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
     systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
 fi
 
-%preun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
+%preun -p /bin/sh -n crowdsec-firewall-bouncer-nftables
 
-if [ "$1" == "0" ]; then
+if [ "$1" = "0" ]; then
     systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
     systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
 fi
 
 
-%postun -p /bin/bash
+%postun -p /bin/sh
 
 CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 
@@ -227,11 +227,11 @@ if [ "$1" == "0" ]; then
         rm -f "$CONFIG.id"
     fi
 else
-    systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
+    systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
 
 
-%postun -p /bin/bash -n crowdsec-firewall-bouncer-nftables
+%postun -p /bin/sh -n crowdsec-firewall-bouncer-nftables
 
 CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
 
@@ -244,6 +244,6 @@ if [ "$1" == "0" ]; then
         rm -f "$CONFIG.id"
     fi
 else
-    systemctl restart  crowdsec-firewall-bouncer || echo "cannot restart service"
+    systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
 
