@@ -11,7 +11,6 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  git
 BuildRequires:  make
-BuildRequires:  jq
 %{?fc33:BuildRequires: systemd-rpm-macros}
 
 Requires: iptables,ipset,gettext,ipset-libs
