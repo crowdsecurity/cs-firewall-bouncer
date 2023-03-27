@@ -40,7 +40,8 @@ def _static():
 def _build_tarball(os):
     if os == 'linux':
         yield True
-    yield False
+    else:
+        yield False
 
 
 def filename_for_entry(prog_name, entry):
