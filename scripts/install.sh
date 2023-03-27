@@ -47,6 +47,7 @@ fi
 # --------------------------------- #
 
 BOUNCER="crowdsec-firewall-bouncer"
+BOUNCER_PREFIX="cs-firewall-bouncer"
 SERVICE="$BOUNCER.service"
 BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
 BIN_PATH="./$BOUNCER"
@@ -138,7 +139,7 @@ gen_apikey() {
     if command -v cscli >/dev/null; then
         msg succ "cscli found, generating bouncer api key."
         unique=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8)
-        bouncer_id="cs-firewall-bouncer-$unique"
+        bouncer_id="$BOUNCER_PREFIX-$unique"
         API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
         echo "$bouncer_id" > "$CONFIG.id"
         msg info "API Key: $API_KEY"

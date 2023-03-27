@@ -2,8 +2,11 @@
 
 systemctl daemon-reload
 
-BACKEND=iptables
-CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+BOUNCER="crowdsec-firewall-bouncer"
+BOUNCER_PREFIX="FirewallBouncer"
+SERVICE="$BOUNCER.service"
+CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
+BACKEND="iptables"
 
 START=1
 
@@ -12,7 +15,7 @@ do_configure() {
     # shellcheck disable=SC2016
     after=$(envsubst '$BACKEND $API_KEY' < "$CONFIG")
 
-    # are both BACKEND and API_KEY already set?
+    # is the configuration already done?
     if [ "$before" = "$after" ]; then
         return
     fi
@@ -23,7 +26,7 @@ do_configure() {
     if command -v cscli >/dev/null; then
         echo "cscli/crowdsec is present, generating API key" >&2
         unique=$(date +%s)
-        bouncer_id="FirewallBouncer-$unique"
+        bouncer_id="$BOUNCER_PREFIX-$unique"
         API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
         if [ $? -eq 1 ]; then
             echo "failed to create API token" >&2
@@ -52,10 +55,10 @@ if command -v cscli >/dev/null; then
     fi
 fi
 
-systemctl --quiet is-enabled crowdsec-firewall-bouncer || systemctl unmask crowdsec-firewall-bouncer && systemctl enable crowdsec-firewall-bouncer
+systemctl --quiet is-enabled "$SERVICE" || systemctl unmask "$SERVICE" && systemctl enable "$SERVICE"
 
 if [ "$START" -eq 0 ]; then
     echo "no api key was generated, won't start the service" >&2
 else
-    systemctl start crowdsec-firewall-bouncer
+    systemctl start "$SERVICE"
 fi
