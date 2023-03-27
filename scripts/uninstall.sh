@@ -39,7 +39,6 @@ msg() {
     esac
 }
 
-
 #shellcheck disable=SC2312
 if [ "$(id -u)" -ne 0 ]; then
     msg warn "Please run $0 as root or with sudo"
@@ -48,14 +47,17 @@ fi
 
 # --------------------------------- #
 
-BIN_PATH_INSTALLED="/usr/local/bin/crowdsec-firewall-bouncer"
+BOUNCER="crowdsec-firewall-bouncer"
+SERVICE="$BOUNCER.service"
+BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
 CONFIG_DIR="/etc/crowdsec/bouncers"
-CONFIG="${CONFIG_DIR}/crowdsec-firewall-bouncer.yaml"
-LOG_FILE="/var/log/crowdsec-firewall-bouncer.log"
-SYSTEMD_PATH_FILE="/etc/systemd/system/crowdsec-firewall-bouncer.service"
+CONFIG_FILE="$BOUNCER.yaml"
+CONFIG="$CONFIG_DIR/$CONFIG_FILE"
+LOG_FILE="/var/log/$BOUNCER.log"
+SYSTEMD_PATH_FILE="/etc/systemd/system/$SERVICE"
 
 uninstall() {
-    systemctl stop crowdsec-firewall-bouncer
+    systemctl stop "$SERVICE"
     if [ -f "$CONFIG.id" ]; then
         bouncer_id=$(cat "$CONFIG.id")
         cscli -oraw bouncers delete "$bouncer_id" || true
@@ -69,5 +71,5 @@ uninstall() {
 
 uninstall
 
-msg succ "crowdsec-firewall-bouncer uninstalled successfully"
+msg succ "$BOUNCER uninstalled successfully"
 exit 0

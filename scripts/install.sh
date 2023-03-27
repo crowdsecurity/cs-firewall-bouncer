@@ -39,7 +39,6 @@ msg() {
     esac
 }
 
-
 #shellcheck disable=SC2312
 if [ "$(id -u)" -ne 0 ]; then
     msg warn "Please run $0 as root or with sudo"
@@ -53,13 +52,11 @@ SERVICE="$BOUNCER.service"
 BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
 BIN_PATH="./$BOUNCER"
 CONFIG_DIR="/etc/crowdsec/bouncers"
-CONFIG="${CONFIG_DIR}/$BOUNCER.yaml"
+CONFIG_FILE="$BOUNCER.yaml"
+CONFIG="$CONFIG_DIR/$CONFIG_FILE"
 SYSTEMD_PATH_FILE="/etc/systemd/system/$SERVICE"
 
-# Default firewall backend is nftables
-FW_BACKEND="nftables"
-API_KEY=""
-
+API_KEY="<API_KEY>"
 
 install_pkg() {
     pkg="$1"
@@ -79,9 +76,9 @@ install_pkg() {
     return 0
 }
 
-
 check_firewall() {
-    FW_BACKEND=""
+    # Default firewall backend is nftables
+    FW_BACKEND="nftables"
 
     iptables="true"
     if command -v iptables >/dev/null; then 
@@ -125,28 +122,6 @@ check_firewall() {
     fi
 }
 
-
-gen_apikey() {
-    if command -v cscli >/dev/null; then
-        msg succ "cscli found, generating bouncer api key."
-        unique=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8)
-        bouncer_id="cs-firewall-bouncer-$unique"
-        API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
-        echo "$bouncer_id" > "$CONFIG.id"
-        msg info "API Key: ${API_KEY}"
-        READY="yes"
-    else
-        msg warn "cscli not found, you will need to generate an api key."
-        READY="no"
-    fi
-}
-
-
-gen_config_file() {
-    (umask 077; API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst <./config/crowdsec-firewall-bouncer.yaml >"$CONFIG")
-}
-
-
 check_ipset() {
     if ! command -v ipset >/dev/null; then
         printf '%s ' "ipset not found, do you want to install it (Y/n) ?"
@@ -160,6 +135,24 @@ check_ipset() {
     fi
 }
 
+gen_apikey() {
+    if command -v cscli >/dev/null; then
+        msg succ "cscli found, generating bouncer api key."
+        unique=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8)
+        bouncer_id="cs-firewall-bouncer-$unique"
+        API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
+        echo "$bouncer_id" > "$CONFIG.id"
+        msg info "API Key: $API_KEY"
+        READY="yes"
+    else
+        msg warn "cscli not found, you will need to generate an api key."
+        READY="no"
+    fi
+}
+
+gen_config_file() {
+    (umask 077; API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst <"./config/$CONFIG_FILE" >"$CONFIG")
+}
 
 set_local_port() {
     if command -v cscli >/dev/null; then
@@ -171,7 +164,6 @@ set_local_port() {
     fi
 }
 
-
 install_bouncer() {
     if [ -e "$BIN_PATH_INSTALLED" ]; then
         msg warn "$BIN_PATH_INSTALLED is already installed. Exiting"
@@ -181,14 +173,15 @@ install_bouncer() {
     check_firewall
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
     mkdir -p "$CONFIG_DIR"
-    install -m 0600 "./config/crowdsec-firewall-bouncer.yaml" "$CONFIG"
-    CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst < "./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
+    install -m 0600 "./config/$CONFIG_FILE" "$CONFIG"
+    CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst <"./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
     systemctl daemon-reload
     gen_apikey
     gen_config_file
     set_local_port
 }
 
+# --------------------------------- #
 
 set_colors
 install_bouncer
