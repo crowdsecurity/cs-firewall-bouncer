@@ -17,10 +17,10 @@ LD_OPTS_VARS=\
 -X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.Tag=$(BUILD_TAG)'
 
 ifdef BUILD_STATIC
-	export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
-else
-	export LD_OPTS=-ldflags "-a -s -w $(LD_OPTS_VARS)"
+$(warning WARNING: The BUILD_STATIC variable is deprecated and has no effect. Builds are static by default since v1.5.0.)
 endif
+
+export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
 
 .PHONY: all
 all: build
