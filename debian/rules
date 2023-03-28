@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-export DEB_VERSION=$(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+export DEB_VERSION=$(shell dpkg-parsechangelog | grep -E '^Version:' | cut -f 2 -d ' ')
 export BUILD_VERSION=v${DEB_VERSION}-debian-pragmatic
 export GO111MODULE=on
 
@@ -15,21 +15,16 @@ override_dh_auto_test:
 override_dh_auto_build:
 override_dh_auto_install:
 	make
-	
-	mkdir -p debian/crowdsec-firewall-bouncer-iptables/usr/sbin
-	mkdir -p debian/crowdsec-firewall-bouncer-nftables/usr/sbin
 
-	cp crowdsec-firewall-bouncer  debian/crowdsec-firewall-bouncer-iptables/usr/sbin
-	cp crowdsec-firewall-bouncer  debian/crowdsec-firewall-bouncer-nftables/usr/sbin
-
-	mkdir -p debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec/bouncers/
-	mkdir -p debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec/bouncers/
-	install -m 0600 config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-iptables/etc/crowdsec/bouncers/
-	install -m 0600 config/crowdsec-firewall-bouncer.yaml debian/crowdsec-firewall-bouncer-nftables/etc/crowdsec/bouncers/
-
-	mkdir -p debian/crowdsec-firewall-bouncer-iptables/etc/systemd/system/
-	mkdir -p debian/crowdsec-firewall-bouncer-nftables/etc/systemd/system/
-
-	BIN=/usr/sbin/crowdsec-firewall-bouncer CFG=/etc/crowdsec/bouncers/ envsubst < config/crowdsec-firewall-bouncer.service >  debian/crowdsec-firewall-bouncer-iptables/etc/systemd/system/crowdsec-firewall-bouncer.service
-	BIN=/usr/sbin/crowdsec-firewall-bouncer CFG=/etc/crowdsec/bouncers/ envsubst < config/crowdsec-firewall-bouncer.service >  debian/crowdsec-firewall-bouncer-nftables/etc/systemd/system/crowdsec-firewall-bouncer.service
-
+	for BACKEND in iptables nftables; do \
+		BOUNCER=crowdsec-firewall-bouncer; \
+		PKG=$$BOUNCER-$$BACKEND; \
+		mkdir -p "debian/$$PKG/usr/sbin"; \
+		cp $$BOUNCER "debian/$$PKG/usr/sbin"; \
+		mkdir -p "debian/$$PKG/usr/lib/$$PKG"; \
+		install -m 0700 config/helper.sh "debian/$$PKG/usr/lib/$$PKG/"; \
+		mkdir -p "debian/$$PKG/etc/crowdsec/bouncers/"; \
+		(umask 077; BACKEND=$$BACKEND envsubst '$$BACKEND' < config/$$BOUNCER.yaml > "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"); \
+		mkdir -p "debian/$$PKG/etc/systemd/system/"; \
+		BIN=/usr/sbin/$$BOUNCER CFG=/etc/crowdsec/bouncers envsubst '$$BIN $$CFG' < config/$$BOUNCER.service > "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"; \
+	done

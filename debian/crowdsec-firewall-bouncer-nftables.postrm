@@ -2,11 +2,10 @@
 
 set -e
 
-CONFIG=/etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+BOUNCER="crowdsec-firewall-bouncer"
+CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
 
 if [ "$1" = "purge" ]; then
-    # If the bouncer ID was stored and wasn't deleted, try and unregister it from
-    # the API, without failing if that doesn't work for some reason
     if [ -f "$CONFIG.id" ]; then
         bouncer_id=$(cat "$CONFIG.id")
         cscli -oraw bouncers delete "$bouncer_id" 2>/dev/null || true

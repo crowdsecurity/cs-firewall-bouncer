@@ -3,59 +3,23 @@
 systemctl daemon-reload
 
 BOUNCER="crowdsec-firewall-bouncer"
-BOUNCER_PREFIX="FirewallBouncer"
-SERVICE="$BOUNCER.service"
 CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
-BACKEND=nftables
+SERVICE="$BOUNCER.service"
 
+helper="/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/helper.sh"
 START=1
 
-do_configure() {
-    before=$(cat "$CONFIG")
-    # shellcheck disable=SC2016
-    after=$(envsubst '$BACKEND $API_KEY' < "$CONFIG")
-
-    # is the configuration already done?
-    if [ "$before" = "$after" ]; then
-        return
-    fi
-
-    # if we can't set the key, the user will take care of it
-    API_KEY="<API_KEY>"
-
-    if command -v cscli >/dev/null; then
-        echo "cscli/crowdsec is present, generating API key" >&2
-        unique=$(date +%s)
-        bouncer_id="$BOUNCER_PREFIX-$unique"
-        API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
-        if [ $? -eq 1 ]; then
-            echo "failed to create API token" >&2
-            START=0
-        else
-            echo "API Key: ${API_KEY}" >&2
-            echo "$bouncer_id" > "$CONFIG.id"
-        fi
-    else
-        START=0
-    fi
-
-    # shellcheck disable=SC2016
-    echo "$before" | BACKEND=$BACKEND API_KEY="$API_KEY" envsubst '$BACKEND $API_KEY' | install -m 0600 /dev/stdin "$CONFIG"
-}
-
 if [ "$1" = "configure" ]; then
-    do_configure
-fi
-
-if command -v cscli >/dev/null; then
-    PORT=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
-    if [ "$PORT" != "" ]; then
-       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" "$CONFIG"
-       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" "$CONFIG"
+    if $helper need-api-key "$CONFIG"; then
+        if ! $helper set-api-key "$CONFIG" "FirewallBouncer"; then
+            START=0
+        fi
     fi
 fi
 
 systemctl --quiet is-enabled "$SERVICE" || systemctl unmask "$SERVICE" && systemctl enable "$SERVICE"
+
+$helper set-local-port "$CONFIG"
 
 if [ "$START" -eq 0 ]; then
     echo "no api key was generated, won't start the service" >&2
