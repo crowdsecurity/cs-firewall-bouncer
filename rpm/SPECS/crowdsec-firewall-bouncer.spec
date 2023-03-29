@@ -30,20 +30,14 @@ Requires: iptables,ipset,gettext,ipset-libs
 
 %build
 BUILD_VERSION=%{local_version} make
-before=$(cat config/%{name}.service)
-echo "$before" | BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' > config/%{name}.service
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}%{_presetdir}
-install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
-mkdir -p %{buildroot}/etc/crowdsec/bouncers
-BACKEND=$(echo %{name} | sed 's/crowdsec-firewall-bouncer-//')
-(umask 077; BACKEND=$BACKEND envsubst '$BACKEND' < config/crowdsec-firewall-bouncer.yaml > %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml)
-mkdir -p %{buildroot}/usr/lib/%{name}
-install -m 700 -D config/helper.sh %{buildroot}/usr/lib/%{name}/
-install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-install -m 644 -D %{SOURCE1} %{buildroot}%{_presetdir}
+install -D -m 755 %{name} %{buildroot}%{_bindir}/%{name}
+BACKEND=$(echo %{name} | sed 's/crowdsec-firewall-bouncer-//') envsubst '$BACKEND' < config/crowdsec-firewall-bouncer.yaml | install -D -m 0600 /dev/stdin %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml)
+install -D -m 700 config/helper.sh %{buildroot}/usr/lib/%{name}/
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' < config/%{name}.service | install -D -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
+install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/
 
 %clean
 rm -rf %{buildroot}

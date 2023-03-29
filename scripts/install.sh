@@ -176,8 +176,7 @@ install_bouncer() {
     msg info "Installing $BOUNCER"
     check_firewall
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
-    mkdir -p "$CONFIG_DIR"
-    install -m 0600 "./config/$CONFIG_FILE" "$CONFIG"
+    install -D -m 0600 "./config/$CONFIG_FILE" "$CONFIG"
     CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst <"./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
     systemctl daemon-reload
     gen_apikey
