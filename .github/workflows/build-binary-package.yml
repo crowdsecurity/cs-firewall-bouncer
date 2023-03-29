@@ -1,12 +1,15 @@
-# .github/workflows/build-docker-image.yml
 name: build-binary-package
 
 on:
   release:
     types: prereleased
 
+permissions:
+  # Use write for: hub release edit
+  contents: write
+
 env:
-  PROGRAM_NAME: crowdsec-blocklist-mirror
+  PROGRAM_NAME: crowdsec-firewall-bouncer
 
 jobs:
   build:

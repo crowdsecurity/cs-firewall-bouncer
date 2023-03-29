@@ -41,7 +41,6 @@ clean: clean-release-dir clean-debian
 	@$(RM) $(TARBALL_NAME)
 	@$(RM) -r $(BINARY_NAME)-*	# platform binary name and leftover release dir
 	@$(RM) $(BINARY_NAME)-*.tgz	# platform release file
-	@$(RM) -r test/venv
 
 #
 # Build binaries
