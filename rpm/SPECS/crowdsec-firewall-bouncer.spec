@@ -51,6 +51,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 /usr/bin/%{name}
+/usr/lib/%{name}/helper.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
