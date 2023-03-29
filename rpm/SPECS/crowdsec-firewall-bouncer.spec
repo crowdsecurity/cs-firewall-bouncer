@@ -39,7 +39,7 @@ mkdir -p %{buildroot}%{_presetdir}
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
 mkdir -p %{buildroot}/etc/crowdsec/bouncers
 BACKEND=$(echo %{name} | sed 's/crowdsec-firewall-bouncer-//')
-(umask 077; BACKEND=$BACKEND envsubst '$BACKEND' < config/%{name}.yaml > %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml)
+(umask 077; BACKEND=$BACKEND envsubst '$BACKEND' < config/crowdsec-firewall-bouncer.yaml > %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml)
 mkdir -p %{buildroot}/usr/lib/%{name}
 install -m 700 -D config/helper.sh %{buildroot}/usr/lib/%{name}/
 install -m 644 -D config/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
