@@ -18,13 +18,13 @@ override_dh_auto_install:
 
 	for BACKEND in iptables nftables; do \
 		BOUNCER=crowdsec-firewall-bouncer; \
-		PKG=$$BOUNCER-$$BACKEND; \
-		mkdir -p "debian/$$PKG/usr/sbin"; \
-		cp $$BOUNCER "debian/$$PKG/usr/sbin"; \
+		PKG="$$BOUNCER-$$BACKEND"; \
+		mkdir -p "debian/$$PKG/usr/bin"; \
+		cp $$BOUNCER "debian/$$PKG/usr/bin"; \
 		mkdir -p "debian/$$PKG/usr/lib/$$PKG"; \
 		install -m 0700 config/helper.sh "debian/$$PKG/usr/lib/$$PKG/"; \
 		mkdir -p "debian/$$PKG/etc/crowdsec/bouncers/"; \
 		(umask 077; BACKEND=$$BACKEND envsubst '$$BACKEND' < config/$$BOUNCER.yaml > "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"); \
 		mkdir -p "debian/$$PKG/etc/systemd/system/"; \
-		BIN=/usr/sbin/$$BOUNCER CFG=/etc/crowdsec/bouncers envsubst '$$BIN $$CFG' < config/$$BOUNCER.service > "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"; \
+		BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" > "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"; \
 	done

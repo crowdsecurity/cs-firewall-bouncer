@@ -3,8 +3,12 @@ GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
 
 BINARY_NAME=crowdsec-firewall-bouncer
-REPO_NAME=cs-firewall-bouncer
+GO_MODULE_NAME=github.com/crowdsecurity/cs-firewall-bouncer
 TARBALL_NAME=$(BINARY_NAME).tgz
+
+ifdef BUILD_STATIC
+$(warning WARNING: The BUILD_STATIC variable is deprecated and has no effect. Builds are static by default since v1.5.0.)
+endif
 
 # Current versioning information from env
 BUILD_VERSION?=$(shell git describe --tags)
@@ -12,18 +16,15 @@ BUILD_TIMESTAMP?=$(shell date +%F"_"%T)
 BUILD_TAG?=$(shell git rev-parse HEAD)
 
 LD_OPTS_VARS=\
--X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.Version=$(BUILD_VERSION)' \
--X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.BuildDate=$(BUILD_TIMESTAMP)' \
--X 'github.com/crowdsecurity/$(REPO_NAME)/pkg/version.Tag=$(BUILD_TAG)'
+-X '$(GO_MODULE_NAME)/pkg/version.Version=$(BUILD_VERSION)' \
+-X '$(GO_MODULE_NAME)/pkg/version.BuildDate=$(BUILD_TIMESTAMP)' \
+-X '$(GO_MODULE_NAME)/pkg/version.Tag=$(BUILD_TAG)'
 
-ifdef BUILD_STATIC
-$(warning WARNING: The BUILD_STATIC variable is deprecated and has no effect. Builds are static by default since v1.5.0.)
-endif
-
-export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" -tags netgo
+export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
+	-trimpath -tags netgo
 
 .PHONY: all
-all: build
+all: build test
 
 clean-debian:
 	@$(RM) -r debian/crowdsec-firewall-bouncer-iptables

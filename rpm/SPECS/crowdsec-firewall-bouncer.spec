@@ -35,7 +35,6 @@ echo "$before" | BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$B
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/usr/sbin
 mkdir -p %{buildroot}%{_presetdir}
 install -m 755 -D %{name}  %{buildroot}%{_bindir}/%{name}
 mkdir -p %{buildroot}/etc/crowdsec/bouncers
