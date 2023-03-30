@@ -36,8 +36,9 @@ set_api_key() {
     fi
 
     (
-        before=$(cat "$CONFIG")
         umask 077
+        # can't use redirection while overwriting a file
+        before=$(cat "$CONFIG")
         # shellcheck disable=SC2016
         echo "$before" | API_KEY="$API_KEY" envsubst '$API_KEY' > "$CONFIG"
     )

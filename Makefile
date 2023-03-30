@@ -10,7 +10,7 @@ ifdef BUILD_STATIC
 $(warning WARNING: The BUILD_STATIC variable is deprecated and has no effect. Builds are static by default since v1.5.0.)
 endif
 
-# Current versioning information from env
+# Versioning information can be overridden in the environment
 BUILD_VERSION?=$(shell git describe --tags)
 BUILD_TIMESTAMP?=$(shell date +%F"_"%T)
 BUILD_TAG?=$(shell git rev-parse HEAD)

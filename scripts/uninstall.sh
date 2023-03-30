@@ -70,5 +70,5 @@ uninstall() {
 
 uninstall
 
-msg succ "$BOUNCER uninstalled successfully"
+msg succ "$BOUNCER has been successfully uninstalled"
 exit 0

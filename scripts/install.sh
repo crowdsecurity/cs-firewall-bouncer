@@ -151,7 +151,11 @@ gen_apikey() {
 }
 
 gen_config_file() {
-    (umask 077; API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst <"./config/$CONFIG_FILE" >"$CONFIG")
+    (
+        umask 077
+        # shellcheck disable=SC2016
+        API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst '$API_KEY $BACKEND' <"./config/$CONFIG_FILE" >"$CONFIG"
+    )
 }
 
 set_local_port() {
@@ -177,7 +181,8 @@ install_bouncer() {
     check_firewall
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
     install -D -m 0600 "./config/$CONFIG_FILE" "$CONFIG"
-    CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst <"./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
+    # shellcheck disable=SC2016
+    CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst '$CFG $BIN' <"./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
     systemctl daemon-reload
     gen_apikey
     gen_config_file
