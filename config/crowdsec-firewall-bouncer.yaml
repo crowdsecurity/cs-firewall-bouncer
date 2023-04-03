@@ -42,10 +42,6 @@ nftables:
     set-only: false
     table: crowdsec6
     chain: crowdsec6-chain
-nftables_hooks:
-  - input
-  - forward
-
 # packet filter
 pf:
   # an empty string disables the anchor
