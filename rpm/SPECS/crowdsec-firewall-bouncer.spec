@@ -33,11 +33,11 @@ BUILD_VERSION=%{local_version} make
 
 %install
 rm -rf %{buildroot}
-install -D -m 755 %{name} %{buildroot}%{_bindir}/%{name}
+install -D -m 755 %{name} -t %{buildroot}%{_bindir}/
 BACKEND=$(echo %{name} | sed 's/crowdsec-firewall-bouncer-//') envsubst '$BACKEND' < config/crowdsec-firewall-bouncer.yaml | install -D -m 0600 /dev/stdin %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
-install -D -m 700 config/helper.sh %{buildroot}/usr/lib/%{name}/helper.sh
+install -D -m 700 config/helper.sh -t %{buildroot}/usr/lib/%{name}/
 BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' < config/%{name}.service | install -D -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
-install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/%{SOURCE1}
+install -D -m 644 %{SOURCE1} -t %{buildroot}%{_presetdir}/
 
 %clean
 rm -rf %{buildroot}

@@ -30,8 +30,8 @@ clean-debian:
 	@$(RM) -r debian/crowdsec-firewall-bouncer-iptables
 	@$(RM) -r debian/crowdsec-firewall-bouncer-nftables
 	@$(RM) -r debian/files
+	@$(RM) -r debian/.debhelper
 	@$(RM) -r debian/*.substvars
-	@$(RM) -r debian/*.debhelper
 	@$(RM) -r debian/*-stamp
 
 # Remove everything including all platform binaries and tarballs

@@ -2,8 +2,6 @@
 
 export DEB_VERSION=$(shell dpkg-parsechangelog | grep -E '^Version:' | cut -f 2 -d ' ')
 export BUILD_VERSION=v${DEB_VERSION}-debian-pragmatic
-export GO111MODULE=on
-
 
 %:
 	dh $@
@@ -16,11 +14,11 @@ override_dh_auto_build:
 override_dh_auto_install:
 	make
 
+	BOUNCER=crowdsec-firewall-bouncer; \
 	for BACKEND in iptables nftables; do \
-		BOUNCER=crowdsec-firewall-bouncer; \
 		PKG="$$BOUNCER-$$BACKEND"; \
-		install -D -m 0755 $$BOUNCER "debian/$$PKG/usr/bin/"; \
-		install -D -m 0700 config/helper.sh "debian/$$PKG/usr/lib/$$PKG/"; \
+		install -D -m 0755 $$BOUNCER -t "debian/$$PKG/usr/bin/"; \
+		install -D -m 0700 config/helper.sh -t "debian/$$PKG/usr/lib/$$PKG/"; \
 		BACKEND=$$BACKEND envsubst '$$BACKEND' < config/$$BOUNCER.yaml | install -D -m 0600 /dev/stdin "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"; \
 		BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" | install -D -m 0644 /dev/stdin "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"; \
 	done

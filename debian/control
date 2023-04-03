@@ -1,7 +1,6 @@
 Source: crowdsec-firewall-bouncer
 Maintainer: Crowdsec Team <debian@crowdsec.net>
-Build-Depends: debhelper, bash, git
-
+Build-Depends: debhelper, git
 
 Package: crowdsec-firewall-bouncer-iptables
 Architecture: any
