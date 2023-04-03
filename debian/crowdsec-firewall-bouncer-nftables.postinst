@@ -22,7 +22,7 @@ systemctl --quiet is-enabled "$SERVICE" || systemctl unmask "$SERVICE" && system
 $helper set-local-port "$CONFIG"
 
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
+    echo "no api key was generated, you can generate one on your LAPI server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
 else
     systemctl start "$SERVICE"
 fi

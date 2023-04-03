@@ -15,4 +15,3 @@ Description: Firewall bouncer for Crowdsec (nftables)
 Depends: nftables, gettext-base
 Replaces: crowdsec-firewall-bouncer
 Conflicts: crowdsec-firewall-bouncer-iptables
-
