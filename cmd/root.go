@@ -13,19 +13,18 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-systemd/v22/daemon"
+	"github.com/crowdsecurity/crowdsec/pkg/models"
+	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/crowdsecurity/crowdsec/pkg/models"
-	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
-
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/backend"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 )
 
 const (

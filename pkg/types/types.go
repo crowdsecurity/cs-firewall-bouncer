@@ -1,6 +1,6 @@
 package types
 
-import(
+import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 )
 
@@ -12,4 +12,3 @@ type Backend interface {
 	Commit() error
 	CollectMetrics()
 }
-

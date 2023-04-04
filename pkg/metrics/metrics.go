@@ -22,4 +22,3 @@ var TotalActiveBannedIPs = prometheus.NewGauge(prometheus.GaugeOpts{
 	Name: "fw_bouncer_banned_ips",
 	Help: "Denotes the number of IPs which are currently banned",
 })
-
