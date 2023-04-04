@@ -1,4 +1,4 @@
-package main
+package backend
 
 import (
 	"fmt"
@@ -14,31 +14,31 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
-type backendCTX struct {
+type BackendCTX struct {
 	firewall types.Backend
 }
 
-func (b *backendCTX) Init() error {
+func (b *BackendCTX) Init() error {
 	return b.firewall.Init()
 }
 
-func (b *backendCTX) Commit() error {
+func (b *BackendCTX) Commit() error {
 	return b.firewall.Commit()
 }
 
-func (b *backendCTX) ShutDown() error {
+func (b *BackendCTX) ShutDown() error {
 	return b.firewall.ShutDown()
 }
 
-func (b *backendCTX) Add(decision *models.Decision) error {
+func (b *BackendCTX) Add(decision *models.Decision) error {
 	return b.firewall.Add(decision)
 }
 
-func (b *backendCTX) Delete(decision *models.Decision) error {
+func (b *BackendCTX) Delete(decision *models.Decision) error {
 	return b.firewall.Delete(decision)
 }
 
-func (b *backendCTX) CollectMetrics() {
+func (b *BackendCTX) CollectMetrics() {
 	b.firewall.CollectMetrics()
 }
 
@@ -55,10 +55,10 @@ func isPFSupported(runtimeOS string) bool {
 	return supported
 }
 
-func newBackend(config *cfg.BouncerConfig) (*backendCTX, error) {
+func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 	var err error
 
-	b := &backendCTX{}
+	b := &BackendCTX{}
 	log.Printf("backend type : %s", config.Mode)
 	if config.DisableIPV6 {
 		log.Println("IPV6 is disabled")
