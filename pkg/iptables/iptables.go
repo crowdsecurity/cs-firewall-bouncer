@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package main
+package iptables
 
 import (
 	"encoding/xml"
@@ -16,12 +16,13 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 const (
 	IPTablesDroppedPacketIdx = 0
 	IPTablesDroppedByteIdx   = 1
-	MetricCollectionInterval = time.Second * 10
 )
 
 type iptables struct {
@@ -29,7 +30,7 @@ type iptables struct {
 	v6 *ipTablesContext
 }
 
-func newIPTables(config *cfg.BouncerConfig) (backend, error) {
+func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	var err error
 	var ret = &iptables{}
 	ipv4Ctx := &ipTablesContext{
@@ -198,15 +199,15 @@ func (ipt *iptables) CollectMetrics() {
 		return droppedPackets, droppedBytes
 	}
 
-	t := time.NewTicker(MetricCollectionInterval)
+	t := time.NewTicker(metrics.MetricCollectionInterval)
 	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes float64
 	for range t.C {
 		ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
 		if ipt.v6 != nil {
 			ip6DroppedPackets, ip6DroppedBytes = collectDroppedPackets(ipt.v6.iptablesBin, ipt.v6.Chains, ipt.v6.SetName)
 		}
-		totalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-		totalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
+		metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
+		metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
 
 		out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
 		if err != nil {
@@ -229,7 +230,7 @@ func (ipt *iptables) CollectMetrics() {
 				newCount += count
 			}
 		}
-		totalActiveBannedIPs.Set(newCount)
+		metrics.TotalActiveBannedIPs.Set(newCount)
 	}
 }
 

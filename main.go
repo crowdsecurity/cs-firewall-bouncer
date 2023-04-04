@@ -24,26 +24,12 @@ import (
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
 const (
 	name = "crowdsec-firewall-bouncer"
 )
-
-var totalDroppedPackets = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "fw_bouncer_dropped_packets",
-	Help: "Denotes the number of total dropped packets because of rule(s) created by crowdsec",
-})
-
-var totalDroppedBytes = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "fw_bouncer_dropped_bytes",
-	Help: "Denotes the number of total dropped bytes because of rule(s) created by crowdsec",
-})
-
-var totalActiveBannedIPs = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "fw_bouncer_banned_ips",
-	Help: "Denotes the number of IPs which are currently banned",
-})
 
 func termHandler(sig os.Signal, backend *backendCTX) error {
 	if err := backend.ShutDown(); err != nil {
@@ -228,7 +214,7 @@ func main() {
 	if config.PrometheusConfig.Enabled {
 		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode {
 			go backend.CollectMetrics()
-			prometheus.MustRegister(totalDroppedBytes, totalDroppedPackets, totalActiveBannedIPs)
+			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs)
 		}
 		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 		go func() {

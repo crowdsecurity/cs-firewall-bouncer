@@ -1,4 +1,4 @@
-package main
+package pf
 
 import (
 	"fmt"
@@ -11,6 +11,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 type pf struct {
@@ -25,7 +26,7 @@ const (
 	pfDevice = "/dev/pf"
 )
 
-func newPF(config *cfg.BouncerConfig) (backend, error) {
+func NewPF(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret := &pf{}
 
 	batchSize := config.PF.BatchSize

@@ -8,19 +8,14 @@ import (
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/iptables"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/nftables"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/pf"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
-type backend interface {
-	Init() error
-	ShutDown() error
-	Add(*models.Decision) error
-	Delete(*models.Decision) error
-	Commit() error
-	CollectMetrics()
-}
-
 type backendCTX struct {
-	firewall backend
+	firewall types.Backend
 }
 
 func (b *backendCTX) Init() error {
@@ -73,7 +68,7 @@ func newBackend(config *cfg.BouncerConfig) (*backendCTX, error) {
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("iptables and ipset is linux only")
 		}
-		b.firewall, err = newIPTables(config)
+		b.firewall, err = iptables.NewIPTables(config)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +76,7 @@ func newBackend(config *cfg.BouncerConfig) (*backendCTX, error) {
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("nftables is linux only")
 		}
-		b.firewall, err = newNFTables(config)
+		b.firewall, err = nftables.NewNFTables(config)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +84,7 @@ func newBackend(config *cfg.BouncerConfig) (*backendCTX, error) {
 		if !isPFSupported(runtime.GOOS) {
 			log.Warning("pf mode can only work with openbsd and freebsd. It is available on other platforms only for testing purposes")
 		}
-		b.firewall, err = newPF(config)
+		b.firewall, err = pf.NewPF(config)
 		if err != nil {
 			return nil, err
 		}
