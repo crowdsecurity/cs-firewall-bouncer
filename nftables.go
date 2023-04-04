@@ -12,11 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+
+	"github.com/crowdsecurity/crowdsec/pkg/models"
 )
 
 var defaultTimeout = "4h"
@@ -128,7 +129,7 @@ func (n *nft) CollectMetrics() {
 		cmd := exec.Command(path, "-j", "list", "chain", family, tableName, chainName)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return 0, 0, fmt.Errorf("while running %s: %s", cmd.String(), err)
+			return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
 		}
 		parsedOut := Counter{}
 		if err := json.Unmarshal(out, &parsedOut); err != nil {
@@ -152,7 +153,7 @@ func (n *nft) CollectMetrics() {
 		cmd := exec.Command(path, "-j", "list", "set", family, tableName, setName)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return 0, fmt.Errorf("while running %s: %s", cmd.String(), err)
+			return 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
 		}
 		set := Set{}
 		if err := json.Unmarshal(out, &set); err != nil {
@@ -168,7 +169,7 @@ func (n *nft) CollectMetrics() {
 	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes, bannedIP4, bannedIP6 float64
 	for range t.C {
 		for _, hook := range n.Hooks {
-			ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets("ip", n.TableName4, n.ChainName4 + "-" + hook)
+			ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets("ip", n.TableName4, n.ChainName4+"-"+hook)
 			if err != nil {
 				log.Error("can't collect dropped packets for ipv4 from nft: ", err)
 			}
@@ -179,7 +180,7 @@ func (n *nft) CollectMetrics() {
 		}
 		if n.conn6 != nil {
 			for _, hook := range n.Hooks {
-				ip6DroppedPackets, ip6DroppedBytes, err = collectDroppedPackets("ip6", n.TableName6, n.ChainName6 + "-" + hook)
+				ip6DroppedPackets, ip6DroppedBytes, err = collectDroppedPackets("ip6", n.TableName6, n.ChainName6+"-"+hook)
 				if err != nil {
 					log.Error("can't collect dropped packets for ipv6 from nft: ", err)
 				}
