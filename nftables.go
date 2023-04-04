@@ -18,6 +18,8 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 )
 
 var defaultTimeout = "4h"
@@ -54,7 +56,7 @@ type nft struct {
 	Hooks             []string
 }
 
-func newNFTables(config *bouncerConfig) (backend, error) {
+func newNFTables(config *cfg.BouncerConfig) (backend, error) {
 	ret := &nft{}
 
 	if *config.Nftables.Ipv4.Enabled {

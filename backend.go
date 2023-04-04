@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 )
 
 type backend interface {
@@ -59,7 +60,7 @@ func isPFSupported(runtimeOS string) bool {
 	return supported
 }
 
-func newBackend(config *bouncerConfig) (*backendCTX, error) {
+func newBackend(config *cfg.BouncerConfig) (*backendCTX, error) {
 	var err error
 
 	b := &backendCTX{}
@@ -68,7 +69,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		log.Println("IPV6 is disabled")
 	}
 	switch config.Mode {
-	case IptablesMode, IpsetMode:
+	case cfg.IptablesMode, cfg.IpsetMode:
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("iptables and ipset is linux only")
 		}
@@ -76,7 +77,7 @@ func newBackend(config *bouncerConfig) (*backendCTX, error) {
 		if err != nil {
 			return nil, err
 		}
-	case NftablesMode:
+	case cfg.NftablesMode:
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("nftables is linux only")
 		}

@@ -22,6 +22,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 )
 
@@ -69,7 +70,7 @@ func HandleSignals(backend *backendCTX) {
 	os.Exit(0)
 }
 
-func deleteDecisions(backend *backendCTX, decisions []*models.Decision, config *bouncerConfig) {
+func deleteDecisions(backend *backendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbDeletedDecisions := 0
 	for _, d := range decisions {
 		if !inSlice(strings.ToLower(*d.Type), config.SupportedDecisionsTypes) {
@@ -101,7 +102,7 @@ func deleteDecisions(backend *backendCTX, decisions []*models.Decision, config *
 	}
 }
 
-func addDecisions(backend *backendCTX, decisions []*models.Decision, config *bouncerConfig) {
+func addDecisions(backend *backendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbNewDecisions := 0
 	for _, d := range decisions {
 		if !inSlice(strings.ToLower(*d.Type), config.SupportedDecisionsTypes) {
@@ -169,12 +170,12 @@ func main() {
 		log.Fatalf("configuration file is required")
 	}
 
-	configBytes, err := mergedConfig(*configPath)
+	configBytes, err := cfg.MergedConfig(*configPath)
 	if err != nil {
 		log.Fatalf("unable to read config file: %s", err)
 	}
 
-	config, err := newConfig(bytes.NewReader(configBytes))
+	config, err := cfg.NewConfig(bytes.NewReader(configBytes))
 	if err != nil {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
@@ -184,7 +185,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	configureLogging(config)
+	cfg.ConfigureLogging(config)
 
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
@@ -225,7 +226,7 @@ func main() {
 	})
 
 	if config.PrometheusConfig.Enabled {
-		if config.Mode == IptablesMode || config.Mode == NftablesMode {
+		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode {
 			go backend.CollectMetrics()
 			prometheus.MustRegister(totalDroppedBytes, totalDroppedPackets, totalActiveBannedIPs)
 		}

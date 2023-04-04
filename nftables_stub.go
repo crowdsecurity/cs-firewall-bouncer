@@ -3,6 +3,6 @@
 
 package main
 
-func newNFTables(config *bouncerConfig) (backend, error) {
+func newNFTables(config *BouncerConfig) (backend, error) {
 	return nil, nil
 }
