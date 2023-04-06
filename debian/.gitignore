@@ -1,7 +1,0 @@
-# Generated during the build
-/crowdsec-firewall-bouncer-iptables
-/crowdsec-firewall-bouncer-nftables
-/files
-/*.substvars
-/*.debhelper
-/*-stamp

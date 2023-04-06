@@ -1,4 +1,4 @@
-package main
+package cfg
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ const (
 	PfMode       = "pf"
 )
 
-type bouncerConfig struct {
+type BouncerConfig struct {
 	Mode            string    `yaml:"mode"` // ipset,iptables,tc
 	PidDir          string    `yaml:"pid_dir"`
 	UpdateFrequency string    `yaml:"update_frequency"`
@@ -70,8 +70,8 @@ type bouncerConfig struct {
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
 }
 
-// mergedConfig() returns the byte content of the patched configuration file (with .yaml.local).
-func mergedConfig(configPath string) ([]byte, error) {
+// MergedConfig() returns the byte content of the patched configuration file (with .yaml.local).
+func MergedConfig(configPath string) ([]byte, error) {
 	patcher := yamlpatch.NewPatcher(configPath, ".local")
 	data, err := patcher.MergedPatchContent()
 	if err != nil {
@@ -81,21 +81,21 @@ func mergedConfig(configPath string) ([]byte, error) {
 
 }
 
-func newConfig(reader io.Reader) (*bouncerConfig, error) {
-	config := &bouncerConfig{}
+func NewConfig(reader io.Reader) (*BouncerConfig, error) {
+	config := &BouncerConfig{}
 
 	fcontent, err := io.ReadAll(reader)
 	if err != nil {
-		return &bouncerConfig{}, err
+		return &BouncerConfig{}, err
 	}
 	err = yaml.Unmarshal(fcontent, &config)
 	if err != nil {
-		return &bouncerConfig{}, fmt.Errorf("failed to unmarshal: %w", err)
+		return &BouncerConfig{}, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
 	err = validateConfig(*config)
 	if err != nil {
-		return &bouncerConfig{}, err
+		return &BouncerConfig{}, err
 	}
 
 	if len(config.SupportedDecisionsTypes) == 0 {
@@ -148,11 +148,11 @@ func newConfig(reader io.Reader) (*bouncerConfig, error) {
 	return config, nil
 }
 
-func pfConfig(config *bouncerConfig) error {
+func pfConfig(config *BouncerConfig) error {
 	return nil
 }
 
-func nftablesConfig(config *bouncerConfig) error {
+func nftablesConfig(config *BouncerConfig) error {
 	// deal with defaults in a backward compatible way
 	if config.Nftables.Ipv4.Enabled == nil {
 		config.Nftables.Ipv4.Enabled = types.BoolPtr(true)
@@ -197,7 +197,7 @@ func nftablesConfig(config *bouncerConfig) error {
 	return nil
 }
 
-func configureLogging(config *bouncerConfig) {
+func ConfigureLogging(config *BouncerConfig) {
 	var LogOutput *lumberjack.Logger // io.Writer
 
 	/* Configure logging */
@@ -247,7 +247,7 @@ func configureLogging(config *bouncerConfig) {
 	}
 }
 
-func validateConfig(config bouncerConfig) error {
+func validateConfig(config BouncerConfig) error {
 	if config.Mode == "" || config.LogMode == "" {
 		return fmt.Errorf("config does not contain mode and log mode")
 	}

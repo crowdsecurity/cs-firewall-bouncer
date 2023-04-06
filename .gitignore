@@ -1,10 +1,3 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
 # Test binary, built with `go test -c`
 *.test
 
@@ -14,13 +7,21 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# built binaries
-/crowdsec-firewall-bouncer
-/crowdsec-firewall-bouncer.tgz
-/crowdsec-firewall-bouncer*/
-
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 venv/
+
+# built by make
+/crowdsec-firewall-bouncer
+/crowdsec-firewall-bouncer-*
+/crowdsec-firewall-bouncer.tgz
+
+# built by dpkg-buildpackage
+/debian/crowdsec-firewall-bouncer-iptables
+/debian/crowdsec-firewall-bouncer-nftables
+/debian/files
+/debian/*.substvars
+/debian/*.debhelper
+/debian/*-stamp

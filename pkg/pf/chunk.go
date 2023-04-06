@@ -1,4 +1,4 @@
-package main
+package pf
 
 func chunkItems[T any](items []T, chunkSize int) [][]T {
 	// optimization for small slices

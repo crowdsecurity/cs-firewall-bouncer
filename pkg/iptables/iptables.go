@@ -1,24 +1,24 @@
 //go:build linux
 // +build linux
 
-package main
+package iptables
 
 import (
-	"encoding/xml"
 	"fmt"
 	"os/exec"
-	"strconv"
 	"strings"
-	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
-	log "github.com/sirupsen/logrus"
+
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 const (
 	IPTablesDroppedPacketIdx = 0
 	IPTablesDroppedByteIdx   = 1
-	MetricCollectionInterval = time.Second * 10
 )
 
 type iptables struct {
@@ -26,7 +26,7 @@ type iptables struct {
 	v6 *ipTablesContext
 }
 
-func newIPTables(config *bouncerConfig) (backend, error) {
+func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	var err error
 	var ret = &iptables{}
 	ipv4Ctx := &ipTablesContext{
@@ -64,7 +64,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		return nil, fmt.Errorf("unable to find ipset")
 	}
 	ipv4Ctx.ipsetBin = ipsetBin
-	if config.Mode == IpsetMode {
+	if config.Mode == cfg.IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
 	} else {
 		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
@@ -94,7 +94,7 @@ func newIPTables(config *bouncerConfig) (backend, error) {
 		return ret, nil
 	}
 	ipv6Ctx.ipsetBin = ipsetBin
-	if config.Mode == IpsetMode {
+	if config.Mode == cfg.IpsetMode {
 		ipv6Ctx.ipsetContentOnly = true
 	} else {
 		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
@@ -155,79 +155,6 @@ func (ipt *iptables) Init() error {
 
 func (ipt *iptables) Commit() error {
 	return nil
-}
-
-func (ipt *iptables) CollectMetrics() {
-	type Ipsets struct {
-		Ipset []struct {
-			Name   string `xml:"name,attr"`
-			Header struct {
-				Numentries string `xml:"numentries"`
-			} `xml:"header"`
-		} `xml:"ipset"`
-	}
-
-	collectDroppedPackets := func(binaryPath string, chains []string, setName string) (float64, float64) {
-		var droppedPackets, droppedBytes float64
-		for _, chain := range chains {
-			out, err := exec.Command(binaryPath, "-L", chain, "-v", "-x").CombinedOutput()
-			if err != nil {
-				log.Error(string(out), err)
-				continue
-			}
-			for _, line := range strings.Split(string(out), "\n") {
-				if !strings.Contains(line, setName) || strings.Contains(line, "LOG") {
-					continue
-				}
-				parts := strings.Fields(line)
-				tdp, err := strconv.ParseFloat(parts[IPTablesDroppedPacketIdx], 64)
-				if err != nil {
-					log.Error(err.Error())
-				}
-				droppedPackets += tdp
-				tdb, err := strconv.ParseFloat(parts[IPTablesDroppedByteIdx], 64)
-				if err != nil {
-					log.Error(err.Error())
-				}
-				droppedBytes += tdb
-			}
-		}
-		return droppedPackets, droppedBytes
-	}
-
-	t := time.NewTicker(MetricCollectionInterval)
-	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes float64
-	for range t.C {
-		ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
-		if ipt.v6 != nil {
-			ip6DroppedPackets, ip6DroppedBytes = collectDroppedPackets(ipt.v6.iptablesBin, ipt.v6.Chains, ipt.v6.SetName)
-		}
-		totalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-		totalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
-
-		out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-		ipsets := Ipsets{}
-		if err := xml.Unmarshal(out, &ipsets); err != nil {
-			log.Error(err)
-			continue
-		}
-		var newCount float64 = 0
-		for _, ipset := range ipsets.Ipset {
-			if ipset.Name == ipt.v4.SetName || (ipt.v6 != nil && ipset.Name == ipt.v6.SetName) {
-				count, err := strconv.ParseFloat(ipset.Header.Numentries, 64)
-				if err != nil {
-					log.Error("error while parsing  Numentries from ipsets", err)
-					continue
-				}
-				newCount += count
-			}
-		}
-		totalActiveBannedIPs.Set(newCount)
-	}
 }
 
 func (ipt *iptables) Add(decision *models.Decision) error {
