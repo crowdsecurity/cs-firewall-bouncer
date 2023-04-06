@@ -4,11 +4,8 @@
 package nftables
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -20,7 +17,6 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
@@ -95,110 +91,6 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		*config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6)
 
 	return ret, nil
-}
-
-func (n *nft) CollectMetrics() {
-	type Counter struct {
-		Nftables []struct {
-			Rule struct {
-				Expr []struct {
-					Counter *struct {
-						Packets int `json:"packets"`
-						Bytes   int `json:"bytes"`
-					} `json:"counter,omitempty"`
-				} `json:"expr"`
-			} `json:"rule,omitempty"`
-		} `json:"nftables"`
-	}
-
-	type Set struct {
-		Nftables []struct {
-			Set struct {
-				Elem []struct {
-					Elem struct {
-					} `json:"elem"`
-				} `json:"elem"`
-			} `json:"set,omitempty"`
-		} `json:"nftables"`
-	}
-
-	path, err := exec.LookPath("nft")
-	if err != nil {
-		log.Error("can't monitor dropped packets: ", err)
-		return
-	}
-	t := time.NewTicker(metrics.MetricCollectionInterval)
-
-	collectDroppedPackets := func(family string, tableName string, chainName string) (float64, float64, error) {
-		cmd := exec.Command(path, "-j", "list", "chain", family, tableName, chainName)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
-		}
-		parsedOut := Counter{}
-		if err := json.Unmarshal(out, &parsedOut); err != nil {
-			return 0, 0, err
-		}
-		var tdp, tdb float64
-	OUT:
-		for _, r := range parsedOut.Nftables {
-			for _, expr := range r.Rule.Expr {
-				if expr.Counter != nil {
-					tdp = float64(expr.Counter.Packets)
-					tdb = float64(expr.Counter.Bytes)
-					break OUT
-				}
-			}
-		}
-		return tdp, tdb, nil
-	}
-
-	collectActiveBannedIPs := func(family string, tableName string, setName string) (float64, error) {
-		cmd := exec.Command(path, "-j", "list", "set", family, tableName, setName)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
-		}
-		set := Set{}
-		if err := json.Unmarshal(out, &set); err != nil {
-			return 0, err
-		}
-		ret := 0
-		for _, r := range set.Nftables {
-			ret += len(r.Set.Elem)
-		}
-		return float64(ret), nil
-	}
-
-	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes, bannedIP4, bannedIP6 float64
-	for range t.C {
-		for _, hook := range n.Hooks {
-			ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets("ip", n.TableName4, n.ChainName4+"-"+hook)
-			if err != nil {
-				log.Error("can't collect dropped packets for ipv4 from nft: ", err)
-			}
-		}
-		bannedIP4, err = collectActiveBannedIPs("ip", n.TableName4, n.BlacklistsIpv4)
-		if err != nil {
-			log.Error("can't collect total banned IPs for ipv4 from nft:", err)
-		}
-		if n.conn6 != nil {
-			for _, hook := range n.Hooks {
-				ip6DroppedPackets, ip6DroppedBytes, err = collectDroppedPackets("ip6", n.TableName6, n.ChainName6+"-"+hook)
-				if err != nil {
-					log.Error("can't collect dropped packets for ipv6 from nft: ", err)
-				}
-			}
-			bannedIP6, err = collectActiveBannedIPs("ip6", n.TableName6, n.BlacklistsIpv6)
-			if err != nil {
-				log.Error("can't collect total banned IPs for ipv6 from nft:", err)
-			}
-		}
-		metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-		metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
-		metrics.TotalActiveBannedIPs.Set(bannedIP4 + bannedIP6)
-	}
-
 }
 
 func (n *nft) Init() error {
@@ -284,7 +176,6 @@ func (n *nft) Init() error {
 					Offset:       12,
 					Len:          4,
 				})
-
 				// [ lookup reg 1 set whitelist ]
 				r.Exprs = append(r.Exprs, &expr.Lookup{
 					SourceRegister: 1,
@@ -348,6 +239,7 @@ func (n *nft) Init() error {
 			n.set6 = set
 			log.Debug("nftables: ipv6 set '" + n.BlacklistsIpv6 + "' configured")
 		} else {
+			log.Debug("nftables: ipv6 own table")
 			table := &nftables.Table{
 				Family: nftables.TableFamilyIPv6,
 				Name:   n.TableName6,
@@ -365,6 +257,7 @@ func (n *nft) Init() error {
 				return err
 			}
 			n.set6 = set
+
 			for _, hook := range n.Hooks {
 				chain := n.conn6.AddChain(&nftables.Chain{
 					Name:     n.ChainName6 + "-" + hook,
@@ -432,9 +325,13 @@ func (n *nft) Add(decision *models.Decision) error {
 
 // returns a set of currently banned IPs.
 func (n *nft) getCurrentState() (map[string]struct{}, error) {
-	elements, err := n.conn.GetSetElements(n.set)
-	if err != nil {
-		return nil, err
+	elements := make([]nftables.SetElement, 0)
+	if n.conn != nil {
+		ipv4Elements, err := n.conn.GetSetElements(n.set)
+		if err != nil {
+			return nil, err
+		}
+		elements = append(elements, ipv4Elements...)
 	}
 
 	if n.conn6 != nil {
@@ -471,12 +368,14 @@ func (n *nft) commitDeletedDecisions() error {
 			decisionIP := net.ParseIP(*decision.Value)
 			if _, ok := currentState[decisionIP.String()]; ok {
 				log.Debugf("will delete %s", decisionIP)
-				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
-					if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
-						return err
+				if strings.Contains(decisionIP.String(), ":") {
+					if n.conn6 != nil {
+						if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
+							return err
+						}
+						deletedIPV6 = true
 					}
-					deletedIPV6 = true
-				} else {
+				} else if n.conn != nil {
 					if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: decisionIP.To4()}}); err != nil {
 						return err
 					}
@@ -522,12 +421,14 @@ func (n *nft) commitAddedDecisions() error {
 				log.Debugf("skipping %s since it's already in set", decisionIP)
 			} else {
 				t, _ := time.ParseDuration(*decision.Duration)
-				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
-					if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Timeout: t, Key: decisionIP.To16()}}); err != nil {
-						return err
+				if strings.Contains(decisionIP.String(), ":") {
+					if n.conn6 != nil {
+						if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Timeout: t, Key: decisionIP.To16()}}); err != nil {
+							return err
+						}
+						addedIPV6 = true
 					}
-					addedIPV6 = true
-				} else {
+				} else if n.conn != nil {
 					if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Timeout: t, Key: decisionIP.To4()}}); err != nil {
 						return err
 					}
@@ -610,10 +511,9 @@ func (n *nft) ShutDown() error {
 			log.Infof("removing '%s' table", n.table.Name)
 			n.conn.DelTable(n.table)
 		}
-	} // ipv4
-
-	if err := n.conn.Flush(); err != nil {
-		return err
+		if err := n.conn.Flush(); err != nil {
+			return err
+		}
 	}
 
 	if n.conn6 != nil {
