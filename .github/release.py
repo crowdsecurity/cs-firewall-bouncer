@@ -32,15 +32,11 @@ def _goarm(goarch):
     yield '7'
 
 
-def _static():
-    yield True
-    yield False
-
-
 def _build_tarball(os):
     if os == 'linux':
         yield True
-    yield False
+    else:
+        yield False
 
 
 def filename_for_entry(prog_name, entry):
@@ -48,8 +44,6 @@ def filename_for_entry(prog_name, entry):
     if entry['goarch'] == 'arm':
         arch += 'v' + entry['goarm']
     ret = f'{prog_name}-{entry["goos"]}-{arch}'
-    if entry['static']:
-        ret += '-static'
     if entry['build_tarball']:
         ret += '.tgz'
     return ret
@@ -59,15 +53,13 @@ def matrix(prog_name):
     for goos in _goos():
         for goarch in _goarch(goos):
             for goarm in _goarm(goarch):
-                for static in _static():
-                    for build_tarball in _build_tarball(goos):
-                        yield {
-                            'goos': goos,
-                            'goarch': goarch,
-                            'goarm': goarm,
-                            'static': static,
-                            'build_tarball': build_tarball,
-                        }
+                for build_tarball in _build_tarball(goos):
+                    yield {
+                        'goos': goos,
+                        'goarch': goarch,
+                        'goarm': goarm,
+                        'build_tarball': build_tarball,
+                    }
 
 
 def print_matrix(prog_name):
@@ -83,7 +75,6 @@ default_tarball = {
     'goos': 'linux',
     'goarch': 'amd64',
     'goarm': '',
-    'static': False,
     'build_tarball': True,
 }
 
@@ -91,7 +82,6 @@ default_binary = {
     'goos': 'linux',
     'goarch': 'amd64',
     'goarm': '',
-    'static': False,
     'build_tarball': False,
 }
 
@@ -107,9 +97,6 @@ def run_build(prog_name):
 
         if entry['goarm']:
             env['GOARM'] = entry['goarm']
-
-        if entry['static']:
-            env['BUILD_STATIC'] = 'yes'
 
         if entry['build_tarball']:
             target = 'tarball'

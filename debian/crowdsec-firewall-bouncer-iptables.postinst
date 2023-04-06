@@ -2,44 +2,27 @@
 
 systemctl daemon-reload
 
-START=0
+BOUNCER="crowdsec-firewall-bouncer"
+CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
+SERVICE="$BOUNCER.service"
+
+helper="/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/helper.sh"
+START=1
 
 if [ "$1" = "configure" ]; then
-
-    if command -v cscli >/dev/null; then
-        START=1
-        echo "cscli/crowdsec is present, generating API key"
-        unique=$(date +%s)
-        API_KEY=$(cscli -oraw bouncers add FirewallBouncer-"$unique")
-        if [ $? -eq 1 ]; then
-            echo "failed to create API token, service won't be started."
+    if $helper need-api-key "$CONFIG"; then
+        if ! $helper set-api-key "$CONFIG" "FirewallBouncer"; then
             START=0
-            API_KEY="<API_KEY>"
-        else
-            echo "API Key : ${API_KEY}"
         fi
     fi
-
-    TMP=$(mktemp -p /tmp/)
-    install -m 0600 /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml "$TMP"
-    BACKEND=iptables API_KEY="$API_KEY" envsubst < "$TMP" | install -m 0600 /dev/stdin /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    rm "$TMP"
-else
-    START=1
 fi
 
-if command -v cscli >/dev/null; then
-    PORT=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
-    if [ "$PORT" != "" ]; then
-       sed -i "s/localhost:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-       sed -i "s/127.0.0.1:8080/127.0.0.1:${PORT}/g" /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
-    fi
-fi
+systemctl --quiet is-enabled "$SERVICE" || systemctl unmask "$SERVICE" && systemctl enable "$SERVICE"
 
-systemctl --quiet is-enabled crowdsec-firewall-bouncer || systemctl unmask crowdsec-firewall-bouncer && systemctl enable crowdsec-firewall-bouncer
+$helper set-local-port "$CONFIG"
 
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, won't start the service"
+    echo "no api key was generated, you can generate one on your LAPI server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
 else
-    systemctl start crowdsec-firewall-bouncer
+    systemctl start "$SERVICE"
 fi

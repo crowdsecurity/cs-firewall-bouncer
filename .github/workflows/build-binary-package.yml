@@ -1,12 +1,15 @@
-# .github/workflows/build-docker-image.yml
 name: build-binary-package
 
 on:
   release:
     types: prereleased
 
+permissions:
+  # Use write for: hub release edit
+  contents: write
+
 env:
-  PROGRAM_NAME: crowdsec-blocklist-mirror
+  PROGRAM_NAME: crowdsec-firewall-bouncer
 
 jobs:
   build:
@@ -15,10 +18,10 @@ jobs:
 
     steps:
 
-    - name: Set up Go 1.20.1
+    - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.20.1
+        go-version: 1.20.3
 
     - name: Check out repository
       uses: actions/checkout@v3
