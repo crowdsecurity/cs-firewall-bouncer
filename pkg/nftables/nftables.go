@@ -324,9 +324,13 @@ func (n *nft) Add(decision *models.Decision) error {
 
 // returns a set of currently banned IPs.
 func (n *nft) getCurrentState() (map[string]struct{}, error) {
-	elements, err := n.conn.GetSetElements(n.set)
-	if err != nil {
-		return nil, err
+	elements := make([]nftables.SetElement, 0)
+	if n.conn != nil {
+		ipv4Elements, err := n.conn.GetSetElements(n.set)
+		if err != nil {
+			return nil, err
+		}
+		elements = append(elements, ipv4Elements...)
 	}
 
 	if n.conn6 != nil {
@@ -506,10 +510,9 @@ func (n *nft) ShutDown() error {
 			log.Infof("removing '%s' table", n.table.Name)
 			n.conn.DelTable(n.table)
 		}
-	} // ipv4
-
-	if err := n.conn.Flush(); err != nil {
-		return err
+		if err := n.conn.Flush(); err != nil {
+			return err
+		}
 	}
 
 	if n.conn6 != nil {
