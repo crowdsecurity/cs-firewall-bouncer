@@ -8,6 +8,6 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
-func NewIPTables(config *cfg.BouncerConfig) (types.backend, error) {
+func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	return nil, nil
 }

@@ -8,6 +8,6 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
-func NewNFTables(config *cfg.BouncerConfig) (types.backend, error) {
+func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	return nil, nil
 }
