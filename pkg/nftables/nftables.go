@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package main
+package nftables
 
 import (
 	"encoding/json"
@@ -18,6 +18,10 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 var defaultTimeout = "4h"
@@ -54,7 +58,7 @@ type nft struct {
 	Hooks             []string
 }
 
-func newNFTables(config *bouncerConfig) (backend, error) {
+func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret := &nft{}
 
 	if *config.Nftables.Ipv4.Enabled {
@@ -123,7 +127,7 @@ func (n *nft) CollectMetrics() {
 		log.Error("can't monitor dropped packets: ", err)
 		return
 	}
-	t := time.NewTicker(MetricCollectionInterval)
+	t := time.NewTicker(metrics.MetricCollectionInterval)
 
 	collectDroppedPackets := func(family string, tableName string, chainName string) (float64, float64, error) {
 		cmd := exec.Command(path, "-j", "list", "chain", family, tableName, chainName)
@@ -190,9 +194,9 @@ func (n *nft) CollectMetrics() {
 				log.Error("can't collect total banned IPs for ipv6 from nft:", err)
 			}
 		}
-		totalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-		totalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
-		totalActiveBannedIPs.Set(bannedIP4 + bannedIP6)
+		metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
+		metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
+		metrics.TotalActiveBannedIPs.Set(bannedIP4 + bannedIP6)
 	}
 
 }
