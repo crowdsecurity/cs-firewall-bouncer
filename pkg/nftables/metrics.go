@@ -89,15 +89,17 @@ func (n *nft) CollectMetrics() {
 
 	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes, bannedIP4, bannedIP6 float64
 	for range t.C {
-		for _, hook := range n.Hooks {
-			ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets(path, "ip", n.TableName4, n.ChainName4+"-"+hook)
-			if err != nil {
-				log.Error("can't collect dropped packets for ipv4 from nft: ", err)
+		if n.conn != nil {
+			for _, hook := range n.Hooks {
+				ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets(path, "ip", n.TableName4, n.ChainName4+"-"+hook)
+				if err != nil {
+					log.Error("can't collect dropped packets for ipv4 from nft: ", err)
+				}
 			}
-		}
-		bannedIP4, err = collectActiveBannedIPs(path, "ip", n.TableName4, n.BlacklistsIpv4)
-		if err != nil {
-			log.Error("can't collect total banned IPs for ipv4 from nft:", err)
+			bannedIP4, err = collectActiveBannedIPs(path, "ip", n.TableName4, n.BlacklistsIpv4)
+			if err != nil {
+				log.Error("can't collect total banned IPs for ipv4 from nft:", err)
+			}
 		}
 		if n.conn6 != nil {
 			for _, hook := range n.Hooks {
