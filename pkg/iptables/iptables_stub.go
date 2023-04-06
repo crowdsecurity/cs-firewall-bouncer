@@ -3,6 +3,11 @@
 
 package iptables
 
-func NewIPTables(config *BouncerConfig) (backend, error) {
+import (
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
+)
+
+func NewIPTables(config *cfg.BouncerConfig) (types.backend, error) {
 	return nil, nil
 }
