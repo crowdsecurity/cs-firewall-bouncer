@@ -471,12 +471,14 @@ func (n *nft) commitDeletedDecisions() error {
 			decisionIP := net.ParseIP(*decision.Value)
 			if _, ok := currentState[decisionIP.String()]; ok {
 				log.Debugf("will delete %s", decisionIP)
-				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
-					if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
-						return err
+				if strings.Contains(decisionIP.String(), ":") {
+					if n.conn6 != nil {
+						if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
+							return err
+						}
+						deletedIPV6 = true
 					}
-					deletedIPV6 = true
-				} else {
+				} else if n.conn != nil {
 					if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: decisionIP.To4()}}); err != nil {
 						return err
 					}
@@ -522,12 +524,14 @@ func (n *nft) commitAddedDecisions() error {
 				log.Debugf("skipping %s since it's already in set", decisionIP)
 			} else {
 				t, _ := time.ParseDuration(*decision.Duration)
-				if strings.Contains(decisionIP.String(), ":") && n.conn6 != nil {
-					if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Timeout: t, Key: decisionIP.To16()}}); err != nil {
-						return err
+				if strings.Contains(decisionIP.String(), ":") {
+					if n.conn6 == nil {
+						if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Timeout: t, Key: decisionIP.To16()}}); err != nil {
+							return err
+						}
+						addedIPV6 = true
 					}
-					addedIPV6 = true
-				} else {
+				} else if n.conn != nil {
 					if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Timeout: t, Key: decisionIP.To4()}}); err != nil {
 						return err
 					}
