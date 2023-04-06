@@ -176,7 +176,6 @@ func (n *nft) Init() error {
 					Offset:       12,
 					Len:          4,
 				})
-
 				// [ lookup reg 1 set whitelist ]
 				r.Exprs = append(r.Exprs, &expr.Lookup{
 					SourceRegister: 1,
@@ -240,6 +239,7 @@ func (n *nft) Init() error {
 			n.set6 = set
 			log.Debug("nftables: ipv6 set '" + n.BlacklistsIpv6 + "' configured")
 		} else {
+			log.Debug("nftables: ipv6 own table")
 			table := &nftables.Table{
 				Family: nftables.TableFamilyIPv6,
 				Name:   n.TableName6,
@@ -257,6 +257,7 @@ func (n *nft) Init() error {
 				return err
 			}
 			n.set6 = set
+
 			for _, hook := range n.Hooks {
 				chain := n.conn6.AddChain(&nftables.Chain{
 					Name:     n.ChainName6 + "-" + hook,
@@ -421,7 +422,7 @@ func (n *nft) commitAddedDecisions() error {
 			} else {
 				t, _ := time.ParseDuration(*decision.Duration)
 				if strings.Contains(decisionIP.String(), ":") {
-					if n.conn6 == nil {
+					if n.conn6 != nil {
 						if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Timeout: t, Key: decisionIP.To16()}}); err != nil {
 							return err
 						}
