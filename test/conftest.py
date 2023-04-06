@@ -5,8 +5,6 @@ Full integration test with a real Crowdsec running in Docker
 import contextlib
 import os
 import pathlib
-import secrets
-import string
 
 import pytest
 
@@ -61,11 +59,4 @@ def fw_cfg_factory():
         cfg = _default_config.copy()
         cfg |= kw
         return cfg | kw
-    yield closure
-
-
-@pytest.fixture(scope='session')
-def api_key_factory():
-    def closure(alphabet=string.ascii_letters + string.digits):
-        return ''.join(secrets.choice(alphabet) for i in range(32))
     yield closure
