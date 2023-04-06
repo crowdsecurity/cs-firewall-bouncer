@@ -38,6 +38,8 @@ type nft struct {
 	set6              *nftables.Set
 	table             *nftables.Table
 	table6            *nftables.Table
+	priority          int
+	priority6         int
 	decisionsToAdd    []*models.Decision
 	decisionsToDelete []*models.Decision
 	DenyAction        string
@@ -79,6 +81,7 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret.ChainName4 = config.Nftables.Ipv4.Chain
 	ret.BlacklistsIpv4 = config.BlacklistsIpv4
 	ret.SetOnly4 = config.Nftables.Ipv4.SetOnly
+	ret.priority = config.Nftables.Ipv4.Priority
 	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
 		*config.Nftables.Ipv4.Enabled, ret.TableName4, ret.ChainName4, ret.BlacklistsIpv4, ret.SetOnly4)
 
@@ -87,6 +90,7 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret.ChainName6 = config.Nftables.Ipv6.Chain
 	ret.BlacklistsIpv6 = config.BlacklistsIpv6
 	ret.SetOnly6 = config.Nftables.Ipv6.SetOnly
+	ret.priority6 = config.Nftables.Ipv6.Priority
 	log.Debugf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
 		*config.Nftables.Ipv6.Enabled, ret.TableName6, ret.ChainName6, ret.BlacklistsIpv6, ret.SetOnly6)
 
@@ -142,7 +146,6 @@ func (n *nft) Init() error {
 				Name:   n.TableName4,
 			}
 			n.table = n.conn.AddTable(table)
-
 			set := &nftables.Set{
 				Name:       n.BlacklistsIpv4,
 				Table:      n.table,
@@ -161,7 +164,7 @@ func (n *nft) Init() error {
 					Table:    n.table,
 					Type:     nftables.ChainTypeFilter,
 					Hooknum:  HookNameToHookID[hook],
-					Priority: nftables.ChainPriorityFilter,
+					Priority: nftables.ChainPriority(n.priority),
 				})
 
 				r := &nftables.Rule{
@@ -264,7 +267,7 @@ func (n *nft) Init() error {
 					Table:    n.table6,
 					Type:     nftables.ChainTypeFilter,
 					Hooknum:  HookNameToHookID[hook],
-					Priority: nftables.ChainPriorityFilter,
+					Priority: nftables.ChainPriority(n.priority),
 				})
 
 				r := &nftables.Rule{

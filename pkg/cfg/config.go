@@ -19,11 +19,11 @@ type PrometheusConfig struct {
 }
 
 type nftablesFamilyConfig struct {
-	Enabled *bool  `yaml:"enabled"`
-	SetOnly bool   `yaml:"set-only"`
-	Table   string `yaml:"table"`
-	Chain   string `yaml:"chain"`
-	// Blacklist string `yaml:"blacklist"`
+	Enabled  *bool  `yaml:"enabled"`
+	SetOnly  bool   `yaml:"set-only"`
+	Table    string `yaml:"table"`
+	Chain    string `yaml:"chain"`
+	Priority int    `yaml:"priority"`
 }
 
 const (

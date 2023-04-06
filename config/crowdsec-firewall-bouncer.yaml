@@ -37,11 +37,14 @@ nftables:
     set-only: false
     table: crowdsec
     chain: crowdsec-chain
+    priority: -10
   ipv6:
     enabled: true
     set-only: false
     table: crowdsec6
     chain: crowdsec6-chain
+    priority: -10
+
 nftables_hooks:
   - input
   - forward
