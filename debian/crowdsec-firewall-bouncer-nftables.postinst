@@ -3,15 +3,14 @@
 systemctl daemon-reload
 
 BOUNCER="crowdsec-firewall-bouncer"
-CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
-SERVICE="$BOUNCER.service"
+BOUNCER_PREFIX="FirewallBouncer"
 
-helper="/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/helper.sh"
+. /usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh
 START=1
 
 if [ "$1" = "configure" ]; then
-    if $helper need-api-key "$CONFIG"; then
-        if ! $helper set-api-key "$CONFIG" "FirewallBouncer"; then
+    if need_api_key; then
+        if !set_api_key; then
             START=0
         fi
     fi
@@ -19,7 +18,7 @@ fi
 
 systemctl --quiet is-enabled "$SERVICE" || systemctl unmask "$SERVICE" && systemctl enable "$SERVICE"
 
-$helper set-local-port "$CONFIG"
+set_local_port
 
 if [ "$START" -eq 0 ]; then
     echo "no api key was generated, you can generate one on your LAPI server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2

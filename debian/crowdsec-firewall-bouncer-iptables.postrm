@@ -1,14 +1,11 @@
 #!/bin/sh
 
-set -e
+set -eu
 
 BOUNCER="crowdsec-firewall-bouncer"
-CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
+#shellcheck source=scripts/_bouncer.sh
+. "/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh"
 
 if [ "$1" = "purge" ]; then
-    if [ -f "$CONFIG.id" ]; then
-        bouncer_id=$(cat "$CONFIG.id")
-        cscli -oraw bouncers delete "$bouncer_id" 2>/dev/null || true
-        rm -f "$CONFIG.id"
-    fi
+    delete_bouncer
 fi

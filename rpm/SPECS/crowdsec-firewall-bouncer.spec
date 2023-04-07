@@ -38,7 +38,7 @@ mkdir -p %{buildroot}/etc/crowdsec/bouncers/
 install -m 600 config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 
 mkdir -p %{buildroot}/usr/lib/%{name}/
-install -m 700 config/helper.sh %{buildroot}/usr/lib/%{name}/helper.sh
+install -m 600 config/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
 
 mkdir -p %{buildroot}%{_unitdir}/
 BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
@@ -62,7 +62,7 @@ rm -rf %{buildroot}
 %files -n crowdsec-firewall-bouncer-iptables
 %defattr(-,root,root,-)
 /usr/bin/%{name}
-/usr/lib/%{name}/helper.sh
+/usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
@@ -71,10 +71,9 @@ rm -rf %{buildroot}
 systemctl daemon-reload
 
 BOUNCER="crowdsec-firewall-bouncer"
-CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
-SERVICE="$BOUNCER.service"
+BOUNCER_PREFIX="FirewallBouncer"
 
-helper="/usr/lib/%{name}/helper.sh"
+. /usr/lib/%{name}/_bouncer.sh
 START=1
 
 if grep -q '${BACKEND}' "$CONFIG"; then
@@ -83,8 +82,8 @@ if grep -q '${BACKEND}' "$CONFIG"; then
 fi
 
 if [ "$1" = "1" ]; then
-    if $helper need-api-key "$CONFIG"; then
-        if ! $helper set-api-key "$CONFIG" "FirewallBouncer"; then
+    if need_api_key; then
+        if ! set_api_key; then
             START=0
         fi
     fi
@@ -92,7 +91,7 @@ fi
 
 %systemd_post crowdsec-firewall-bouncer.service
 
-$helper set-local-port "$CONFIG"
+set_local_port
 
 if [ "$START" -eq 0 ]; then
     echo "no api key was generated, won't start the service" >&2
@@ -111,18 +110,13 @@ fi
 
 %postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-iptables
 BOUNCER="crowdsec-firewall-bouncer"
-CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
+. /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" == "0" ]; then
-    if [ -f "$CONFIG.id" ]; then
-        bouncer_id=$(cat "$CONFIG.id")
-        cscli -oraw bouncers delete "$bouncer_id" 2>/dev/null || true
-        rm -f "$CONFIG.id"
-    fi
+    delete_bouncer
 else
     systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
-
 
 # ------------------------------------
 # nftables
@@ -137,7 +131,7 @@ Requires: nftables,gettext
 %files -n crowdsec-firewall-bouncer-nftables
 %defattr(-,root,root,-)
 /usr/bin/%{name}
-/usr/lib/%{name}/helper.sh
+/usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
@@ -146,10 +140,9 @@ Requires: nftables,gettext
 systemctl daemon-reload
 
 BOUNCER="crowdsec-firewall-bouncer"
-CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
-SERVICE="$BOUNCER.service"
+BOUNCER_PREFIX="FirewallBouncer"
 
-helper="/usr/lib/%{name}/helper.sh"
+. /usr/lib/%{name}/_bouncer.sh
 START=1
 
 if grep -q '${BACKEND}' "$CONFIG"; then
@@ -158,8 +151,8 @@ if grep -q '${BACKEND}' "$CONFIG"; then
 fi
 
 if [ "$1" = "1" ]; then
-    if $helper need-api-key "$CONFIG"; then
-        if ! $helper set-api-key "$CONFIG" "FirewallBouncer"; then
+    if need_api_key; then
+        if ! set_api_key; then
             START=0
         fi
     fi
@@ -167,7 +160,7 @@ fi
 
 %systemd_post crowdsec-firewall-bouncer.service
 
-$helper set-local-port "$CONFIG"
+set_local_port
 
 if [ "$START" -eq 0 ]; then
     echo "no api key was generated, won't start the service" >&2
@@ -186,14 +179,10 @@ fi
 
 %postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
 BOUNCER="crowdsec-firewall-bouncer"
-CONFIG="/etc/crowdsec/bouncers/$BOUNCER.yaml"
+. /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" == "0" ]; then
-    if [ -f "$CONFIG.id" ]; then
-        bouncer_id=$(cat "$CONFIG.id")
-        cscli -oraw bouncers delete "$bouncer_id" 2>/dev/null || true
-        rm -f "$CONFIG.id"
-    fi
+    delete_bouncer
 else
     systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
