@@ -2,8 +2,10 @@
 
 set -eu
 
+BOUNCER="crowdsec-firewall-bouncer"
+#shellcheck source=scripts/_bouncer.sh
+. "/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh"
+
 if [ "$1" = "purge" ]; then
-    BOUNCER="crowdsec-firewall-bouncer"
-    . /usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh
     delete_bouncer
 fi

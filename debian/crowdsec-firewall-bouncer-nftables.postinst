@@ -5,12 +5,13 @@ systemctl daemon-reload
 BOUNCER="crowdsec-firewall-bouncer"
 BOUNCER_PREFIX="FirewallBouncer"
 
-. /usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh
+#shellcheck source=./scripts/_bouncer.sh
+. "/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh"
 START=1
 
 if [ "$1" = "configure" ]; then
     if need_api_key; then
-        if !set_api_key; then
+        if ! set_api_key; then
             START=0
         fi
     fi
