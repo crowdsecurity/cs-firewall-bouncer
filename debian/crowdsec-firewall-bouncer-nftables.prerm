@@ -1,4 +1,15 @@
 #!/bin/sh
 
-systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
-systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
+set -eu
+
+BOUNCER="crowdsec-firewall-bouncer"
+
+#shellcheck source=scripts/_bouncer.sh
+. "/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh"
+
+systemctl stop "$SERVICE" || echo "cannot stop service"
+systemctl disable "$SERVICE" || echo "cannot disable service"
+
+if [ "$1" = "purge" ]; then
+    delete_bouncer
+fi

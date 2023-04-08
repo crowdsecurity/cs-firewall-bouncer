@@ -103,18 +103,17 @@ else
 fi
 
 %preun -p /usr/bin/sh -n crowdsec-firewall-bouncer-iptables
-if [ "$1" = "0" ]; then
-    systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
-    systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
-fi
-
-%postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-iptables
 BOUNCER="crowdsec-firewall-bouncer"
 . /usr/lib/%{name}/_bouncer.sh
 
-if [ "$1" == "0" ]; then
+if [ "$1" = "0" ]; then
+    systemctl stop "$SERVICE" || echo "cannot stop service"
+    systemctl disable "$SERVICE" || echo "cannot disable service"
     delete_bouncer
-else
+fi
+
+%postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-iptables
+if [ "$1" = "1" ]; then
     systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
 
@@ -172,18 +171,16 @@ else
 fi
 
 %preun -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
-if [ "$1" = "0" ]; then
-    systemctl stop crowdsec-firewall-bouncer || echo "cannot stop service"
-    systemctl disable crowdsec-firewall-bouncer || echo "cannot disable service"
-fi
-
-%postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
 BOUNCER="crowdsec-firewall-bouncer"
 . /usr/lib/%{name}/_bouncer.sh
 
-if [ "$1" == "0" ]; then
+if [ "$1" = "0" ]; then
+    systemctl stop "$SERVICE" || echo "cannot stop service"
+    systemctl disable "$SERVICE" || echo "cannot disable service"
     delete_bouncer
-else
-    systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
 fi
 
+%postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
+if [ "$1" = "1" ]; then
+    systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
+fi
