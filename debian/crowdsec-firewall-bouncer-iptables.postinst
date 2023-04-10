@@ -5,7 +5,7 @@ systemctl daemon-reload
 BOUNCER="crowdsec-firewall-bouncer"
 BOUNCER_PREFIX="FirewallBouncer"
 
-#shellcheck source=_bouncer.sh
+#shellcheck source=./scripts/_bouncer.sh
 . "/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh"
 START=1
 

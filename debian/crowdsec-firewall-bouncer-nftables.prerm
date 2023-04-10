@@ -4,7 +4,7 @@ set -eu
 
 BOUNCER="crowdsec-firewall-bouncer"
 
-#shellcheck source=scripts/_bouncer.sh
+#shellcheck source=./scripts/_bouncer.sh
 . "/usr/lib/$DPKG_MAINTSCRIPT_PACKAGE/_bouncer.sh"
 
 systemctl stop "$SERVICE" || echo "cannot stop service"
