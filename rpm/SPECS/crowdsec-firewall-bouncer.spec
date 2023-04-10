@@ -38,7 +38,7 @@ mkdir -p %{buildroot}/etc/crowdsec/bouncers/
 install -m 600 config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 
 mkdir -p %{buildroot}/usr/lib/%{name}/
-install -m 600 config/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
+install -m 600 scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
 
 mkdir -p %{buildroot}%{_unitdir}/
 BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
@@ -162,13 +162,15 @@ fi
 set_local_port
 
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, won't start the service" >&2
+    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/$BOUNCER.yaml'" >&2
 else
     %if 0%{?fc35}
     systemctl enable "$SERVICE"
     %endif
     systemctl start "$SERVICE"
 fi
+
+echo "$BOUNCER has been successfully installed"
 
 %preun -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
 BOUNCER="crowdsec-firewall-bouncer"

@@ -7,8 +7,8 @@
 # While not requiring bash, it is not strictly POSIX-compliant because
 # it uses local variables, but it should woth with every modern shell.
 #
-# Since passing/parsing arguments in posix sh is tricky, we communicate
-# values to the functions using environment variables. It's a matter of
+# Since passing/parsing arguments in posix sh is tricky, we share
+# some environment variables with the functions. It's a matter of
 # readability balance between shorter vs cleaner code.
 
 set -eu
@@ -135,12 +135,17 @@ set_local_port() {
 }
 
 set_local_lapi_url() {
-    require 'CONFIG' 'VARNAME'
-    local port before
-    # VARNAME is the name of the variable to interpolate
+    require 'CONFIG'
+    local port before varname
+    # $varname is the name of the variable to interpolate
     # in the config file with the URL of the LAPI server,
     # assuming it is running on the same host as the
     # bouncer.
+    varname=$1
+    if [ "$varname" = "" ]; then
+        msg err "missing required variable VARNAME"
+        exit 1
+    fi
     command -v cscli >/dev/null || return 0
 
     port=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2 || true)
@@ -150,7 +155,7 @@ set_local_lapi_url() {
 
     before=$(cat "$CONFIG")
     echo "$before" | \
-        env "$VARNAME=http://127.0.0.1:$port" envsubst "\$$VARNAME" | \
+        env "$varname=http://127.0.0.1:$port" envsubst "\$$varname" | \
         install -m 0600 /dev/stdin "$CONFIG"
 }
 
