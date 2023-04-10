@@ -106,11 +106,9 @@ gen_apikey() {
 }
 
 gen_config_file() {
-    (
-        umask 077
-        # shellcheck disable=SC2016
-        API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst '$API_KEY $BACKEND' <"./config/$CONFIG_FILE" >"$CONFIG"
-    )
+    # shellcheck disable=SC2016
+    API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst '$API_KEY $BACKEND' <"./config/$CONFIG_FILE" | \
+        install -D -m 0600 /dev/stdin "$CONFIG"
 }
 
 install_bouncer() {

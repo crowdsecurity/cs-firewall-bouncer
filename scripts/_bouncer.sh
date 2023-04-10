@@ -113,13 +113,12 @@ set_api_key() {
         ret=1
     fi
 
-    (
-        umask 077
-        # can't use redirection while overwriting a file
-        before=$(cat "$CONFIG")
-        # shellcheck disable=SC2016
-        echo "$before" | API_KEY="$api_key" envsubst '$API_KEY' > "$CONFIG"
-    )
+    # can't use redirection while overwriting a file
+    before=$(cat "$CONFIG")
+    # shellcheck disable=SC2016
+    echo "$before" | \
+        API_KEY="$api_key" envsubst '$API_KEY' | \
+        install -m 0600 /dev/stdin "$CONFIG"
 
     return "$ret"
 }
@@ -143,15 +142,16 @@ set_local_lapi_url() {
     # assuming it is running on the same host as the
     # bouncer.
     command -v cscli >/dev/null || return 0
+
     port=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2 || true)
     if [ "$port" = "" ]; then
         port=8080
     fi
-    ( # subshell to avoid leaking the umask
-        before=$(cat "$CONFIG")
-        umask 077
-        echo "$before" | env "$VARNAME=http://127.0.0.1:$port" envsubst "\$$VARNAME" > "$CONFIG"
-    )
+
+    before=$(cat "$CONFIG")
+    echo "$before" | \
+        env "$VARNAME=http://127.0.0.1:$port" envsubst "\$$VARNAME" | \
+        install -m 0600 /dev/stdin "$CONFIG"
 }
 
 delete_bouncer() {
