@@ -18,7 +18,7 @@ override_dh_auto_install:
 	for BACKEND in iptables nftables; do \
 		PKG="$$BOUNCER-$$BACKEND"; \
 		install -D -m 0755 $$BOUNCER -t "debian/$$PKG/usr/bin/"; \
-		install -D -m 0700 config/helper.sh -t "debian/$$PKG/usr/lib/$$PKG/"; \
+		install -D -m 0600 scripts/_bouncer.sh -t "debian/$$PKG/usr/lib/$$PKG/"; \
 		BACKEND=$$BACKEND envsubst '$$BACKEND' < config/$$BOUNCER.yaml | install -D -m 0600 /dev/stdin "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"; \
 		BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" | install -D -m 0644 /dev/stdin "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"; \
 	done

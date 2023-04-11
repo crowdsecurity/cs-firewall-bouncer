@@ -8,6 +8,8 @@ Description: Firewall bouncer for Crowdsec (iptables+ipset)
 Depends: iptables, ipset, gettext-base
 Replaces: crowdsec-firewall-bouncer
 Conflicts: crowdsec-firewall-bouncer-nftables
+Section: admin
+Priority: optional
 
 Package: crowdsec-firewall-bouncer-nftables
 Architecture: any
@@ -15,3 +17,5 @@ Description: Firewall bouncer for Crowdsec (nftables)
 Depends: nftables, gettext-base
 Replaces: crowdsec-firewall-bouncer
 Conflicts: crowdsec-firewall-bouncer-iptables
+Section: admin
+Priority: optional
