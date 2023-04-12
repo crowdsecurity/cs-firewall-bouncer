@@ -99,9 +99,9 @@ config_not_set() {
 
 need_api_key() {
     if config_not_set 'API_KEY'; then
-        return 0
+        return 1
     fi
-    return 1
+    return 0
 }
 
 # Interpolate a variable in the config file with a value.
