@@ -74,19 +74,57 @@ assert_root() {
     fi
 }
 
-# check if the configuration file contains the string
-# "$API_KEY" and returns true if it does.
-need_api_key() {
+# Check if the configuration file contains a variable
+# which has not yet been interpolated, like "$API_KEY",
+# and return true if it does.
+config_not_set() {
     require 'CONFIG'
-    local before after
+    local varname before after
+
+    varname=$1
+    if [ "$varname" = "" ]; then
+        msg err "missing required variable name"
+        exit 1
+    fi
+
     before=$(cat "$CONFIG")
     # shellcheck disable=SC2016
-    after=$(envsubst '$API_KEY' < "$CONFIG")
+    after=$(envsubst '\$$varname' < "$CONFIG")
 
     if [ "$before" = "$after" ]; then
         return 1
     fi
     return 0
+}
+
+need_api_key() {
+    if config_not_set 'API_KEY'; then
+        return 1
+    fi
+    return 0
+}
+
+# Interpolate a variable in the config file with a value.
+set_config_var_value() {
+    require 'CONFIG'
+    local varname value before
+
+    varname=$1
+    if [ "$varname" = "" ]; then
+        msg err "missing required variable name"
+        exit 1
+    fi
+
+    value=$2
+    if [ "$value" = "" ]; then
+        msg err "missing required variable value"
+        exit 1
+    fi
+
+    before=$(cat "$CONFIG")
+    echo "$before" | \
+        env "$varname=$value" envsubst "\$$varname" | \
+        install -m 0600 /dev/stdin "$CONFIG"
 }
 
 set_api_key() {
@@ -113,12 +151,7 @@ set_api_key() {
         ret=1
     fi
 
-    # can't use redirection while overwriting a file
-    before=$(cat "$CONFIG")
-    # shellcheck disable=SC2016
-    echo "$before" | \
-        API_KEY="$api_key" envsubst '$API_KEY' | \
-        install -m 0600 /dev/stdin "$CONFIG"
+    set_config_var_value 'API_KEY' "$api_key"
 
     return "$ret"
 }
@@ -143,7 +176,7 @@ set_local_lapi_url() {
     # bouncer.
     varname=$1
     if [ "$varname" = "" ]; then
-        msg err "missing required variable VARNAME"
+        msg err "missing required variable name"
         exit 1
     fi
     command -v cscli >/dev/null || return 0
@@ -153,10 +186,7 @@ set_local_lapi_url() {
         port=8080
     fi
 
-    before=$(cat "$CONFIG")
-    echo "$before" | \
-        env "$varname=http://127.0.0.1:$port" envsubst "\$$varname" | \
-        install -m 0600 /dev/stdin "$CONFIG"
+    set_config_var_value "$varname" "http://127.0.0.1:$port"
 }
 
 delete_bouncer() {

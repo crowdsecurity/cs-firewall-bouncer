@@ -166,11 +166,6 @@ func Execute() {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
 
-	if *testConfig {
-		log.Info("config is valid")
-		os.Exit(0)
-	}
-
 	cfg.ConfigureLogging(config)
 
 	if *verbose {
@@ -180,6 +175,11 @@ func Execute() {
 	backend, err := backend.NewBackend(config)
 	if err != nil {
 		log.Fatalf(err.Error())
+	}
+
+	if *testConfig {
+		log.Info("config is valid")
+		os.Exit(0)
 	}
 
 	if err = backend.Init(); err != nil {
