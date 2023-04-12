@@ -9,10 +9,10 @@ Source0:   https://github.com/crowdsecurity/%{name}/archive/v%(echo $VERSION).ta
 Source1:   80-crowdsec-firewall-bouncer.preset
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires: git,make
+BuildRequires: make
 %{?fc33:BuildRequires: systemd-rpm-macros}
 
-Requires: iptables,ipset,gettext,ipset-libs
+Requires: gettext,iptables,ipset,ipset-libs
 
 %define debug_package %{nil}
 
