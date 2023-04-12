@@ -89,7 +89,7 @@ config_not_set() {
 
     before=$(cat "$CONFIG")
     # shellcheck disable=SC2016
-    after=$(envsubst '\$$varname' < "$CONFIG")
+    after=$(envsubst "\$$varname" < "$CONFIG")
 
     if [ "$before" = "$after" ]; then
         return 1
@@ -99,9 +99,9 @@ config_not_set() {
 
 need_api_key() {
     if config_not_set 'API_KEY'; then
-        return 1
+        return 0
     fi
-    return 0
+    return 1
 }
 
 # Interpolate a variable in the config file with a value.
