@@ -1,4 +1,4 @@
 
-def test_buildpackage(deb_package_file):
+def test_buildpackage(deb_package_path):
     """Test that the package can be built."""
-    assert deb_package_file.exists(), f'Package {deb_package_file} not found'
+    assert deb_package_path.exists(), f'Package {deb_package_path} not found'
