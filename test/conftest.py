@@ -6,6 +6,21 @@ import contextlib
 import pytest
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        'markers', 'deb: tests for build/install/configure a debian packages'
+    )
+    config.addinivalue_line(
+        'markers', 'rpm: tests for build/install/configure rpm packages'
+    )
+    config.addinivalue_line(
+        'markers', 'iptables: tests iptables (requires root)'
+    )
+    config.addinivalue_line(
+        'markers', 'nftables: tests nftables (requires root)'
+    )
+
+
 # provide the name of the bouncer binary to test
 @pytest.fixture(scope='session')
 def bouncer_under_test():

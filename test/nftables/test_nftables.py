@@ -6,8 +6,12 @@ from ipaddress import ip_address
 from pathlib import Path
 from time import sleep
 
+import pytest
+
 from test.mock_lapi import MockLAPI
 from test.utils import generate_n_decisions, run_cmd
+
+pytestmark = pytest.mark.iptables
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
