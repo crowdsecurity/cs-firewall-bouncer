@@ -25,3 +25,10 @@ venv/
 /debian/*.substvars
 /debian/*.debhelper
 /debian/*-stamp
+
+# built by rpmbuild
+/rpm/BUILD
+/rpm/BUILDROOT
+/rpm/RPMS
+/rpm/SOURCES/*.tar.gz
+/rpm/SRPMS

@@ -34,9 +34,16 @@ clean-debian:
 	@$(RM) -r debian/*.substvars
 	@$(RM) -r debian/*-stamp
 
+clean-rpm:
+	@$(RM) -r rpm/BUILD
+	@$(RM) -r rpm/BUILDROOT
+	@$(RM) -r rpm/RPMS
+	@$(RM) -r rpm/SOURCES/*.tar.gz
+	@$(RM) -r rpm/SRPMS
+
 # Remove everything including all platform binaries and tarballs
 .PHONY: clean
-clean: clean-release-dir clean-debian
+clean: clean-release-dir clean-debian clean-rpm
 	@$(RM) $(BINARY_NAME)
 	@$(RM) $(TARBALL_NAME)
 	@$(RM) -r $(BINARY_NAME)-*	# platform binary name and leftover release dir
