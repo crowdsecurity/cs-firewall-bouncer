@@ -1,24 +1,6 @@
-"""
-Full integration test with a real Crowdsec running in Docker
-"""
 
 import contextlib
 import pytest
-
-
-def pytest_configure(config):
-    config.addinivalue_line(
-        'markers', 'deb: tests for build/install/configure a debian packages'
-    )
-    config.addinivalue_line(
-        'markers', 'rpm: tests for build/install/configure rpm packages'
-    )
-    config.addinivalue_line(
-        'markers', 'iptables: tests iptables (requires root)'
-    )
-    config.addinivalue_line(
-        'markers', 'nftables: tests nftables (requires root)'
-    )
 
 
 # provide the name of the bouncer binary to test
@@ -48,11 +30,10 @@ def bouncer_with_lapi(bouncer, crowdsec, fw_cfg_factory, api_key_factory, tmp_pa
                 lapi.wait_for_http(8080, '/health')
                 port = lapi.probe.get_bound_port('8080')
                 cfg = fw_cfg_factory()
-                cfg.setdefault('crowdsec_config', {})
                 cfg['api_url'] = f'http://localhost:{port}/'
                 cfg['api_key'] = api_key
                 cfg.update(config_bouncer)
-                with bouncer(bouncer_binary, cfg) as cb:
+                with bouncer(cfg) as cb:
                     yield cb, lapi
         finally:
             pass

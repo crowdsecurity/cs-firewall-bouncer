@@ -66,7 +66,7 @@ jobs:
         CROWDSEC_TEST_FLAVORS: full
         CROWDSEC_TEST_NETWORK: net-test
         CROWDSEC_TEST_TIMEOUT: 60
-        PYTEST_ADDOPTS: --durations=0 --color=yes
+        PYTEST_ADDOPTS: --durations=0 -vv --color=yes
       run: |
         # unmarked
         pipenv run pytest

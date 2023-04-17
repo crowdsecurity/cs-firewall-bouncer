@@ -26,14 +26,11 @@ export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
 .PHONY: all
 all: build test
 
+.PHONY: clean-debian
 clean-debian:
-	@$(RM) -r debian/crowdsec-firewall-bouncer-iptables
-	@$(RM) -r debian/crowdsec-firewall-bouncer-nftables
-	@$(RM) -r debian/files
-	@$(RM) -r debian/.debhelper
-	@$(RM) -r debian/*.substvars
-	@$(RM) -r debian/*-stamp
+	$(MAKE) -f debian/rules clean
 
+.PHONY: clean-rpm
 clean-rpm:
 	@$(RM) -r rpm/BUILD
 	@$(RM) -r rpm/BUILDROOT
