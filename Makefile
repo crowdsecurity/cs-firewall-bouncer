@@ -26,9 +26,15 @@ export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
 .PHONY: all
 all: build test
 
+# same as "$(MAKE) -f debian/rules clean" but without the dependency on debhelper
 .PHONY: clean-debian
 clean-debian:
-	$(MAKE) -f debian/rules clean
+	@$(RM) -r debian/crowdsec-firewall-bouncer-iptables
+	@$(RM) -r debian/crowdsec-firewall-bouncer-nftables
+	@$(RM) -r debian/files
+	@$(RM) -r debian/.debhelper
+	@$(RM) -r debian/*.substvars
+	@$(RM) -r debian/*-stamp
 
 .PHONY: clean-rpm
 clean-rpm:
