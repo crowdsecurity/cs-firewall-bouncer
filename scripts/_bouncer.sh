@@ -13,32 +13,29 @@
 
 set -eu
 
-set_colors() {
-    if [ ! -t 0 ]; then
-        # terminal is not interactive; no colors
-        FG_RED=""
-        FG_GREEN=""
-        FG_YELLOW=""
-        FG_CYAN=""
-        RESET=""
-    elif tput sgr0 >/dev/null; then
-        # terminfo
-        FG_RED=$(tput setaf 1)
-        FG_GREEN=$(tput setaf 2)
-        FG_YELLOW=$(tput setaf 3)
-        FG_CYAN=$(tput setaf 6)
-        RESET=$(tput sgr0)
-    else
-        FG_RED=$(printf '%b' '\033[31m')
-        FG_GREEN=$(printf '%b' '\033[32m')
-        FG_YELLOW=$(printf '%b' '\033[33m')
-        FG_CYAN=$(printf '%b' '\033[36m')
-        RESET=$(printf '%b' '\033[0m')
-    fi
-}
+if [ ! -t 0 ]; then
+    # terminal is not interactive; no colors
+    FG_RED=""
+    FG_GREEN=""
+    FG_YELLOW=""
+    FG_CYAN=""
+    RESET=""
+elif tput sgr0 >/dev/null; then
+    # terminfo
+    FG_RED=$(tput setaf 1)
+    FG_GREEN=$(tput setaf 2)
+    FG_YELLOW=$(tput setaf 3)
+    FG_CYAN=$(tput setaf 6)
+    RESET=$(tput sgr0)
+else
+    FG_RED=$(printf '%b' '\033[31m')
+    FG_GREEN=$(printf '%b' '\033[32m')
+    FG_YELLOW=$(printf '%b' '\033[33m')
+    FG_CYAN=$(printf '%b' '\033[36m')
+    RESET=$(printf '%b' '\033[0m')
+fi
 
 msg() {
-    set_colors
     case "$1" in
         info) echo "${FG_CYAN}$2${RESET}" >&2 ;;
         warn) echo "${FG_YELLOW}WARN:${RESET} $2" >&2 ;;
