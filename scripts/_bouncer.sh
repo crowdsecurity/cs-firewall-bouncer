@@ -5,7 +5,7 @@
 # to install and configure bouncers.
 #
 # While not requiring bash, it is not strictly POSIX-compliant because
-# it uses local variables, but it should woth with every modern shell.
+# it uses local variables, but it should work with every modern shell.
 #
 # Since passing/parsing arguments in posix sh is tricky, we share
 # some environment variables with the functions. It's a matter of

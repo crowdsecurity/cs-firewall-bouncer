@@ -20,6 +20,7 @@ LD_OPTS_VARS=\
 -X '$(GO_MODULE_NAME)/pkg/version.BuildDate=$(BUILD_TIMESTAMP)' \
 -X '$(GO_MODULE_NAME)/pkg/version.Tag=$(BUILD_TAG)'
 
+export CGO_ENABLED=0
 export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
 	-trimpath -tags netgo
 
