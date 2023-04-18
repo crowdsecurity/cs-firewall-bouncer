@@ -31,20 +31,20 @@ BUILD_VERSION=%{local_version} make
 %install
 rm -rf %{buildroot}
 
-mkdir -p %{buildroot}%{_bindir}/
+mkdir -p %{buildroot}%{_bindir}
 install -m 755 %{name} %{buildroot}%{_bindir}/%{name}
 
-mkdir -p %{buildroot}/etc/crowdsec/bouncers/
+mkdir -p %{buildroot}/etc/crowdsec/bouncers
 install -m 600 config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 
-mkdir -p %{buildroot}/usr/lib/%{name}/
+mkdir -p %{buildroot}/usr/lib/%{name}
 install -m 600 scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
 
-mkdir -p %{buildroot}%{_unitdir}/
-BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
+mkdir -p %{buildroot}%{_unitdir}
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
 
-mkdir -p %{buildroot}%{_presetdir}/
-install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/${SOURCE1}
+mkdir -p %{buildroot}%{_presetdir}
+install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/
 
 %clean
 rm -rf %{buildroot}
@@ -61,7 +61,7 @@ rm -rf %{buildroot}
 
 %files -n %{name}-iptables
 %defattr(-,root,root,-)
-/usr/bin/%{name}
+%{_bindir}/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
@@ -131,7 +131,7 @@ Requires: nftables,gettext
 
 %files -n %{name}-nftables
 %defattr(-,root,root,-)
-/usr/bin/%{name}
+%{_bindir}/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
