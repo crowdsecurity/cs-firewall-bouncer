@@ -3,6 +3,7 @@ pytest-dotenv = "*"
 flask = "*"
 pytimeparse = "*"
 psutil = "*"
+pexpect = "*"
 pytest-cs = {ref = "0.7.2", git = "https://github.com/crowdsecurity/pytest-cs.git"}
 
 [dev-packages]

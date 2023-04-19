@@ -69,7 +69,7 @@ SYSTEMD_PATH_FILE="/etc/systemd/system/$SERVICE"
 assert_root() {
     #shellcheck disable=SC2312
     if [ "$(id -u)" -ne 0 ]; then
-        msg warn "Please run $0 as root or with sudo"
+        msg err "This script must be run as root"
         exit 1
     fi
 }
