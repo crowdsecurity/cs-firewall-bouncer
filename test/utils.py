@@ -1,6 +1,5 @@
 import subprocess
 from ipaddress import ip_address
-from typing import List
 
 
 def run_cmd(*cmd, ignore_error=False):
