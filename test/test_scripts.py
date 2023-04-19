@@ -23,11 +23,13 @@ def test_install(project_repo, bouncer_binary):
     c.expect("Installing crowdsec-firewall-bouncer")
     c.expect("iptables found")
     c.expect("nftables found")
-    c.expect(re.escape("Found nftables (default) and iptables, which firewall do you want to use (nftables/iptables)"))
+    c.expect(re.escape("Found nftables (default) and iptables, which firewall "
+                       "do you want to use (nftables/iptables)"))
     c.sendline('nftables')
     c.expect("WARN.* cscli not found, you will need to generate an api key.")
-    c.expect("WARN.* service not started. You need to get an API key and configure it in /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml")
-    c.expect("The crowdsec-firewall-bouncer service has been installed!")
+    c.expect("WARN.* service not started. You need to get an API key and configure it "
+             "in /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml")
+    c.expect("The crowdsec-firewall-bouncer service has been installed.")
     c.wait()
     assert c.terminated
     assert c.exitstatus == 0

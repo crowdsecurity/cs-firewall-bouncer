@@ -71,7 +71,7 @@ jobs:
         # unmarked
         pipenv run pytest
         # these need root
-        sudo -E pipenv run pytest -m "iptables or nftables"
+        sudo -E pipenv run pytest -m "iptables or nftables or scripts"
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
