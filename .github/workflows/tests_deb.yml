@@ -50,5 +50,6 @@ jobs:
         CROWDSEC_TEST_TIMEOUT: 60
         PYTEST_ADDOPTS: --durations=0 -vv --color=yes
       run: |
+        sudo apt install -y nftables iptables ipset
         pipenv run pytest -m deb_build
         sudo -E pipenv run pytest -m deb_install
