@@ -58,7 +58,6 @@ jobs:
         # some tests need root, so we have to install pytest twice
         sudo python3 -m pip install --upgrade pipenv wheel
         sudo pipenv install --deploy
-        pipenv install --deploy
 
     - name: Run functional tests
       env:
@@ -71,7 +70,7 @@ jobs:
         # unmarked
         pipenv run pytest
         # these need root
-        sudo -E pipenv run pytest -m "iptables or nftables or scripts"
+        sudo -E pipenv run pytest -m "scripts or iptables or nftables"
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3

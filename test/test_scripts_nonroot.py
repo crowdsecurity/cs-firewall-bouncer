@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-def test_scripts_nonroot(project_repo, bouncer_binary):
+def test_scripts_nonroot(project_repo, bouncer_binary, must_be_nonroot):
     assert os.geteuid() != 0, "This test must be run as non-root"
 
     for script in ['install.sh', 'upgrade.sh', 'uninstall.sh']:
