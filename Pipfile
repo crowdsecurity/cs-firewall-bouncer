@@ -2,10 +2,10 @@
 pytest-cs = {ref = "0.7.3", git = "https://github.com/crowdsecurity/pytest-cs.git"}
 pytest-dotenv = "0.5.2"
 pytest-dependency = "0.5.1"
+pexpect = "4.8.0"
 flask = "2.2.3"
 pytimeparse = "1.1.8"
 psutil = "5.9.5"
-pexpect = "4.8.0"
 
 [dev-packages]
 gnureadline = "8.1.2"

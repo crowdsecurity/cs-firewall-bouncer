@@ -46,7 +46,7 @@ def test_install_no_crowdsec(project_repo, bouncer_binary, must_be_root):
         cwd=project_repo
     )
 
-    c.expect(f"WARN.* /usr/local/bin/{BOUNCER} is already installed. Exiting")
+    c.expect(f"ERR.* /usr/local/bin/{BOUNCER} is already installed. Exiting")
 
 
 @pytest.mark.dependency(depends=['test_install_no_crowdsec'])
