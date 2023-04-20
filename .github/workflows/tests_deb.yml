@@ -39,6 +39,8 @@ jobs:
         docker network create net-test
         python3 -m pip install --upgrade pipenv wheel
         pipenv install --deploy
+        sudo python3 -m pip install --upgrade pipenv wheel
+        sudo pipenv install --deploy
 
     - name: Run functional tests
       env:
@@ -48,4 +50,5 @@ jobs:
         CROWDSEC_TEST_TIMEOUT: 60
         PYTEST_ADDOPTS: --durations=0 -vv --color=yes
       run: |
-        pipenv run pytest -m deb
+        pipenv run pytest -m deb_build
+        sudo -E pipenv run pytest -m deb_install

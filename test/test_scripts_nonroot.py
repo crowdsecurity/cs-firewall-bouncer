@@ -10,9 +10,10 @@ def test_scripts_nonroot(project_repo, bouncer_binary, must_be_nonroot):
             ['/usr/bin/sh', f'scripts/{script}'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=project_repo
+            cwd=project_repo,
+            encoding='utf-8',
         )
 
         assert c.returncode == 1
-        assert c.stdout.decode() == ''
-        assert 'This script must be run as root' in c.stderr.decode()
+        assert c.stdout == ''
+        assert 'This script must be run as root' in c.stderr
