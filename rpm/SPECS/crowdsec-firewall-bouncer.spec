@@ -70,9 +70,6 @@ rm -rf %{buildroot}
 %post -p /usr/bin/sh -n %{name}-iptables
 systemctl daemon-reload
 
-BOUNCER="%{name}"
-BOUNCER_PREFIX="FirewallBouncer"
-
 . /usr/lib/%{name}/_bouncer.sh
 START=1
 
@@ -94,7 +91,7 @@ set_local_port
 %systemd_post %{name}.service
 
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/$BOUNCER.yaml'" >&2
+    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
 else
     %if 0%{?fc35}
     systemctl enable "$SERVICE"
@@ -105,7 +102,6 @@ fi
 echo "$BOUNCER has been successfully installed"
 
 %preun -p /usr/bin/sh -n %{name}-iptables
-BOUNCER="%{name}"
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then
@@ -140,9 +136,6 @@ Requires: nftables,gettext
 %post -p /usr/bin/sh -n %{name}-nftables
 systemctl daemon-reload
 
-BOUNCER="%{name}"
-BOUNCER_PREFIX="FirewallBouncer"
-
 . /usr/lib/%{name}/_bouncer.sh
 START=1
 
@@ -164,7 +157,7 @@ set_local_port
 %systemd_post %{name}.service
 
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/$BOUNCER.yaml'" >&2
+    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
 else
     %if 0%{?fc35}
     systemctl enable "$SERVICE"
@@ -175,7 +168,6 @@ fi
 echo "$BOUNCER has been successfully installed"
 
 %preun -p /usr/bin/sh -n %{name}-nftables
-BOUNCER="%{name}"
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then

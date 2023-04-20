@@ -2,9 +2,6 @@
 
 set -eu
 
-BOUNCER="crowdsec-firewall-bouncer"
-BOUNCER_PREFIX="cs-firewall-bouncer"
-
 . ./scripts/_bouncer.sh
 
 assert_root

@@ -1,6 +1,11 @@
 #!/bin/sh
 #shellcheck disable=SC3043
 
+set -eu
+
+BOUNCER="crowdsec-firewall-bouncer"
+BOUNCER_PREFIX="cs-firewall-bouncer"
+
 # This is a library of functions that can be sourced by other scripts
 # to install and configure bouncers.
 #
@@ -10,8 +15,6 @@
 # Since passing/parsing arguments in posix sh is tricky, we share
 # some environment variables with the functions. It's a matter of
 # readability balance between shorter vs cleaner code.
-
-set -eu
 
 if [ ! -t 0 ]; then
     # terminal is not interactive; no colors
@@ -53,7 +56,6 @@ require() {
 
 # shellcheck disable=SC2034
 {
-require 'BOUNCER'
 SERVICE="$BOUNCER.service"
 BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
 BIN_PATH="./$BOUNCER"
