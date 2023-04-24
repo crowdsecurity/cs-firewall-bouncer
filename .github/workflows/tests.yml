@@ -73,7 +73,6 @@ jobs:
         # - deb/rpm (on their own workflows)
         pipenv run pytest
         # these need root
-        make build
         sudo -E pipenv run pytest ./test/backends
         sudo -E pipenv run pytest ./test/install/no_crowdsec
         # these need a running crowdsec
