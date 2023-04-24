@@ -68,12 +68,12 @@ jobs:
         PYTEST_ADDOPTS: --durations=0 -vv --color=yes -m "not (deb or rpm)"
       run: |
         # everything except for
-        # - ./install (requires root, ignored by default)
-        # - ./backends (requires root, ignored by default)
+        # - install (requires root, ignored by default)
+        # - backends (requires root, ignored by default)
         # - deb/rpm (on their own workflows)
         pipenv run pytest
         # these need root
-        sudo -E pipenv run pytest ./backends
+        sudo -E pipenv run pytest ./test/backends
         sudo -E pipenv run pytest ./test/install/no_crowdsec
         # these need a running crowdsec
         docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API -ti crowdsecurity/crowdsec
