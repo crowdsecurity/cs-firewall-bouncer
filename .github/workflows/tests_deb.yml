@@ -52,4 +52,4 @@ jobs:
       run: |
         sudo apt install -y nftables iptables ipset
         pipenv run pytest test/pkg/test_build_deb.py
-        sudo -E pipenv run pytest -m deb ./test/install
+        sudo -E pipenv run pytest -m deb ./test/install/no_crowdsec

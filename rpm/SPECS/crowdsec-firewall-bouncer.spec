@@ -67,7 +67,7 @@ rm -rf %{buildroot}
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
-%post -p /usr/bin/sh -n %{name}-iptables
+%post -n %{name}-iptables
 systemctl daemon-reload
 
 . /usr/lib/%{name}/_bouncer.sh
@@ -101,7 +101,7 @@ fi
 
 echo "$BOUNCER has been successfully installed"
 
-%preun -p /usr/bin/sh -n %{name}-iptables
+%preun -n %{name}-iptables
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then
@@ -110,7 +110,7 @@ if [ "$1" = "0" ]; then
     delete_bouncer
 fi
 
-%postun -p /usr/bin/sh -n %{name}-iptables
+%postun -n %{name}-iptables
 if [ "$1" = "1" ]; then
     systemctl restart %{name} || echo "cannot restart service"
 fi
@@ -133,7 +133,7 @@ Requires: nftables,gettext
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
-%post -p /usr/bin/sh -n %{name}-nftables
+%post -n %{name}-nftables
 systemctl daemon-reload
 
 . /usr/lib/%{name}/_bouncer.sh
@@ -167,7 +167,7 @@ fi
 
 echo "$BOUNCER has been successfully installed"
 
-%preun -p /usr/bin/sh -n %{name}-nftables
+%preun -n %{name}-nftables
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then
@@ -176,7 +176,7 @@ if [ "$1" = "0" ]; then
     delete_bouncer
 fi
 
-%postun -p /usr/bin/sh -n %{name}-nftables
+%postun -n %{name}-nftables
 if [ "$1" = "1" ]; then
     systemctl restart %{name} || echo "cannot restart service"
 fi
