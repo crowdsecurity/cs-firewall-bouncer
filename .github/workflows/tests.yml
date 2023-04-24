@@ -76,7 +76,7 @@ jobs:
         sudo -E pipenv run pytest ./test/backends
         sudo -E pipenv run pytest ./test/install/no_crowdsec
         # these need a running crowdsec
-        docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API -ti crowdsecurity/crowdsec
+        docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API=true -ti crowdsecurity/crowdsec
         install -m 0755 /dev/stdin /usr/local/bin/cscli <<'EOT'
         #!/bin/sh
         docker exec crowdsec cscli "$@"
