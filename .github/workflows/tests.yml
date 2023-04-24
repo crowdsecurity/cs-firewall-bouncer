@@ -52,9 +52,12 @@ jobs:
     - name: Install functional test dependencies
       run: |
         sudo apt install -y nftables iptables ipset
+        docker network create net-test
+        python3 -m pip install --upgrade pipenv wheel
+        pipenv install --deploy
+        # some tests need root, so we have to install pytest twice
         sudo python3 -m pip install --upgrade pipenv wheel
         sudo pipenv install --deploy
-        docker network create net-test
 
     - name: Run functional tests
       env:
@@ -62,8 +65,24 @@ jobs:
         CROWDSEC_TEST_FLAVORS: full
         CROWDSEC_TEST_NETWORK: net-test
         CROWDSEC_TEST_TIMEOUT: 60
+        PYTEST_ADDOPTS: --durations=0 -vv --color=yes -m "not (deb or rpm)"
       run: |
-        sudo pipenv run pytest --durations=0 --color=yes
+        # everything except for
+        # - install (requires root, ignored by default)
+        # - backends (requires root, ignored by default)
+        # - deb/rpm (on their own workflows)
+        pipenv run pytest
+        # these need root
+        sudo -E pipenv run pytest ./test/backends
+        sudo -E pipenv run pytest ./test/install/no_crowdsec
+        # these need a running crowdsec
+        docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API=true -ti crowdsecurity/crowdsec
+        install -m 0755 /dev/stdin /usr/local/bin/cscli <<'EOT'
+        #!/bin/sh
+        docker exec crowdsec cscli "$@"
+        EOT
+        sleep 5
+        sudo -E pipenv run pytest ./test/install/with_crowdsec
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3

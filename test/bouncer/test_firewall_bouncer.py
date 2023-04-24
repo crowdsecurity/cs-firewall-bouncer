@@ -1,11 +1,8 @@
 
-from .conftest import fw_binary
-
-
 def test_partial_config(crowdsec, bouncer, fw_cfg_factory):
     cfg = fw_cfg_factory()
 
-    with bouncer(fw_binary, cfg) as fw:
+    with bouncer(cfg) as fw:
         fw.wait_for_lines_fnmatch([
             # XXX: improve this message
             "*unable to load configuration: config does not contain mode and log mode*",
@@ -15,7 +12,7 @@ def test_partial_config(crowdsec, bouncer, fw_cfg_factory):
 
     cfg['mode'] = 'whatever'
 
-    with bouncer(fw_binary, cfg) as fw:
+    with bouncer(cfg) as fw:
         fw.wait_for_lines_fnmatch([
             "*firewall 'whatever' is not supported*",
         ])
@@ -24,4 +21,3 @@ def test_partial_config(crowdsec, bouncer, fw_cfg_factory):
 
     # cfg['mode'] = 'pf'
     cfg['api_key'] = ''
-

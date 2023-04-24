@@ -1,44 +1,44 @@
 #!/bin/sh
 #shellcheck disable=SC3043
 
+set -eu
+
+BOUNCER="crowdsec-firewall-bouncer"
+BOUNCER_PREFIX=$(echo "$BOUNCER" | sed 's/crowdsec-/cs-/g')
+
 # This is a library of functions that can be sourced by other scripts
 # to install and configure bouncers.
 #
 # While not requiring bash, it is not strictly POSIX-compliant because
-# it uses local variables, but it should woth with every modern shell.
+# it uses local variables, but it should work with every modern shell.
 #
 # Since passing/parsing arguments in posix sh is tricky, we share
 # some environment variables with the functions. It's a matter of
 # readability balance between shorter vs cleaner code.
 
-set -eu
-
-set_colors() {
-    if [ ! -t 0 ]; then
-        # terminal is not interactive; no colors
-        FG_RED=""
-        FG_GREEN=""
-        FG_YELLOW=""
-        FG_CYAN=""
-        RESET=""
-    elif tput sgr0 >/dev/null; then
-        # terminfo
-        FG_RED=$(tput setaf 1)
-        FG_GREEN=$(tput setaf 2)
-        FG_YELLOW=$(tput setaf 3)
-        FG_CYAN=$(tput setaf 6)
-        RESET=$(tput sgr0)
-    else
-        FG_RED=$(printf '%b' '\033[31m')
-        FG_GREEN=$(printf '%b' '\033[32m')
-        FG_YELLOW=$(printf '%b' '\033[33m')
-        FG_CYAN=$(printf '%b' '\033[36m')
-        RESET=$(printf '%b' '\033[0m')
-    fi
-}
+if [ ! -t 0 ]; then
+    # terminal is not interactive; no colors
+    FG_RED=""
+    FG_GREEN=""
+    FG_YELLOW=""
+    FG_CYAN=""
+    RESET=""
+elif tput sgr0 >/dev/null; then
+    # terminfo
+    FG_RED=$(tput setaf 1)
+    FG_GREEN=$(tput setaf 2)
+    FG_YELLOW=$(tput setaf 3)
+    FG_CYAN=$(tput setaf 6)
+    RESET=$(tput sgr0)
+else
+    FG_RED=$(printf '%b' '\033[31m')
+    FG_GREEN=$(printf '%b' '\033[32m')
+    FG_YELLOW=$(printf '%b' '\033[33m')
+    FG_CYAN=$(printf '%b' '\033[36m')
+    RESET=$(printf '%b' '\033[0m')
+fi
 
 msg() {
-    set_colors
     case "$1" in
         info) echo "${FG_CYAN}$2${RESET}" >&2 ;;
         warn) echo "${FG_YELLOW}WARN:${RESET} $2" >&2 ;;
@@ -56,7 +56,6 @@ require() {
 
 # shellcheck disable=SC2034
 {
-require 'BOUNCER'
 SERVICE="$BOUNCER.service"
 BIN_PATH_INSTALLED="/usr/local/bin/$BOUNCER"
 BIN_PATH="./$BOUNCER"
@@ -69,7 +68,7 @@ SYSTEMD_PATH_FILE="/etc/systemd/system/$SERVICE"
 assert_root() {
     #shellcheck disable=SC2312
     if [ "$(id -u)" -ne 0 ]; then
-        msg warn "Please run $0 as root or with sudo"
+        msg err "This script must be run as root"
         exit 1
     fi
 }

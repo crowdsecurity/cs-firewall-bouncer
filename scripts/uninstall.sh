@@ -2,8 +2,6 @@
 
 set -eu
 
-BOUNCER="crowdsec-firewall-bouncer"
-
 . ./scripts/_bouncer.sh
 
 assert_root
@@ -11,7 +9,7 @@ assert_root
 # --------------------------------- #
 
 uninstall() {
-    systemctl stop "$SERVICE"
+    systemctl stop "$SERVICE" || true
     delete_bouncer
     rm -f "$CONFIG"
     rm -f "$SYSTEMD_PATH_FILE"

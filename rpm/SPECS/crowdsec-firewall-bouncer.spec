@@ -23,7 +23,7 @@ Requires: gettext,iptables,ipset,ipset-libs
 %global __mangle_shebangs_exclude_from /usr/bin/env
 
 %prep
-%setup -q -T -b 0 -n crowdsec-firewall-bouncer-%{version_number}
+%setup -q -T -b 0 -n %{name}-%{version_number}
 
 %build
 BUILD_VERSION=%{local_version} make
@@ -31,20 +31,20 @@ BUILD_VERSION=%{local_version} make
 %install
 rm -rf %{buildroot}
 
-mkdir -p %{buildroot}%{_bindir}/
-install -m 755 %{name} %{buildroot}%{_bindir}/${name}
+mkdir -p %{buildroot}%{_bindir}
+install -m 755 %{name} %{buildroot}%{_bindir}/%{name}
 
-mkdir -p %{buildroot}/etc/crowdsec/bouncers/
+mkdir -p %{buildroot}/etc/crowdsec/bouncers
 install -m 600 config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
 
-mkdir -p %{buildroot}/usr/lib/%{name}/
+mkdir -p %{buildroot}/usr/lib/%{name}
 install -m 600 scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
 
-mkdir -p %{buildroot}%{_unitdir}/
-BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers/ envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
+mkdir -p %{buildroot}%{_unitdir}
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
 
-mkdir -p %{buildroot}%{_presetdir}/
-install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/${SOURCE1}
+mkdir -p %{buildroot}%{_presetdir}
+install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/
 
 %clean
 rm -rf %{buildroot}
@@ -57,21 +57,18 @@ rm -rf %{buildroot}
 # iptables
 # ------------------------------------
 
-%description -n crowdsec-firewall-bouncer-iptables
+%description -n %{name}-iptables
 
-%files -n crowdsec-firewall-bouncer-iptables
+%files -n %{name}-iptables
 %defattr(-,root,root,-)
-/usr/bin/%{name}
+%{_bindir}/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
-%post -p /usr/bin/sh -n crowdsec-firewall-bouncer-iptables
+%post -n %{name}-iptables
 systemctl daemon-reload
-
-BOUNCER="crowdsec-firewall-bouncer"
-BOUNCER_PREFIX="FirewallBouncer"
 
 . /usr/lib/%{name}/_bouncer.sh
 START=1
@@ -89,12 +86,12 @@ if [ "$1" = "1" ]; then
     fi
 fi
 
-%systemd_post crowdsec-firewall-bouncer.service
-
 set_local_port
 
+%systemd_post %{name}.service
+
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, won't start the service" >&2
+    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
 else
     %if 0%{?fc35}
     systemctl enable "$SERVICE"
@@ -102,8 +99,9 @@ else
     systemctl start "$SERVICE"
 fi
 
-%preun -p /usr/bin/sh -n crowdsec-firewall-bouncer-iptables
-BOUNCER="crowdsec-firewall-bouncer"
+echo "$BOUNCER has been successfully installed"
+
+%preun -n %{name}-iptables
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then
@@ -112,34 +110,31 @@ if [ "$1" = "0" ]; then
     delete_bouncer
 fi
 
-%postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-iptables
+%postun -n %{name}-iptables
 if [ "$1" = "1" ]; then
-    systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
+    systemctl restart %{name} || echo "cannot restart service"
 fi
 
 # ------------------------------------
 # nftables
 # ------------------------------------
 
-%package -n crowdsec-firewall-bouncer-nftables
+%package -n %{name}-nftables
 Summary:  Firewall bouncer for Crowdsec (nftables configuration)
 Requires: nftables,gettext
 
-%description -n crowdsec-firewall-bouncer-nftables
+%description -n %{name}-nftables
 
-%files -n crowdsec-firewall-bouncer-nftables
+%files -n %{name}-nftables
 %defattr(-,root,root,-)
-/usr/bin/%{name}
+%{_bindir}/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
 %config(noreplace) %{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
-%post -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
+%post -n %{name}-nftables
 systemctl daemon-reload
-
-BOUNCER="crowdsec-firewall-bouncer"
-BOUNCER_PREFIX="FirewallBouncer"
 
 . /usr/lib/%{name}/_bouncer.sh
 START=1
@@ -157,12 +152,12 @@ if [ "$1" = "1" ]; then
     fi
 fi
 
-%systemd_post crowdsec-firewall-bouncer.service
-
 set_local_port
 
+%systemd_post %{name}.service
+
 if [ "$START" -eq 0 ]; then
-    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '/etc/crowdsec/bouncers/$BOUNCER.yaml'" >&2
+    echo "no api key was generated, you can generate one on your LAPI Server by running 'cscli bouncers add <bouncer_name>' and add it to '$CONFIG'" >&2
 else
     %if 0%{?fc35}
     systemctl enable "$SERVICE"
@@ -172,8 +167,7 @@ fi
 
 echo "$BOUNCER has been successfully installed"
 
-%preun -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
-BOUNCER="crowdsec-firewall-bouncer"
+%preun -n %{name}-nftables
 . /usr/lib/%{name}/_bouncer.sh
 
 if [ "$1" = "0" ]; then
@@ -182,7 +176,7 @@ if [ "$1" = "0" ]; then
     delete_bouncer
 fi
 
-%postun -p /usr/bin/sh -n crowdsec-firewall-bouncer-nftables
+%postun -n %{name}-nftables
 if [ "$1" = "1" ]; then
-    systemctl restart crowdsec-firewall-bouncer || echo "cannot restart service"
+    systemctl restart %{name} || echo "cannot restart service"
 fi

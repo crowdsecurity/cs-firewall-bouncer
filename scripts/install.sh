@@ -2,9 +2,6 @@
 
 set -eu
 
-BOUNCER="crowdsec-firewall-bouncer"
-BOUNCER_PREFIX="cs-firewall-bouncer"
-
 . ./scripts/_bouncer.sh
 
 assert_root
@@ -117,10 +114,10 @@ install_bouncer() {
         exit 1
     fi
     if [ -e "$BIN_PATH_INSTALLED" ]; then
-        msg warn "$BIN_PATH_INSTALLED is already installed. Exiting"
+        msg err "$BIN_PATH_INSTALLED is already installed. Exiting"
         exit 1
     fi
-    msg info "Installing $BOUNCER"
+    msg "Installing $BOUNCER"
     check_firewall
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
     install -D -m 0600 "./config/$CONFIG_FILE" "$CONFIG"
@@ -143,5 +140,5 @@ else
     msg warn "service not started. You need to get an API key and configure it in $CONFIG"
 fi
 
-msg succ "The $BOUNCER service has been installed!"
+msg succ "The $BOUNCER service has been installed."
 exit 0
