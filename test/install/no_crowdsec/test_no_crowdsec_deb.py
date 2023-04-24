@@ -3,7 +3,7 @@ import subprocess
 
 import pytest
 
-pytestmark = pytest.mark.deb_install
+pytestmark = pytest.mark.deb
 
 
 def test_deb_install_purge(deb_package_path, bouncer_under_test, must_be_root):

@@ -5,8 +5,6 @@ import yaml
 
 import pytest
 
-pytestmark = pytest.mark.scripts
-
 BOUNCER = "crowdsec-firewall-bouncer"
 CONFIG = f"/etc/crowdsec/bouncers/{BOUNCER}.yaml"
 
