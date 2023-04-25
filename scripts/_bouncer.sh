@@ -23,7 +23,7 @@ if [ ! -t 0 ]; then
     FG_YELLOW=""
     FG_CYAN=""
     RESET=""
-elif tput sgr0 >/dev/null; then
+elif tput sgr0 >/dev/null 2>&1; then
     # terminfo
     FG_RED=$(tput setaf 1)
     FG_GREEN=$(tput setaf 2)
