@@ -2,6 +2,10 @@ import contextlib
 
 import pytest
 
+from pytest_cs import plugin
+
+pytest_exception_interact = plugin.pytest_exception_interact
+
 
 # provide the name of the bouncer binary to test
 @pytest.fixture(scope='session')
@@ -42,7 +46,6 @@ def bouncer_with_lapi(bouncer, crowdsec, fw_cfg_factory, api_key_factory, tmp_pa
 
 
 _default_config = {
-    'log_mode': 'stdout',
     'log_level': 'info',
 }
 
