@@ -18,7 +18,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/writer"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/backend"
@@ -142,14 +141,6 @@ func Execute() {
 		os.Exit(0)
 	}
 
-	log.AddHook(&writer.Hook{ // Send logs with level fatal to stderr
-		Writer: os.Stderr,
-		LogLevels: []log.Level{
-			log.PanicLevel,
-			log.FatalLevel,
-		},
-	})
-
 	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
 
 	if configPath == nil || *configPath == "" {
@@ -166,7 +157,9 @@ func Execute() {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
 
-	cfg.ConfigureLogging(config)
+	if err = cfg.ConfigureLogging(config); err != nil {
+		log.Fatalf("unable to configure logging: %s", err)
+	}
 
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
@@ -174,7 +167,7 @@ func Execute() {
 
 	backend, err := backend.NewBackend(config)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal(err)
 	}
 
 	if *testConfig {
@@ -183,7 +176,7 @@ func Execute() {
 	}
 
 	if err = backend.Init(); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal(err)
 	}
 	// No call to fatalf after this point
 	defer backendCleanup(backend)
@@ -196,7 +189,7 @@ func Execute() {
 	}
 	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.VersionStr())
 	if err := bouncer.Init(); err != nil {
-		log.Errorf(err.Error())
+		log.Error(err)
 		return
 	}
 
