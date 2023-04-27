@@ -76,9 +76,12 @@ func (ipt *iptables) CollectMetrics() {
 		var newCount float64 = 0
 		for _, ipset := range ipsets.Ipset {
 			if ipset.Name == ipt.v4.SetName || (ipt.v6 != nil && ipset.Name == ipt.v6.SetName) {
+				if ipset.Header.Numentries == "" {
+					continue
+				}
 				count, err := strconv.ParseFloat(ipset.Header.Numentries, 64)
 				if err != nil {
-					log.Error("error while parsing  Numentries from ipsets", err)
+					log.Errorf("error while parsing  Numentries from ipsets: %s", err)
 					continue
 				}
 				newCount += count
