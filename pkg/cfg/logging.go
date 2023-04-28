@@ -9,22 +9,6 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func removeStderrHook(logger *log.Logger) {
-	// remove the fallback stderr hook
-	newHooks := make(log.LevelHooks)
-	for level, hooks := range logger.Hooks {
-		newHooks[level] = make([]log.Hook, 0, len(hooks))
-		for i, h := range hooks {
-			if hook, ok := h.(*writer.Hook); ok {
-				if hook.Writer != os.Stderr {
-					newHooks[level] = append(newHooks[level], hooks[i])
-				}
-			}
-		}
-	}
-	logger.ReplaceHooks(newHooks)
-}
-
 func ConfigureLogging(config *BouncerConfig) error {
 	var LogOutput *lumberjack.Logger // io.Writer
 
@@ -85,11 +69,6 @@ func ConfigureLogging(config *BouncerConfig) error {
 				log.FatalLevel,
 			},
 		})
-	}
-
-	if config.LogMode == "stdout" {
-		// avoid duplicate logs on stderr
-		removeStderrHook(log.StandardLogger())
 	}
 
 	logLevel := log.InfoLevel
