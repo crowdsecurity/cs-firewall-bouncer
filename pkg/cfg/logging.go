@@ -75,7 +75,7 @@ func (c *LoggingConfig) setDefaults() {
 
 func (c *LoggingConfig) validate() error {
 	if c.LogMode != "stdout" && c.LogMode != "file" {
-		return fmt.Errorf("log_media should be either 'stdout' or 'file'")
+		return fmt.Errorf("log_mode should be either 'stdout' or 'file'")
 	}
 	return nil
 }
