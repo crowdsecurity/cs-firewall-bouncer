@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -19,21 +20,72 @@ type LoggingConfig struct {
 	LogMaxAge    int        `yaml:"log_max_age,omitempty"`
 }
 
-func (c *LoggingConfig) setup(fileName string) error {
-	logLevel := log.InfoLevel
-	if c.LogLevel != nil {
-		logLevel = *c.LogLevel
+func (c *LoggingConfig) LoggerForFile(fileName string) (io.Writer, error) {
+	if c.LogMode == "stdout" {
+		return os.Stderr, nil
 	}
 
-	log.SetLevel(logLevel)
+	logPath, err := setLogFilePermissions(c.LogDir, fileName)
+	if err != nil {
+		return nil, err
+	}
 
-	switch c.LogMode {
-	case "":
+	l := &lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    c.LogMaxSize,
+		MaxBackups: c.LogMaxFiles,
+		MaxAge:     c.LogMaxAge,
+		Compress:   *c.CompressLogs,
+	}
+
+	return l, nil
+}
+
+func (c *LoggingConfig) setDefaults() {
+	if c.LogMode == "" {
 		c.LogMode = "stdout"
-	case "stdout", "file":
-	default:
-		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", c.LogMode)
 	}
+
+	if c.LogDir == "" {
+		c.LogDir = "/var/log/"
+	}
+
+	if c.LogLevel == nil {
+		defaultLevel := log.InfoLevel
+		c.LogLevel = &defaultLevel
+	}
+
+	if c.LogMaxSize == 0 {
+		c.LogMaxSize = 500
+	}
+
+	if c.LogMaxFiles == 0 {
+		c.LogMaxFiles = 3
+	}
+
+	if c.LogMaxAge == 0 {
+		c.LogMaxAge = 30
+	}
+
+	if c.CompressLogs == nil {
+		defaultCompress := true
+		c.CompressLogs = &defaultCompress
+	}
+}
+
+func (c *LoggingConfig) validate() error {
+	if c.LogMode != "stdout" && c.LogMode != "file" {
+		return fmt.Errorf("log_media should be either 'stdout' or 'file'")
+	}
+	return nil
+}
+
+func (c *LoggingConfig) setup(fileName string) error {
+	c.setDefaults()
+	if err := c.validate(); err != nil {
+		return err
+	}
+	log.SetLevel(*c.LogLevel)
 
 	if c.LogMode == "stdout" {
 		return nil
@@ -41,42 +93,12 @@ func (c *LoggingConfig) setup(fileName string) error {
 
 	log.SetFormatter(&log.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
 
-	if c.LogDir == "" {
-		c.LogDir = "/var/log/"
-	}
-
-	_maxsize := 500
-	if c.LogMaxSize != 0 {
-		_maxsize = c.LogMaxSize
-	}
-
-	_maxfiles := 3
-	if c.LogMaxFiles != 0 {
-		_maxfiles = c.LogMaxFiles
-	}
-
-	_maxage := 30
-	if c.LogMaxAge != 0 {
-		_maxage = c.LogMaxAge
-	}
-
-	_compress := true
-	if c.CompressLogs != nil {
-		_compress = *c.CompressLogs
-	}
-
-	logPath, err := setLogFilePermissions(c.LogDir, fileName)
+	logger, err := c.LoggerForFile(fileName)
 	if err != nil {
 		return err
 	}
 
-	log.SetOutput(&lumberjack.Logger{
-		Filename:   logPath,
-		MaxSize:    _maxsize, // megabytes
-		MaxBackups: _maxfiles,
-		MaxAge:     _maxage,   // days
-		Compress:   _compress, // disabled by default
-	})
+	log.SetOutput(logger)
 
 	// keep stderr for panic/fatal, otherwise process failures
 	// won't be visible enough

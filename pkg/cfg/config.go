@@ -87,7 +87,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	}
 
 	if err = config.Logging.setup("crowdsec-firewall-bouncer.log"); err != nil {
-		return &BouncerConfig{}, fmt.Errorf("unable to setup logging: %w", err)
+		return &BouncerConfig{}, fmt.Errorf("failed to setup logging: %w", err)
 	}
 
 	if config.Mode == "" {
