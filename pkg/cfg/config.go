@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/crowdsecurity/crowdsec/pkg/yamlpatch"
+
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
@@ -33,25 +34,19 @@ const (
 )
 
 type BouncerConfig struct {
-	Mode            string     `yaml:"mode"` // ipset,iptables,tc
-	PidDir          string     `yaml:"pid_dir"`
-	UpdateFrequency string     `yaml:"update_frequency"`
-	Daemon          bool       `yaml:"daemonize"`
-	LogMode         string     `yaml:"log_mode"`
-	LogDir          string     `yaml:"log_dir"`
-	LogLevel        *log.Level `yaml:"log_level"`
-	CompressLogs    *bool      `yaml:"compress_logs,omitempty"`
-	LogMaxSize      int        `yaml:"log_max_size,omitempty"`
-	LogMaxFiles     int        `yaml:"log_max_files,omitempty"`
-	LogMaxAge       int        `yaml:"log_max_age,omitempty"`
-	DisableIPV6     bool       `yaml:"disable_ipv6"`
-	DenyAction      string     `yaml:"deny_action"`
-	DenyLog         bool       `yaml:"deny_log"`
-	DenyLogPrefix   string     `yaml:"deny_log_prefix"`
-	BlacklistsIpv4  string     `yaml:"blacklists_ipv4"`
-	BlacklistsIpv6  string     `yaml:"blacklists_ipv6"`
-	SetType         string     `yaml:"ipset_type"`
-	SetSize         int        `yaml:"ipset_size"`
+	Mode            string        `yaml:"mode"` // ipset,iptables,tc
+	PidDir          string        `yaml:"pid_dir"`
+	UpdateFrequency string        `yaml:"update_frequency"`
+	Daemon          bool          `yaml:"daemonize"`
+	Logging         LoggingConfig `yaml:",inline"`
+	DisableIPV6     bool          `yaml:"disable_ipv6"`
+	DenyAction      string        `yaml:"deny_action"`
+	DenyLog         bool          `yaml:"deny_log"`
+	DenyLogPrefix   string        `yaml:"deny_log_prefix"`
+	BlacklistsIpv4  string        `yaml:"blacklists_ipv4"`
+	BlacklistsIpv6  string        `yaml:"blacklists_ipv6"`
+	SetType         string        `yaml:"ipset_type"`
+	SetSize         int           `yaml:"ipset_size"`
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
@@ -91,9 +86,12 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		return &BouncerConfig{}, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
-	err = validateConfig(*config)
-	if err != nil {
-		return &BouncerConfig{}, err
+	if err = config.Logging.setup("crowdsec-firewall-bouncer.log"); err != nil {
+		return &BouncerConfig{}, fmt.Errorf("unable to setup logging: %w", err)
+	}
+
+	if config.Mode == "" {
+		return &BouncerConfig{}, fmt.Errorf("config does not contain 'mode'")
 	}
 
 	if len(config.SupportedDecisionsTypes) == 0 {
@@ -190,22 +188,6 @@ func nftablesConfig(config *BouncerConfig) error {
 		if config.NftablesHooks == nil || len(config.NftablesHooks) == 0 {
 			config.NftablesHooks = []string{"input"}
 		}
-	}
-
-	return nil
-}
-
-func validateConfig(config BouncerConfig) error {
-	if config.Mode == "" {
-		return fmt.Errorf("config does not contain 'mode'")
-	}
-
-	switch config.LogMode {
-	case "":
-		config.LogMode = "stdout"
-	case "stdout", "file":
-	default:
-		return fmt.Errorf("log mode '%s' unknown, expecting 'file' or 'stdout'", config.LogMode)
 	}
 
 	return nil

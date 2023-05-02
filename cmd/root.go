@@ -157,10 +157,6 @@ func Execute() {
 		log.Fatalf("unable to load configuration: %s", err)
 	}
 
-	if err = cfg.ConfigureLogging(config); err != nil {
-		log.Fatalf("unable to configure logging: %s", err)
-	}
-
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
 	}
