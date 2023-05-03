@@ -1,7 +1,14 @@
 package main
 
-import "github.com/crowdsecurity/cs-firewall-bouncer/cmd"
+import (
+	log "github.com/sirupsen/logrus"
+
+	"github.com/crowdsecurity/cs-firewall-bouncer/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	err := cmd.Execute()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

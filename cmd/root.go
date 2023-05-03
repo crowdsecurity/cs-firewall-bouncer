@@ -119,7 +119,7 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 	}
 }
 
-func Execute() {
+func Execute() error {
 	var err error
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
@@ -136,17 +136,17 @@ func Execute() {
 	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
 
 	if configPath == nil || *configPath == "" {
-		log.Fatalf("configuration file is required")
+		return fmt.Errorf("configuration file is required")
 	}
 
 	configBytes, err := cfg.MergedConfig(*configPath)
 	if err != nil {
-		log.Fatalf("unable to read config file: %s", err)
+		return fmt.Errorf("unable to read config file: %w", err)
 	}
 
 	config, err := cfg.NewConfig(bytes.NewReader(configBytes))
 	if err != nil {
-		log.Fatalf("unable to load configuration: %s", err)
+		return fmt.Errorf("unable to load configuration: %w", err)
 	}
 
 	if *verbose {
@@ -155,7 +155,7 @@ func Execute() {
 
 	backend, err := backend.NewBackend(config)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if *testConfig {
@@ -164,7 +164,7 @@ func Execute() {
 	}
 
 	if err = backend.Init(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	// No call to fatalf after this point
 	defer backendCleanup(backend)
@@ -172,13 +172,11 @@ func Execute() {
 	bouncer := &csbouncer.StreamBouncer{}
 	err = bouncer.ConfigReader(bytes.NewReader(configBytes))
 	if err != nil {
-		log.Errorf("unable to configure bouncer: %s", err)
-		return
+		return fmt.Errorf("unable to configure bouncer: %w", err)
 	}
 	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.VersionStr())
 	if err := bouncer.Init(); err != nil {
-		log.Error(err)
-		return
+		return err
 	}
 
 	if bouncer.InsecureSkipVerify != nil {
@@ -236,4 +234,6 @@ func Execute() {
 	if err := g.Wait(); err != nil {
 		log.Errorf("process return with error: %s", err)
 	}
+
+	return nil
 }
