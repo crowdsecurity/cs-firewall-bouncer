@@ -31,29 +31,23 @@ const (
 	name = "crowdsec-firewall-bouncer"
 )
 
-func termHandler(sig os.Signal, backend *backend.BackendCTX) error {
-	if err := backend.ShutDown(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func backendCleanup(backend *backend.BackendCTX) {
+	log.Info("Shutting down backend")
 	if err := backend.ShutDown(); err != nil {
 		log.Errorf("unable to shutdown backend: %s", err)
 	}
 }
 
-func HandleSignals(backend *backend.BackendCTX) {
+func HandleSignals(ctx context.Context) error {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM)
 
-	s := <-signalChan
-	if err := termHandler(s, backend); err != nil {
-		log.Fatalf("shutdown fail: %s", err)
+	select {
+	case <-signalChan:
+		return fmt.Errorf("received SIGTERM")
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-	log.Infof("Shutting down firewall-bouncer service")
-	os.Exit(0)
 }
 
 func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
@@ -166,7 +160,7 @@ func Execute() error {
 	if err = backend.Init(); err != nil {
 		return err
 	}
-	// No call to fatalf after this point
+
 	defer backendCleanup(backend)
 
 	bouncer := &csbouncer.StreamBouncer{}
@@ -211,7 +205,6 @@ func Execute() error {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info("terminating bouncer process")
 				return nil
 			case decisions := <-bouncer.Stream:
 				if decisions == nil {
@@ -228,11 +221,13 @@ func Execute() error {
 		if !sent && err != nil {
 			log.Errorf("Failed to notify: %v", err)
 		}
-		go HandleSignals(backend)
+		g.Go(func() error {
+			return HandleSignals(ctx)
+		})
 	}
 
 	if err := g.Wait(); err != nil {
-		log.Errorf("process return with error: %s", err)
+		return fmt.Errorf("process terminated with error: %s", err)
 	}
 
 	return nil
