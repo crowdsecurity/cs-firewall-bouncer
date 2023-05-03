@@ -18,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/backend"
@@ -58,7 +59,7 @@ func HandleSignals(backend *backend.BackendCTX) {
 func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbDeletedDecisions := 0
 	for _, d := range decisions {
-		if !inSlice(strings.ToLower(*d.Type), config.SupportedDecisionsTypes) {
+		if !slices.Contains(config.SupportedDecisionsTypes, strings.ToLower(*d.Type)) {
 			log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *d.Value, *d.Type)
 			continue
 		}
@@ -90,7 +91,7 @@ func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, 
 func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbNewDecisions := 0
 	for _, d := range decisions {
-		if !inSlice(strings.ToLower(*d.Type), config.SupportedDecisionsTypes) {
+		if !slices.Contains(config.SupportedDecisionsTypes, strings.ToLower(*d.Type)) {
 			log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *d.Value, *d.Type)
 			continue
 		}
@@ -116,15 +117,6 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 		log.Debug("committed added decisions")
 		log.Infof("%d %s added", nbNewDecisions, noun)
 	}
-}
-
-func inSlice(s string, slice []string) bool {
-	for _, str := range slice {
-		if s == str {
-			return true
-		}
-	}
-	return false
 }
 
 func Execute() {
