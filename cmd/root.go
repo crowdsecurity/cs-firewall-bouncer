@@ -227,7 +227,7 @@ func Execute() error {
 	}
 
 	if err := g.Wait(); err != nil {
-		return fmt.Errorf("process terminated with error: %s", err)
+		return fmt.Errorf("process terminated with error: %w", err)
 	}
 
 	return nil
