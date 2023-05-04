@@ -1,3 +1,6 @@
+BUILD_REQUIRE_GO_MAJOR ?= 1
+BUILD_REQUIRE_GO_MINOR ?= 20
+
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
@@ -7,7 +10,7 @@ GO_MODULE_NAME=github.com/crowdsecurity/cs-firewall-bouncer
 TARBALL_NAME=$(BINARY_NAME).tgz
 
 ifdef BUILD_STATIC
-$(warning WARNING: The BUILD_STATIC variable is deprecated and has no effect. Builds are static by default since v1.5.0.)
+$(warning WARNING: The BUILD_STATIC variable is deprecated and has no effect. Builds are static by default now.)
 endif
 
 # Versioning information can be overridden in the environment
@@ -62,7 +65,7 @@ binary: goversion
 	$(GOBUILD) $(LD_OPTS) $(BUILD_VENDOR_FLAGS) -o $(BINARY_NAME)
 
 .PHONY: build
-build: goversion clean binary
+build: clean binary
 
 #
 # Unit and integration tests
@@ -73,7 +76,7 @@ lint:
 	golangci-lint run
 
 .PHONY: test
-test:
+test: goversion
 	@$(GOTEST) $(LD_OPTS) ./...
 
 .PHONY: func-tests
@@ -87,7 +90,7 @@ func-tests: build
 
 RELDIR = $(BINARY_NAME)-$(BUILD_VERSION)
 
-# Called during release, to reuse the directory for other platforms
+# Called during platform-all, to reuse the directory for other platforms
 .PHONY: clean-release-dir
 clean-release-dir:
 	@$(RM) -r $(RELDIR)
@@ -119,5 +122,4 @@ release: clean tarball
 platform-all: goversion clean
 	python3 .github/release.py run-build $(BINARY_NAME)
 
-# Check if go is the right version
 include mk/goversion.mk
