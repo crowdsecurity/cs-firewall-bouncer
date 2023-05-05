@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/slicetools"
 )
 
 type pfContext struct {
@@ -88,7 +89,7 @@ func getStateIPs() (map[string]bool, error) {
 }
 
 func (ctx *pfContext) add(decisions []*models.Decision) error {
-	chunks := chunkItems(decisions, ctx.batchSize)
+	chunks := slicetools.Chunks(decisions, ctx.batchSize)
 	for _, chunk := range chunks {
 		if err := ctx.addChunk(chunk); err != nil {
 			log.Errorf("error while adding decision chunk: %s", err)
@@ -143,7 +144,7 @@ func (ctx *pfContext) addChunk(decisions []*models.Decision) error {
 }
 
 func (ctx *pfContext) delete(decisions []*models.Decision) error {
-	chunks := chunkItems(decisions, ctx.batchSize)
+	chunks := slicetools.Chunks(decisions, ctx.batchSize)
 	for _, chunk := range chunks {
 		if err := ctx.deleteChunk(chunk); err != nil {
 			log.Errorf("error while deleting decision chunk: %s", err)
