@@ -331,26 +331,34 @@ func (n *nft) Add(decision *models.Decision) error {
 	return nil
 }
 
+
 // returns a set of currently banned IPs.
 func (n *nft) getCurrentState() (map[string]struct{}, error) {
-	elements := make([]nftables.SetElement, 0)
+	state := make(map[string]struct{})
+
 	if n.conn != nil {
-		ipv4Elements, err := n.conn.GetSetElements(n.set)
+		elements, err := n.conn.GetSetElements(n.set)
 		if err != nil {
 			return nil, err
 		}
-		elements = append(elements, ipv4Elements...)
+		for _, el := range elements {
+			state[net.IP(el.Key).String()] = struct{}{}
+		}
 	}
 
 	if n.conn6 != nil {
-		ipv6Elements, err := n.conn6.GetSetElements(n.set6)
+		elements, err := n.conn6.GetSetElements(n.set6)
 		if err != nil {
 			return nil, err
 		}
-		elements = append(elements, ipv6Elements...)
+		for _, el := range elements {
+			state[net.IP(el.Key).String()] = struct{}{}
+		}
 	}
-	return elementSliceToIPSet(elements), nil
+
+	return state, nil
 }
+
 
 func (n *nft) reset() {
 	n.decisionsToAdd = make([]*models.Decision, 0)
@@ -363,8 +371,8 @@ func (n *nft) commitDeletedDecisions() error {
 		return fmt.Errorf("failed to get current state: %w", err)
 	}
 
-	elements4 := make([]nftables.SetElement, 0)
-	elements6 := make([]nftables.SetElement, 0)
+	ip4 := []nftables.SetElement{}
+	ip6 := []nftables.SetElement{}
 
 	n.decisionsToDelete = normalizedDecisions(n.decisionsToDelete)
 
@@ -377,18 +385,18 @@ func (n *nft) commitDeletedDecisions() error {
 
 		if strings.Contains(ip.String(), ":") {
 			if n.conn6 != nil {
-				elements6 = append(elements6, nftables.SetElement{Key: ip.To16()})
+				ip6 = append(ip6, nftables.SetElement{Key: ip.To16()})
 				log.Tracef("adding %s to buffer", ip)
 			}
 			continue
 		}
 		if n.conn != nil {
-			elements4 = append(elements4, nftables.SetElement{Key: ip.To4()})
+			ip4 = append(ip4, nftables.SetElement{Key: ip.To4()})
 			log.Tracef("adding %s to buffer", ip)
 		}
 	}
 
-	for _, chunk := range slicetools.Chunks(elements4, chunkSize) {
+	for _, chunk := range slicetools.Chunks(ip4, chunkSize) {
 		log.Debugf("removing %d ipv4 elements from set", len(chunk))
 		if err := n.conn.SetDeleteElements(n.set, chunk); err != nil {
 			return fmt.Errorf("failed to remove ipv4 elements from set: %w", err)
@@ -398,7 +406,7 @@ func (n *nft) commitDeletedDecisions() error {
 		}
 	}
 
-	for _, chunk := range slicetools.Chunks(elements6, chunkSize) {
+	for _, chunk := range slicetools.Chunks(ip6, chunkSize) {
 		log.Debugf("removing %d ipv6 elements from set", len(chunk))
 		if err := n.conn6.SetDeleteElements(n.set6, chunk); err != nil {
 			return fmt.Errorf("failed to remove ipv6 elements from set: %w", err)
@@ -417,8 +425,8 @@ func (n *nft) commitAddedDecisions() error {
 		return fmt.Errorf("failed to get current state: %w", err)
 	}
 
-	elements4 := make([]nftables.SetElement, 0)
-	elements6 := make([]nftables.SetElement, 0)
+	ip4 := []nftables.SetElement{}
+	elements6 := []nftables.SetElement{}
 
 	n.decisionsToAdd = normalizedDecisions(n.decisionsToAdd)
 
@@ -438,12 +446,12 @@ func (n *nft) commitAddedDecisions() error {
 			continue
 		}
 		if n.conn != nil {
-			elements4 = append(elements4, nftables.SetElement{Timeout: t, Key: ip.To4()})
+			ip4 = append(ip4, nftables.SetElement{Timeout: t, Key: ip.To4()})
 			log.Tracef("adding %s to buffer", ip)
 		}
 	}
 
-	for _, chunk := range slicetools.Chunks(elements4, chunkSize) {
+	for _, chunk := range slicetools.Chunks(ip4, chunkSize) {
 		log.Debugf("adding %d ipv4 elements to set", len(chunk))
 		if err := n.conn.SetAddElements(n.set, chunk); err != nil {
 			return fmt.Errorf("failed to add ipv4 elements to set: %w", err)
@@ -475,14 +483,6 @@ func (n *nft) Commit() error {
 		return err
 	}
 	return nil
-}
-
-func elementSliceToIPSet(elements []nftables.SetElement) map[string]struct{} {
-	ipSet := make(map[string]struct{})
-	for _, element := range elements {
-		ipSet[net.IP(element.Key).String()] = struct{}{}
-	}
-	return ipSet
 }
 
 // remove duplicates, normalize decision timeouts, keep the longest decision when dups are present.
