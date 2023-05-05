@@ -5,6 +5,7 @@ package nftables
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -361,7 +362,7 @@ func (n *nft) commitDeletedDecisions() error {
 		if i == 0 || deletedIPV6 || deletedIPV4 {
 			currentState, err = n.getCurrentState()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get current state: %w", err)
 			}
 			deletedIPV4, deletedIPV6 = false, false
 		}
@@ -374,13 +375,13 @@ func (n *nft) commitDeletedDecisions() error {
 				if strings.Contains(decisionIP.String(), ":") {
 					if n.conn6 != nil {
 						if err := n.conn6.SetDeleteElements(n.set6, []nftables.SetElement{{Key: decisionIP.To16()}}); err != nil {
-							return err
+							return fmt.Errorf("failed to delete ipv6 element from set: %w", err)
 						}
 						deletedIPV6 = true
 					}
 				} else if n.conn != nil {
 					if err := n.conn.SetDeleteElements(n.set, []nftables.SetElement{{Key: decisionIP.To4()}}); err != nil {
-						return err
+						return fmt.Errorf("failed to delete ipv4 element from set: %w", err)
 					}
 					deletedIPV4 = true
 				}
@@ -391,12 +392,12 @@ func (n *nft) commitDeletedDecisions() error {
 		}
 		if deletedIPV4 {
 			if err := n.conn.Flush(); err != nil {
-				return err
+				return fmt.Errorf("failed to flush ipv4 conn: %w", err)
 			}
 		}
 		if deletedIPV6 {
 			if err := n.conn6.Flush(); err != nil {
-				return err
+				return fmt.Errorf("failed to flush ipv6 conn: %w", err)
 			}
 		}
 	}
@@ -412,7 +413,7 @@ func (n *nft) commitAddedDecisions() error {
 		if i == 0 || addedIPV4 || addedIPV6 {
 			currentState, err = n.getCurrentState()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get current state: %w", err)
 			}
 			addedIPV4, addedIPV6 = false, false
 		}
@@ -427,28 +428,28 @@ func (n *nft) commitAddedDecisions() error {
 				if strings.Contains(decisionIP.String(), ":") {
 					if n.conn6 != nil {
 						if err := n.conn6.SetAddElements(n.set6, []nftables.SetElement{{Timeout: t, Key: decisionIP.To16()}}); err != nil {
-							return err
+							return fmt.Errorf("failed to add ipv6 element to set: %w", err)
 						}
 						addedIPV6 = true
 					}
 				} else if n.conn != nil {
 					if err := n.conn.SetAddElements(n.set, []nftables.SetElement{{Timeout: t, Key: decisionIP.To4()}}); err != nil {
-						return err
+						return fmt.Errorf("failed to add ipv4 element to set: %w", err)
 					}
 					addedIPV4 = true
 				}
 				canAdd--
-				log.Debugf("adding %s to buffer ", decisionIP)
+				log.Debugf("adding %s to buffer", decisionIP)
 			}
 		}
 		if addedIPV4 {
 			if err := n.conn.Flush(); err != nil {
-				return err
+				return fmt.Errorf("failed to flush ipv4 conn: %w", err)
 			}
 		}
 		if addedIPV6 {
 			if err := n.conn6.Flush(); err != nil {
-				return err
+				return fmt.Errorf("failed to flush ipv6 conn: %w", err)
 			}
 		}
 	}
