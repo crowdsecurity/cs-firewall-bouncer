@@ -89,26 +89,26 @@ func (n *nft) CollectMetrics() {
 
 	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes, bannedIP4, bannedIP6 float64
 	for range t.C {
-		if n.conn != nil {
+		if n.v4.conn != nil {
 			for _, hook := range n.Hooks {
-				ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets(path, "ip", n.TableName4, n.ChainName4+"-"+hook)
+				ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets(path, "ip", n.v4.tableName, n.v4.chainName+"-"+hook)
 				if err != nil {
 					log.Error("can't collect dropped packets for ipv4 from nft: ", err)
 				}
 			}
-			bannedIP4, err = collectActiveBannedIPs(path, "ip", n.TableName4, n.BlacklistsIpv4)
+			bannedIP4, err = collectActiveBannedIPs(path, "ip", n.v4.tableName, n.v4.blacklists)
 			if err != nil {
 				log.Error("can't collect total banned IPs for ipv4 from nft:", err)
 			}
 		}
-		if n.conn6 != nil {
+		if n.v6.conn != nil {
 			for _, hook := range n.Hooks {
-				ip6DroppedPackets, ip6DroppedBytes, err = collectDroppedPackets(path, "ip6", n.TableName6, n.ChainName6+"-"+hook)
+				ip6DroppedPackets, ip6DroppedBytes, err = collectDroppedPackets(path, "ip6", n.v6.tableName, n.v6.chainName+"-"+hook)
 				if err != nil {
 					log.Error("can't collect dropped packets for ipv6 from nft: ", err)
 				}
 			}
-			bannedIP6, err = collectActiveBannedIPs(path, "ip6", n.TableName6, n.BlacklistsIpv6)
+			bannedIP6, err = collectActiveBannedIPs(path, "ip6", n.v6.tableName, n.v6.blacklists)
 			if err != nil {
 				log.Error("can't collect total banned IPs for ipv6 from nft:", err)
 			}
