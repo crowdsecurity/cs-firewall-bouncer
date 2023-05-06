@@ -4,7 +4,6 @@
 package nftables
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -118,6 +117,47 @@ func lookupTable(conn *nftables.Conn, tableName string) (*nftables.Table, error)
 }
 
 
+func createRule(table *nftables.Table, chain *nftables.Chain, set *nftables.Set, denyLog bool, denyLogPrefix string, denyAction string, offset uint32, len uint32) *nftables.Rule {
+	r := &nftables.Rule{
+		Table: table,
+		Chain: chain,
+		Exprs: []expr.Any{},
+	}
+	// [ payload load 4b @ network header + 16 => reg 1 ]
+	r.Exprs = append(r.Exprs, &expr.Payload{
+		DestRegister: 1,
+		Base:         expr.PayloadBaseNetworkHeader,
+		Offset:       offset,
+		Len:          len,
+	})
+	// [ lookup reg 1 set whitelist ]
+	r.Exprs = append(r.Exprs, &expr.Lookup{
+		SourceRegister: 1,
+		SetName:        set.Name,
+		SetID:          set.ID,
+	})
+
+	r.Exprs = append(r.Exprs, &expr.Counter{})
+
+	if denyLog {
+		r.Exprs = append(r.Exprs, &expr.Log{
+			Key:  1 << unix.NFTA_LOG_PREFIX,
+			Data: []byte(denyLogPrefix),
+		})
+	}
+	if strings.EqualFold(denyAction, "REJECT") {
+		r.Exprs = append(r.Exprs, &expr.Reject{
+			Type: unix.NFT_REJECT_ICMP_UNREACH,
+			Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
+		})
+	} else {
+		r.Exprs = append(r.Exprs, &expr.Verdict{
+			Kind: expr.VerdictDrop,
+		})
+	}
+	return r
+}
+
 
 func (n *nft) Init() error {
 	var err error
@@ -159,6 +199,7 @@ func (n *nft) Init() error {
 				Name:   n.TableName4,
 			}
 			n.table = n.conn.AddTable(table)
+
 			set := &nftables.Set{
 				Name:       n.BlacklistsIpv4,
 				Table:      n.table,
@@ -180,44 +221,7 @@ func (n *nft) Init() error {
 					Priority: nftables.ChainPriority(n.priority),
 				})
 
-				r := &nftables.Rule{
-					Table: n.table,
-					Chain: chain,
-					Exprs: []expr.Any{},
-				}
-				// [ payload load 4b @ network header + 16 => reg 1 ]
-				r.Exprs = append(r.Exprs, &expr.Payload{
-					DestRegister: 1,
-					Base:         expr.PayloadBaseNetworkHeader,
-					Offset:       12,
-					Len:          4,
-				})
-				// [ lookup reg 1 set whitelist ]
-				r.Exprs = append(r.Exprs, &expr.Lookup{
-					SourceRegister: 1,
-					SetName:        n.set.Name,
-					SetID:          n.set.ID,
-				})
-
-				r.Exprs = append(r.Exprs, &expr.Counter{})
-
-				if n.DenyLog {
-					r.Exprs = append(r.Exprs, &expr.Log{
-						Key:  1 << unix.NFTA_LOG_PREFIX,
-						Data: []byte(n.DenyLogPrefix),
-					})
-				}
-				if strings.EqualFold(n.DenyAction, "REJECT") {
-					r.Exprs = append(r.Exprs, &expr.Reject{
-						Type: unix.NFT_REJECT_ICMP_UNREACH,
-						Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
-					})
-				} else {
-					r.Exprs = append(r.Exprs, &expr.Verdict{
-						Kind: expr.VerdictDrop,
-					})
-				}
-
+				r := createRule(n.table, chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction, 12, 4)
 				n.conn.AddRule(r)
 			}
 
@@ -273,44 +277,7 @@ func (n *nft) Init() error {
 					Priority: nftables.ChainPriority(n.priority),
 				})
 
-				r := &nftables.Rule{
-					Table: n.table6,
-					Chain: chain,
-					Exprs: []expr.Any{},
-				}
-				// [ payload load 4b @ network header + 16 => reg 1 ]
-				r.Exprs = append(r.Exprs, &expr.Payload{
-					DestRegister: 1,
-					Base:         expr.PayloadBaseNetworkHeader,
-					Offset:       8,
-					Len:          16,
-				})
-				// [ lookup reg 1 set whitelist ]
-				r.Exprs = append(r.Exprs, &expr.Lookup{
-					SourceRegister: 1,
-					SetName:        n.set6.Name,
-					SetID:          n.set6.ID,
-				})
-
-				r.Exprs = append(r.Exprs, &expr.Counter{})
-
-				if n.DenyLog {
-					r.Exprs = append(r.Exprs, &expr.Log{
-						Key:  1 << unix.NFTA_LOG_PREFIX,
-						Data: []byte(n.DenyLogPrefix),
-					})
-				}
-				if strings.EqualFold(n.DenyAction, "REJECT") {
-					r.Exprs = append(r.Exprs, &expr.Reject{
-						Type: unix.NFT_REJECT_ICMP_UNREACH,
-						Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
-					})
-				} else {
-					r.Exprs = append(r.Exprs, &expr.Verdict{
-						Kind: expr.VerdictDrop,
-					})
-				}
-
+				r := createRule(n.table6, chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction, 8, 16)
 				n.conn6.AddRule(r)
 			}
 			if err := n.conn6.Flush(); err != nil {
