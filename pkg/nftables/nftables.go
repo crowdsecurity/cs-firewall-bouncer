@@ -102,28 +102,36 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	return ret, nil
 }
 
+
+
+func lookupTable(conn *nftables.Conn, tableName string) (*nftables.Table, error) {
+	tables, err := conn.ListTables()
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range tables {
+		if t.Name == tableName {
+			return t, nil
+		}
+	}
+	return nil, fmt.Errorf("nftables: could not find table '%s'", tableName)
+}
+
+
+
 func (n *nft) Init() error {
+	var err error
 	log.Debug("nftables: Init()")
 	/* ip4 */
 	if n.conn != nil {
 		log.Debug("nftables: ipv4 init starting")
 		if n.SetOnly4 {
-			log.Debug("nftables: ipv4 set-only")
 			// Use to existing nftables configuration
-			var table *nftables.Table
-			tables, err := n.conn.ListTables()
+			log.Debug("nftables: ipv4 set-only")
+			n.table, err = lookupTable(n.conn, n.TableName4)
 			if err != nil {
 				return err
 			}
-			for _, t := range tables {
-				if t.Name == n.TableName4 {
-					table = t
-				}
-			} // for
-			if table == nil {
-				return errors.New("nftables: could not find ipv4 table '" + n.TableName4 + "'")
-			}
-			n.table = table
 
 			set, err := n.conn.GetSetByName(n.table, n.BlacklistsIpv4)
 			if err != nil {
@@ -224,21 +232,11 @@ func (n *nft) Init() error {
 	if n.conn6 != nil {
 		if n.SetOnly6 {
 			// Use to existing nftables configuration
-			var table *nftables.Table
-
-			tables, err := n.conn6.ListTables()
+			log.Debug("nftables: ipv4 set-only")
+			n.table, err = lookupTable(n.conn6, n.TableName6)
 			if err != nil {
 				return err
 			}
-			for _, t := range tables {
-				if t.Name == n.TableName6 {
-					table = t
-				}
-			} // for
-			if table == nil {
-				return errors.New("nftables: could not find ipv6 table '" + n.TableName6 + "'")
-			}
-			n.table6 = table
 
 			set, err := n.conn6.GetSetByName(n.table6, n.BlacklistsIpv6)
 			if err != nil {
@@ -332,8 +330,7 @@ func (n *nft) Add(decision *models.Decision) error {
 }
 
 
-// returns a set of currently banned IPs.
-func (n *nft) getCurrentState() (map[string]struct{}, error) {
+func (n *nft) bannedSet() (map[string]struct{}, error) {
 	state := make(map[string]struct{})
 
 	if n.conn != nil {
@@ -366,7 +363,7 @@ func (n *nft) reset() {
 }
 
 func (n *nft) commitDeletedDecisions() error {
-	currentState, err := n.getCurrentState()
+	banned, err := n.bannedSet()
 	if err != nil {
 		return fmt.Errorf("failed to get current state: %w", err)
 	}
@@ -378,7 +375,7 @@ func (n *nft) commitDeletedDecisions() error {
 
 	for _, decision := range n.decisionsToDelete {
 		ip := net.ParseIP(*decision.Value)
-		if _, ok := currentState[ip.String()]; !ok {
+		if _, ok := banned[ip.String()]; !ok {
 			log.Debugf("not deleting %s since it's not in the set", ip)
 			continue
 		}
@@ -420,7 +417,7 @@ func (n *nft) commitDeletedDecisions() error {
 }
 
 func (n *nft) commitAddedDecisions() error {
-	currentState, err := n.getCurrentState()
+	banned, err := n.bannedSet()
 	if err != nil {
 		return fmt.Errorf("failed to get current state: %w", err)
 	}
@@ -432,7 +429,7 @@ func (n *nft) commitAddedDecisions() error {
 
 	for _, decision := range n.decisionsToAdd {
 		ip := net.ParseIP(*decision.Value)
-		if _, ok := currentState[ip.String()]; ok {
+		if _, ok := banned[ip.String()]; ok {
 			log.Debugf("not adding %s since it's already in the set", ip)
 			continue
 		}
