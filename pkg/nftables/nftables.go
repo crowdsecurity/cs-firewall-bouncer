@@ -102,7 +102,6 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 }
 
 
-
 func lookupTable(conn *nftables.Conn, tableName string) (*nftables.Table, error) {
 	tables, err := conn.ListTables()
 	if err != nil {
@@ -117,7 +116,8 @@ func lookupTable(conn *nftables.Conn, tableName string) (*nftables.Table, error)
 }
 
 
-func createRule(table *nftables.Table, chain *nftables.Chain, set *nftables.Set, denyLog bool, denyLogPrefix string, denyAction string, offset uint32, len uint32) *nftables.Rule {
+func createRule(table *nftables.Table, chain *nftables.Chain, set *nftables.Set,
+		denyLog bool, denyLogPrefix string, denyAction string, offset uint32, len uint32) *nftables.Rule {
 	r := &nftables.Rule{
 		Table: table,
 		Chain: chain,
