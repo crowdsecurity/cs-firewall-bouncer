@@ -10,9 +10,7 @@ import (
 	"time"
 
 	"github.com/google/nftables"
-	"github.com/google/nftables/expr"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
@@ -25,133 +23,6 @@ const (
 	chunkSize      = 200
 	defaultTimeout = "4h"
 )
-
-var HookNameToHookID = map[string]nftables.ChainHook{
-	"prerouting":  nftables.ChainHookPrerouting,
-	"input":       nftables.ChainHookInput,
-	"forward":     nftables.ChainHookForward,
-	"output":      nftables.ChainHookOutput,
-	"postrouting": nftables.ChainHookPostrouting,
-	"ingress":     nftables.ChainHookIngress,
-}
-
-type nftContext struct {
-	conn          *nftables.Conn
-	set           *nftables.Set
-	table         *nftables.Table
-	tableFamily   nftables.TableFamily
-	ipVersion     string
-	payloadOffset uint32
-	payloadLength uint32
-	priority      int
-	blacklists    string
-	chainName     string
-	tableName     string
-	setOnly       bool
-}
-
-func (c *nftContext) shutDown() error {
-	if c.conn == nil {
-		return nil
-	}
-	if c.setOnly {
-		// Flush blacklist4 set empty
-		log.Infof("flushing '%s' set in '%s' table", c.set.Name, c.table.Name)
-		c.conn.FlushSet(c.set)
-	} else {
-		log.Infof("removing '%s' table", c.table.Name)
-		c.conn.DelTable(c.table)
-	}
-	if err := c.conn.Flush(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *nftContext) initSetOnly() error {
-	// Use to existing nftables configuration
-	log.Debugf("nftables: %s set-only", c.ipVersion)
-	var err error
-	c.table, err = c.lookupTable()
-	if err != nil {
-		return err
-	}
-
-	set, err := c.conn.GetSetByName(c.table, c.blacklists)
-	if err != nil {
-		log.Debugf("nftables: could not find %s blacklist '%s' in table '%s': creating...", c.ipVersion, c.blacklists, c.tableName)
-		set = &nftables.Set{
-			Name:       c.blacklists,
-			Table:      c.table,
-			KeyType:    nftables.TypeIPAddr,
-			HasTimeout: true,
-		}
-
-		if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
-			return err
-		}
-		if err := c.conn.Flush(); err != nil {
-			return err
-		}
-	}
-	c.set = set
-	log.Debugf("nftables: %s set '%s' configured", c.ipVersion, c.blacklists)
-
-	return nil
-}
-
-func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix string, denyAction string) error {
-	log.Debugf("nftables: %s own table", c.ipVersion)
-	table := &nftables.Table{
-		Family: c.tableFamily,
-		Name:   c.tableName,
-	}
-	c.table = c.conn.AddTable(table)
-
-	set := &nftables.Set{
-		Name:       c.blacklists,
-		Table:      c.table,
-		KeyType:    nftables.TypeIPAddr,
-		HasTimeout: true,
-	}
-
-	if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
-		return err
-	}
-	c.set = set
-
-	for _, hook := range hooks {
-		chain := c.conn.AddChain(&nftables.Chain{
-			Name:     c.chainName + "-" + hook,
-			Table:    c.table,
-			Type:     nftables.ChainTypeFilter,
-			Hooknum:  HookNameToHookID[hook],
-			Priority: nftables.ChainPriority(c.priority),
-		})
-
-		r := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
-		c.conn.AddRule(r)
-	}
-
-	if err := c.conn.Flush(); err != nil {
-		return err
-	}
-	log.Debugf("nftables: %s table created", c.ipVersion)
-	return nil
-}
-
-func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, denyAction string) error {
-	if c.conn == nil {
-		return nil
-	}
-
-	log.Debugf("nftables: %s init starting", c.ipVersion)
-
-	if c.setOnly {
-		return c.initSetOnly()
-	}
-	return c.initOwnTable(hooks, denyLog, denyLogPrefix, denyAction)
-}
 
 type nft struct {
 	v4                *nftContext
@@ -209,61 +80,6 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		*config.Nftables.Ipv6.Enabled, ret.v6.tableName, ret.v6.chainName, ret.v6.blacklists, ret.v6.setOnly)
 
 	return ret, nil
-}
-
-func (c *nftContext) lookupTable() (*nftables.Table, error) {
-	tables, err := c.conn.ListTables()
-	if err != nil {
-		return nil, err
-	}
-	for _, t := range tables {
-		if t.Name == c.tableName {
-			return t, nil
-		}
-	}
-	return nil, fmt.Errorf("nftables: could not find table '%s'", c.tableName)
-}
-
-func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
-	denyLog bool, denyLogPrefix string, denyAction string) *nftables.Rule {
-	r := &nftables.Rule{
-		Table: c.table,
-		Chain: chain,
-		Exprs: []expr.Any{},
-	}
-	// [ payload load 4b @ network header + 16 => reg 1 ]
-	r.Exprs = append(r.Exprs, &expr.Payload{
-		DestRegister: 1,
-		Base:         expr.PayloadBaseNetworkHeader,
-		Offset:       c.payloadOffset,
-		Len:          c.payloadLength,
-	})
-	// [ lookup reg 1 set whitelist ]
-	r.Exprs = append(r.Exprs, &expr.Lookup{
-		SourceRegister: 1,
-		SetName:        set.Name,
-		SetID:          set.ID,
-	})
-
-	r.Exprs = append(r.Exprs, &expr.Counter{})
-
-	if denyLog {
-		r.Exprs = append(r.Exprs, &expr.Log{
-			Key:  1 << unix.NFTA_LOG_PREFIX,
-			Data: []byte(denyLogPrefix),
-		})
-	}
-	if strings.EqualFold(denyAction, "REJECT") {
-		r.Exprs = append(r.Exprs, &expr.Reject{
-			Type: unix.NFT_REJECT_ICMP_UNREACH,
-			Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
-		})
-	} else {
-		r.Exprs = append(r.Exprs, &expr.Verdict{
-			Kind: expr.VerdictDrop,
-		})
-	}
-	return r
 }
 
 func (n *nft) Init() error {
