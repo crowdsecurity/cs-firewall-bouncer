@@ -31,7 +31,7 @@ type nftContext struct {
 	set           *nftables.Set
 	table         *nftables.Table
 	tableFamily   nftables.TableFamily
-	ipVersion     string
+	version       string
 	payloadOffset uint32
 	payloadLength uint32
 	priority      int
@@ -44,6 +44,7 @@ type nftContext struct {
 func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
 	if !*config.Nftables.Ipv4.Enabled {
 		log.Debug("nftables: ipv4 disabled")
+
 		return &nftContext{}
 	}
 
@@ -51,7 +52,7 @@ func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
 
 	ret := &nftContext{
 		conn:          &nftables.Conn{},
-		ipVersion:     "ipv4",
+		version:       "v4",
 		tableFamily:   nftables.TableFamilyIPv4,
 		payloadOffset: 12,
 		payloadLength: 4,
@@ -71,6 +72,7 @@ func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
 func NewNFTV6Context(config *cfg.BouncerConfig) *nftContext {
 	if !*config.Nftables.Ipv6.Enabled {
 		log.Debug("nftables: ipv6 disabled")
+
 		return &nftContext{}
 	}
 
@@ -78,7 +80,7 @@ func NewNFTV6Context(config *cfg.BouncerConfig) *nftContext {
 
 	ret := &nftContext{
 		conn:          &nftables.Conn{},
-		ipVersion:     "ipv6",
+		version:       "v6",
 		tableFamily:   nftables.TableFamilyIPv6,
 		payloadOffset: 8,
 		payloadLength: 16,
@@ -117,7 +119,7 @@ func (c *nftContext) initSetOnly() error {
 	var err error
 
 	// Use existing nftables configuration
-	log.Debugf("nftables: %s set-only", c.ipVersion)
+	log.Debugf("nftables: ip%s set-only", c.version)
 
 	c.table, err = c.lookupTable()
 	if err != nil {
@@ -126,7 +128,7 @@ func (c *nftContext) initSetOnly() error {
 
 	set, err := c.conn.GetSetByName(c.table, c.blacklists)
 	if err != nil {
-		log.Debugf("nftables: could not find %s blacklist '%s' in table '%s': creating...", c.ipVersion, c.blacklists, c.tableName)
+		log.Debugf("nftables: could not find ip%s blacklist '%s' in table '%s': creating...", c.version, c.blacklists, c.tableName)
 
 		set = &nftables.Set{
 			Name:       c.blacklists,
@@ -145,13 +147,13 @@ func (c *nftContext) initSetOnly() error {
 	}
 
 	c.set = set
-	log.Debugf("nftables: %s set '%s' configured", c.ipVersion, c.blacklists)
+	log.Debugf("nftables: ip%s set '%s' configured", c.version, c.blacklists)
 
 	return nil
 }
 
 func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix string, denyAction string) error {
-	log.Debugf("nftables: %s own table", c.ipVersion)
+	log.Debugf("nftables: ip%s own table", c.version)
 
 	c.table = c.conn.AddTable(&nftables.Table{
 		Family: c.tableFamily,
@@ -188,7 +190,7 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 		return err
 	}
 
-	log.Debugf("nftables: %s table created", c.ipVersion)
+	log.Debugf("nftables: ip%s table created", c.version)
 
 	return nil
 }
@@ -198,7 +200,7 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 		return nil
 	}
 
-	log.Debugf("nftables: %s init starting", c.ipVersion)
+	log.Debugf("nftables: ip%s init starting", c.version)
 
 	if c.setOnly {
 		return c.initSetOnly()
@@ -268,14 +270,14 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 
 func (c *nftContext) deleteElements(els []nftables.SetElement) error {
 	for _, chunk := range slicetools.Chunks(els, chunkSize) {
-		log.Debugf("removing %d %s elements from set", len(chunk), c.ipVersion)
+		log.Debugf("removing %d ip%s elements from set", len(chunk), c.version)
 
 		if err := c.conn.SetDeleteElements(c.set, chunk); err != nil {
-			return fmt.Errorf("failed to remove %s elements from set: %w", c.ipVersion, err)
+			return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
 		}
 
 		if err := c.conn.Flush(); err != nil {
-			return fmt.Errorf("failed to flush %s conn: %w", c.ipVersion, err)
+			return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
 		}
 	}
 
@@ -284,14 +286,14 @@ func (c *nftContext) deleteElements(els []nftables.SetElement) error {
 
 func (c *nftContext) addElements(els []nftables.SetElement) error {
 	for _, chunk := range slicetools.Chunks(els, chunkSize) {
-		log.Debugf("adding %d %s elements to set", len(chunk), c.ipVersion)
+		log.Debugf("adding %d ip%s elements to set", len(chunk), c.version)
 
 		if err := c.conn.SetAddElements(c.set, chunk); err != nil {
-			return fmt.Errorf("failed to add %s elements to set: %w", c.ipVersion, err)
+			return fmt.Errorf("failed to add ip%s elements to set: %w", c.version, err)
 		}
 
 		if err := c.conn.Flush(); err != nil {
-			return fmt.Errorf("failed to flush %s conn: %w", c.ipVersion, err)
+			return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
 		}
 	}
 

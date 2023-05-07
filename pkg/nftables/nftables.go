@@ -15,7 +15,6 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 const (
@@ -34,7 +33,7 @@ type nft struct {
 	Hooks             []string
 }
 
-func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
+func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
 	ret := &nft{
 		v4: NewNFTV4Context(config),
 		v6: NewNFTV6Context(config),
