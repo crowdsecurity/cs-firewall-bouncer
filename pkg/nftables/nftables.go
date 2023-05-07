@@ -69,9 +69,11 @@ func (n *nft) getBannedState() (map[string]struct{}, error) {
 	if err := n.v4.setBanned(banned); err != nil {
 		return nil, err
 	}
+
 	if err := n.v6.setBanned(banned); err != nil {
 		return nil, err
 	}
+
 	return banned, nil
 }
 
@@ -100,14 +102,18 @@ func (n *nft) commitDeletedDecisions() error {
 
 		if strings.Contains(ip.String(), ":") {
 			if n.v6.conn != nil {
-				ip6 = append(ip6, nftables.SetElement{Key: ip.To16()})
 				log.Tracef("adding %s to buffer", ip)
+
+				ip6 = append(ip6, nftables.SetElement{Key: ip.To16()})
 			}
+
 			continue
 		}
+
 		if n.v4.conn != nil {
-			ip4 = append(ip4, nftables.SetElement{Key: ip.To4()})
 			log.Tracef("adding %s to buffer", ip)
+
+			ip4 = append(ip4, nftables.SetElement{Key: ip.To4()})
 		}
 	}
 
@@ -141,16 +147,21 @@ func (n *nft) commitAddedDecisions() error {
 		}
 
 		t, _ := time.ParseDuration(*decision.Duration)
+
 		if strings.Contains(ip.String(), ":") {
 			if n.v6.conn != nil {
-				ip6 = append(ip6, nftables.SetElement{Timeout: t, Key: ip.To16()})
 				log.Tracef("adding %s to buffer", ip)
+
+				ip6 = append(ip6, nftables.SetElement{Timeout: t, Key: ip.To16()})
 			}
+
 			continue
 		}
+
 		if n.v4.conn != nil {
-			ip4 = append(ip4, nftables.SetElement{Timeout: t, Key: ip.To4()})
 			log.Tracef("adding %s to buffer", ip)
+
+			ip4 = append(ip4, nftables.SetElement{Timeout: t, Key: ip.To4()})
 		}
 	}
 
@@ -167,12 +178,15 @@ func (n *nft) commitAddedDecisions() error {
 
 func (n *nft) Commit() error {
 	defer n.reset()
+
 	if err := n.commitDeletedDecisions(); err != nil {
 		return err
 	}
+
 	if err := n.commitAddedDecisions(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -180,22 +194,27 @@ func (n *nft) Commit() error {
 func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 	vals := make(map[string]time.Duration)
 	finalDecisions := make([]*models.Decision, 0)
+
 	for _, d := range decisions {
 		t, err := time.ParseDuration(*d.Duration)
 		if err != nil {
 			t, _ = time.ParseDuration(defaultTimeout)
 		}
+
 		*d.Value = strings.Split(*d.Value, "/")[0]
 		vals[*d.Value] = maxTime(t, vals[*d.Value])
 	}
+
 	for ip, duration := range vals {
 		d := duration.String()
 		i := ip // copy it because we don't same value for all decisions as `ip` is same pointer :)
+
 		finalDecisions = append(finalDecisions, &models.Decision{
 			Duration: &d,
 			Value:    &i,
 		})
 	}
+
 	return finalDecisions
 }
 
@@ -205,13 +224,14 @@ func (n *nft) Delete(decision *models.Decision) error {
 }
 
 func (n *nft) ShutDown() error {
-	// continue here
 	if err := n.v4.shutDown(); err != nil {
 		return err
 	}
+
 	if err := n.v6.shutDown(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -219,5 +239,6 @@ func maxTime(a time.Duration, b time.Duration) time.Duration {
 	if a > b {
 		return a
 	}
+
 	return b
 }
