@@ -36,14 +36,36 @@ var HookNameToHookID = map[string]nftables.ChainHook{
 }
 
 type nftContext struct {
-	conn       *nftables.Conn
-	set        *nftables.Set
-	table      *nftables.Table
-	priority   int
-	blacklists string
-	chainName  string
-	tableName  string
-	setOnly    bool
+	conn          *nftables.Conn
+	set           *nftables.Set
+	table         *nftables.Table
+	tableFamily   nftables.TableFamily
+	payloadOffset uint32
+	payloadLength uint32
+	priority      int
+	blacklists    string
+	chainName     string
+	tableName     string
+	setOnly       bool
+}
+
+func (c *nftContext) shutDown() error {
+	if c.conn == nil {
+		return nil
+	}
+	if c.setOnly {
+		// Flush blacklist4 set empty
+		log.Infof("flushing '%s' set in '%s' table", c.set.Name, c.table.Name)
+		c.conn.FlushSet(c.set)
+	} else {
+		// delete whole crowdsec table
+		log.Infof("removing '%s' table", c.table.Name)
+		c.conn.DelTable(c.table)
+	}
+	if err := c.conn.Flush(); err != nil {
+		return err
+	}
+	return nil
 }
 
 type nft struct {
@@ -77,6 +99,9 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret.DenyLogPrefix = config.DenyLogPrefix
 	ret.Hooks = config.NftablesHooks
 
+	ret.v4.tableFamily = nftables.TableFamilyIPv4
+	ret.v4.payloadOffset = 12
+	ret.v4.payloadOffset = 4
 	ret.v4.tableName = config.Nftables.Ipv4.Table
 	ret.v4.chainName = config.Nftables.Ipv4.Chain
 	ret.v4.blacklists = config.BlacklistsIpv4
@@ -85,6 +110,9 @@ func NewNFTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
 		*config.Nftables.Ipv4.Enabled, ret.v4.tableName, ret.v4.chainName, ret.v4.blacklists, ret.v4.setOnly)
 
+	ret.v4.tableFamily = nftables.TableFamilyIPv6
+	ret.v6.payloadOffset = 8
+	ret.v6.payloadOffset = 16
 	ret.v6.tableName = config.Nftables.Ipv6.Table
 	ret.v6.chainName = config.Nftables.Ipv6.Chain
 	ret.v6.blacklists = config.BlacklistsIpv6
@@ -187,7 +215,7 @@ func (n *nft) Init() error {
 		} else { // Create crowdsec table,chain, blacklist set and rules
 			log.Debug("nftables: ipv4 own table")
 			table := &nftables.Table{
-				Family: nftables.TableFamilyIPv4,
+				Family: n.v4.tableFamily,
 				Name:   n.v4.tableName,
 			}
 			n.v4.table = n.v4.conn.AddTable(table)
@@ -213,7 +241,7 @@ func (n *nft) Init() error {
 					Priority: nftables.ChainPriority(n.v4.priority),
 				})
 
-				r := createRule(n.v4.table, chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction, 12, 4)
+				r := createRule(n.v4.table, chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction, n.v4.payloadOffset, n.v4.payloadLength)
 				n.v4.conn.AddRule(r)
 			}
 
@@ -243,7 +271,7 @@ func (n *nft) Init() error {
 		} else {
 			log.Debug("nftables: ipv6 own table")
 			table := &nftables.Table{
-				Family: nftables.TableFamilyIPv6,
+				Family: n.v6.tableFamily,
 				Name:   n.v6.tableName,
 			}
 			n.v6.table = n.v6.conn.AddTable(table)
@@ -269,7 +297,7 @@ func (n *nft) Init() error {
 					Priority: nftables.ChainPriority(n.v6.priority),
 				})
 
-				r := createRule(n.v6.table, chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction, 8, 16)
+				r := createRule(n.v6.table, chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction, n.v6.payloadOffset, n.v6.payloadLength)
 				n.v6.conn.AddRule(r)
 			}
 			if err := n.v6.conn.Flush(); err != nil {
@@ -469,33 +497,11 @@ func (n *nft) Delete(decision *models.Decision) error {
 
 func (n *nft) ShutDown() error {
 	// continue here
-	if n.v4.conn != nil {
-		if n.v4.setOnly {
-			// Flush blacklist4 set empty
-			log.Infof("flushing '%s' set in '%s' table", n.v4.set.Name, n.v4.table.Name)
-			n.v4.conn.FlushSet(n.v4.set)
-		} else {
-			// delete whole crowdsec table
-			log.Infof("removing '%s' table", n.v4.table.Name)
-			n.v4.conn.DelTable(n.v4.table)
-		}
-		if err := n.v4.conn.Flush(); err != nil {
-			return err
-		}
+	if err := n.v4.shutDown(); err != nil {
+		return err
 	}
-
-	if n.v6.conn != nil {
-		if n.v6.setOnly {
-			// Flush blacklist6 set empty
-			log.Infof("flushing '%s' set in '%s' table", n.v6.set.Name, n.v6.table.Name)
-			n.v6.conn.FlushSet(n.v6.set)
-		} else {
-			log.Infof("removing '%s' table", n.v6.tableName)
-			n.v6.conn.DelTable(n.v6.table)
-		}
-		if err := n.v6.conn.Flush(); err != nil {
-			return err
-		}
+	if err := n.v6.shutDown(); err != nil {
+		return err
 	}
 	return nil
 }
