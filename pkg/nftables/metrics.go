@@ -38,7 +38,7 @@ type Set struct {
 	} `json:"nftables"`
 }
 
-func (c *nftContext) collectDroppedPackets(path string, hook string) (float64, float64, error) {
+func (c *nftContext) collectDroppedPackets(path string, hook string) (int, int, error) {
 	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, c.chainName+"-"+hook)
 	out, err := cmd.CombinedOutput()
 
@@ -51,13 +51,13 @@ func (c *nftContext) collectDroppedPackets(path string, hook string) (float64, f
 		return 0, 0, err
 	}
 
-	var tdp, tdb float64
+	var tdp, tdb int
 OUT:
 	for _, r := range parsedOut.Nftables {
 		for _, expr := range r.Rule.Expr {
 			if expr.Counter != nil {
-				tdp = float64(expr.Counter.Packets)
-				tdb = float64(expr.Counter.Bytes)
+				tdp = expr.Counter.Packets
+				tdb = expr.Counter.Bytes
 				break OUT
 			}
 		}
@@ -74,7 +74,7 @@ func (c *nftContext) ipFamily() string {
 	return "ip6"
 }
 
-func (c *nftContext) collectActiveBannedIPs(path string) (float64, error) {
+func (c *nftContext) collectActiveBannedIPs(path string) (int, error) {
 	cmd := exec.Command(path, "-j", "list", "set", c.ipFamily(), c.tableName, c.blacklists)
 
 	out, err := cmd.CombinedOutput()
@@ -92,15 +92,15 @@ func (c *nftContext) collectActiveBannedIPs(path string) (float64, error) {
 		ret += len(r.Set.Elem)
 	}
 
-	return float64(ret), nil
+	return ret, nil
 }
 
-func (c *nftContext) collectDropped(path string, hooks []string) (float64, float64, float64) {
+func (c *nftContext) collectDropped(path string, hooks []string) (int, int, int) {
 	if c.conn == nil {
 		return 0, 0, 0
 	}
 
-	var droppedPackets, droppedBytes, banned float64
+	var droppedPackets, droppedBytes, banned int
 
 	var err error
 
@@ -133,8 +133,8 @@ func (n *nft) CollectMetrics() {
 		ip4DroppedPackets, ip4DroppedBytes, bannedIP4 := n.v4.collectDropped(path, n.Hooks)
 		ip6DroppedPackets, ip6DroppedBytes, bannedIP6 := n.v6.collectDropped(path, n.Hooks)
 
-		metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-		metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
-		metrics.TotalActiveBannedIPs.Set(bannedIP4 + bannedIP6)
+		metrics.TotalDroppedPackets.Set(float64(ip4DroppedPackets + ip6DroppedPackets))
+		metrics.TotalDroppedBytes.Set(float64(ip6DroppedBytes + ip4DroppedBytes))
+		metrics.TotalActiveBannedIPs.Set(float64(bannedIP4 + bannedIP6))
 	}
 }
