@@ -51,19 +51,15 @@ func (c *nftContext) collectDroppedPackets(path string, hook string) (int, int, 
 		return 0, 0, err
 	}
 
-	var tdp, tdb int
-OUT:
 	for _, r := range parsedOut.Nftables {
 		for _, expr := range r.Rule.Expr {
 			if expr.Counter != nil {
-				tdp = expr.Counter.Packets
-				tdb = expr.Counter.Bytes
-				break OUT
+				return expr.Counter.Packets, expr.Counter.Bytes, nil
 			}
 		}
 	}
 
-	return tdp, tdb, nil
+	return 0, 0, nil
 }
 
 func (c *nftContext) ipFamily() string {
