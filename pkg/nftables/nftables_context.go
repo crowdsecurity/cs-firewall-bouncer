@@ -185,6 +185,7 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 			Priority: nftables.ChainPriority(c.priority),
 		})
 
+		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
 		r := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
 		c.conn.AddRule(r)
 	}

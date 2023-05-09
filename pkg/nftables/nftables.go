@@ -35,8 +35,12 @@ type nft struct {
 
 func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
 	ret := &nft{
-		v4: NewNFTV4Context(config),
-		v6: NewNFTV6Context(config),
+		v4:            NewNFTV4Context(config),
+		v6:            NewNFTV6Context(config),
+		DenyAction:    config.DenyAction,
+		DenyLog:       config.DenyLog,
+		DenyLogPrefix: config.DenyLogPrefix,
+		Hooks:         config.NftablesHooks,
 	}
 
 	return ret, nil
