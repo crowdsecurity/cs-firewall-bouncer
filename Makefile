@@ -100,12 +100,13 @@ tarball: binary
 	@if [ -z $(BUILD_VERSION) ]; then BUILD_VERSION="local" ; fi
 	@if [ -d $(RELDIR) ]; then echo "$(RELDIR) already exists, please run 'make clean' and retry" ;  exit 1 ; fi
 	@echo Building Release to dir $(RELDIR)
-	@mkdir $(RELDIR)/
+	@mkdir -p $(RELDIR)/scripts
 	@cp $(BINARY_NAME) $(RELDIR)/
 	@cp -R ./config $(RELDIR)/
 	@cp ./scripts/install.sh $(RELDIR)/
 	@cp ./scripts/uninstall.sh $(RELDIR)/
 	@cp ./scripts/upgrade.sh $(RELDIR)/
+	@cp ./scripts/_bouncer.sh $(RELDIR)/scripts/
 	@chmod +x $(RELDIR)/install.sh
 	@chmod +x $(RELDIR)/uninstall.sh
 	@chmod +x $(RELDIR)/upgrade.sh
