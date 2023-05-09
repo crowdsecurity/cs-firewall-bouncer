@@ -86,9 +86,9 @@ config_not_set() {
         exit 1
     fi
 
-    before=$(cat "$CONFIG")
+    before=$("$BOUNCER" -c "$CONFIG" -C)
     # shellcheck disable=SC2016
-    after=$(envsubst "\$$varname" < "$CONFIG")
+    after=$(echo "$before" | envsubst "\$$varname")
 
     if [ "$before" = "$after" ]; then
         return 1
