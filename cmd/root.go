@@ -63,7 +63,7 @@ func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, 
 			}
 			continue
 		}
-		log.Debugf("deleted '%s'", *d.Value)
+		log.Debugf("deleted %s", *d.Value)
 		nbDeletedDecisions++
 	}
 
