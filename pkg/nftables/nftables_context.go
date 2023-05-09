@@ -31,6 +31,7 @@ type nftContext struct {
 	set           *nftables.Set
 	table         *nftables.Table
 	tableFamily   nftables.TableFamily
+	typeIPAddr    nftables.SetDatatype
 	version       string
 	payloadOffset uint32
 	payloadLength uint32
@@ -54,6 +55,7 @@ func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
 		conn:          &nftables.Conn{},
 		version:       "v4",
 		tableFamily:   nftables.TableFamilyIPv4,
+		typeIPAddr:    nftables.TypeIPAddr,
 		payloadOffset: 12,
 		payloadLength: 4,
 		tableName:     config.Nftables.Ipv4.Table,
@@ -82,6 +84,7 @@ func NewNFTV6Context(config *cfg.BouncerConfig) *nftContext {
 		conn:          &nftables.Conn{},
 		version:       "v6",
 		tableFamily:   nftables.TableFamilyIPv6,
+		typeIPAddr:    nftables.TypeIP6Addr,
 		payloadOffset: 8,
 		payloadLength: 16,
 		tableName:     config.Nftables.Ipv6.Table,
@@ -133,7 +136,7 @@ func (c *nftContext) initSetOnly() error {
 		set = &nftables.Set{
 			Name:       c.blacklists,
 			Table:      c.table,
-			KeyType:    nftables.TypeIPAddr,
+			KeyType:    c.typeIPAddr,
 			HasTimeout: true,
 		}
 
@@ -163,7 +166,7 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	set := &nftables.Set{
 		Name:       c.blacklists,
 		Table:      c.table,
-		KeyType:    nftables.TypeIPAddr,
+		KeyType:    c.typeIPAddr,
 		HasTimeout: true,
 	}
 
