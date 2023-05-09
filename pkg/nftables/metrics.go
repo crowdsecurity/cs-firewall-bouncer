@@ -98,17 +98,16 @@ func (c *nftContext) collectDropped(path string, hooks []string) (int, int, int)
 
 	var droppedPackets, droppedBytes, banned int
 
-	var err error
-
 	for _, hook := range hooks {
-		droppedPackets, droppedBytes, err = c.collectDroppedPackets(path, hook)
-		// XXX: sum
+		pkt, byt, err := c.collectDroppedPackets(path, hook)
 		if err != nil {
 			log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
 		}
+		droppedPackets += pkt
+		droppedBytes += byt
 	}
 
-	banned, err = c.collectActiveBannedIPs(path)
+	banned, err := c.collectActiveBannedIPs(path)
 	if err != nil {
 		log.Errorf("can't collect total banned IPs for ip%s from nft: %s", c.version, err)
 	}
