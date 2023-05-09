@@ -119,6 +119,7 @@ func Execute() error {
 	verbose := flag.Bool("v", false, "set verbose mode")
 	bouncerVersion := flag.Bool("V", false, "display version and exit")
 	testConfig := flag.Bool("t", false, "test config and exit")
+	showConfig := flag.Bool("T", false, "show full config (.yaml + .yaml.local) and exit")
 
 	flag.Parse()
 
@@ -136,6 +137,11 @@ func Execute() error {
 	configBytes, err := cfg.MergedConfig(*configPath)
 	if err != nil {
 		return fmt.Errorf("unable to read config file: %w", err)
+	}
+
+	if *showConfig {
+		fmt.Println(string(configBytes))
+		os.Exit(0)
 	}
 
 	config, err := cfg.NewConfig(bytes.NewReader(configBytes))
