@@ -272,19 +272,36 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 	return r
 }
 
-func (c *nftContext) deleteElements(els []nftables.SetElement) error {
-	for _, chunk := range slicetools.Chunks(els, chunkSize) {
-		log.Debugf("removing %d ip%s elements from set", len(chunk), c.version)
-
-		if err := c.conn.SetDeleteElements(c.set, chunk); err != nil {
-			return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
+func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
+	if err := c.conn.SetDeleteElements(c.set, els); err != nil {
+		return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
+	}
+	if err := c.conn.Flush(); err != nil {
+		if len(els) == 1 {
+			log.Warningf("deleting %s, failed to flush: %s", els[0].Key, err)
+			return nil
 		}
-
-		if err := c.conn.Flush(); err != nil {
-			return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
+		log.Warningf("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
+		for _, el := range els {
+			if err := c.deleteElementChunk([]nftables.SetElement{el}); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
+}
 
+func (c *nftContext) deleteElements(els []nftables.SetElement) error {
+	if len(els) <= chunkSize {
+		return c.deleteElementChunk(els)
+	}
+
+	log.Debugf("splitting %d elements into chunks of %d", len(els), chunkSize)
+	for _, chunk := range slicetools.Chunks(els, chunkSize) {
+		if err := c.deleteElementChunk(chunk); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
