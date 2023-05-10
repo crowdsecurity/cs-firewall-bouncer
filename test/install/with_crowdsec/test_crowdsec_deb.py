@@ -126,6 +126,8 @@ def test_deb_install_purge_yaml_local(deb_package_path, bouncer_under_test, must
     merged_config = yaml.safe_load(p)
     assert merged_config['api_key'] == '123456'
 
+    os.unlink(config.with_suffix('.yaml.local'))
+
     p = subprocess.run(
         ['dpkg', '--purge', package_name],
         stdout=subprocess.PIPE,
