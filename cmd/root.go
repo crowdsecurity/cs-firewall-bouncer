@@ -125,7 +125,7 @@ func Execute() error {
 
 	if *bouncerVersion {
 		fmt.Print(version.ShowStr())
-		os.Exit(0)
+		return nil
 	}
 
 	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
@@ -141,7 +141,7 @@ func Execute() error {
 
 	if *showConfig {
 		fmt.Println(string(configBytes))
-		os.Exit(0)
+		return nil
 	}
 
 	config, err := cfg.NewConfig(bytes.NewReader(configBytes))
@@ -160,7 +160,7 @@ func Execute() error {
 
 	if *testConfig {
 		log.Info("config is valid")
-		os.Exit(0)
+		return nil
 	}
 
 	if err = backend.Init(); err != nil {
