@@ -136,8 +136,8 @@ set_api_key() {
     if command -v cscli >/dev/null; then
         echo "cscli/crowdsec is present, generating API key" >&2
         bouncer_id="$BOUNCER_PREFIX-$(date +%s)"
-        api_key=$(cscli -oraw bouncers add "$bouncer_id")
-        if [ $? -eq 1 ]; then
+        api_key=$(cscli -oraw bouncers add "$bouncer_id" || true)
+        if [ "$api_key" = "" ]; then
             echo "failed to create API key" >&2
             ret=1
         else
@@ -149,7 +149,9 @@ set_api_key() {
         ret=1
     fi
 
-    set_config_var_value 'API_KEY' "$api_key"
+    if [ "$api_key" != "" ]; then
+        set_config_var_value 'API_KEY' "$api_key"
+    fi
 
     return "$ret"
 }
