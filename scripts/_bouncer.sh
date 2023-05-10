@@ -160,7 +160,8 @@ set_local_port() {
     require 'CONFIG'
     local port
     command -v cscli >/dev/null || return 0
-    port=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
+    # the following will fail with a non-LAPI local crowdsec, leaving empty port
+    port=$(cscli config show --key "Config.API.Server.ListenURI" 2>/dev/null | cut -d ":" -f2 || true)
     if [ "$port" != "" ]; then
         sed -i "s/localhost:8080/127.0.0.1:$port/g" "$CONFIG"
         sed -i "s/127.0.0.1:8080/127.0.0.1:$port/g" "$CONFIG"
