@@ -7,6 +7,7 @@ exceptiongroup = "1.1.1"
 flask = "2.2.3"
 pytimeparse = "1.1.8"
 psutil = "5.9.5"
+zxcvbn = "4.4.28"
 
 [dev-packages]
 gnureadline = "8.1.2"

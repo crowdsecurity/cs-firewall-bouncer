@@ -86,9 +86,9 @@ config_not_set() {
         exit 1
     fi
 
-    before=$(cat "$CONFIG")
+    before=$("$BOUNCER" -c "$CONFIG" -T)
     # shellcheck disable=SC2016
-    after=$(envsubst "\$$varname" < "$CONFIG")
+    after=$(echo "$before" | envsubst "\$$varname")
 
     if [ "$before" = "$after" ]; then
         return 1
@@ -128,18 +128,17 @@ set_config_var_value() {
 
 set_api_key() {
     require 'CONFIG' 'BOUNCER_PREFIX'
-    local api_key ret unique bouncer_id before
+    local api_key ret bouncer_id before
     # if we can't set the key, the user will take care of it
-    api_key="<API_KEY>"
     ret=0
 
     if command -v cscli >/dev/null; then
         echo "cscli/crowdsec is present, generating API key" >&2
-        unique=$(date +%s)
-        bouncer_id="$BOUNCER_PREFIX-$unique"
-        api_key=$(cscli -oraw bouncers add "$bouncer_id")
-        if [ $? -eq 1 ]; then
+        bouncer_id="$BOUNCER_PREFIX-$(date +%s)"
+        api_key=$(cscli -oraw bouncers add "$bouncer_id" || true)
+        if [ "$api_key" = "" ]; then
             echo "failed to create API key" >&2
+            api_key="<API_KEY>"
             ret=1
         else
             echo "API Key successfully created" >&2
@@ -147,10 +146,13 @@ set_api_key() {
         fi
     else
         echo "cscli/crowdsec is not present, please set the API key manually" >&2
+        api_key="<API_KEY>"
         ret=1
     fi
 
-    set_config_var_value 'API_KEY' "$api_key"
+    if [ "$api_key" != "" ]; then
+        set_config_var_value 'API_KEY' "$api_key"
+    fi
 
     return "$ret"
 }
@@ -159,7 +161,8 @@ set_local_port() {
     require 'CONFIG'
     local port
     command -v cscli >/dev/null || return 0
-    port=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2)
+    # the following will fail with a non-LAPI local crowdsec, leaving empty port
+    port=$(cscli config show --key "Config.API.Server.ListenURI" 2>/dev/null | cut -d ":" -f2 || true)
     if [ "$port" != "" ]; then
         sed -i "s/localhost:8080/127.0.0.1:$port/g" "$CONFIG"
         sed -i "s/127.0.0.1:8080/127.0.0.1:$port/g" "$CONFIG"
