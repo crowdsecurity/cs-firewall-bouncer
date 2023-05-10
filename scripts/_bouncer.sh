@@ -130,7 +130,6 @@ set_api_key() {
     require 'CONFIG' 'BOUNCER_PREFIX'
     local api_key ret bouncer_id before
     # if we can't set the key, the user will take care of it
-    api_key="<API_KEY>"
     ret=0
 
     if command -v cscli >/dev/null; then
@@ -139,6 +138,7 @@ set_api_key() {
         api_key=$(cscli -oraw bouncers add "$bouncer_id" || true)
         if [ "$api_key" = "" ]; then
             echo "failed to create API key" >&2
+            api_key="<API_KEY>"
             ret=1
         else
             echo "API Key successfully created" >&2
@@ -146,6 +146,7 @@ set_api_key() {
         fi
     else
         echo "cscli/crowdsec is not present, please set the API key manually" >&2
+        api_key="<API_KEY>"
         ret=1
     fi
 
