@@ -54,7 +54,7 @@ def test_deb_install_purge(deb_package_path, bouncer_under_test, must_be_root):
         cfg = yaml.safe_load(f)
         api_key = cfg['api_key']
         # the api key has been set to a random value
-        assert api_key == zxcvbn(api_key)['score'] == 4
+        assert zxcvbn(api_key)['score'] == 4
 
     with open(config+'.id') as f:
         bouncer_name = f.read().strip()
