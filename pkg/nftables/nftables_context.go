@@ -42,6 +42,11 @@ type nftContext struct {
 	setOnly       bool
 }
 
+// convert a binary representation of an IP (4 or 16 bytes) to a string.
+func reprIP(ip []byte) string {
+	return net.IP(ip).String()
+}
+
 func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
 	if !*config.Nftables.Ipv4.Enabled {
 		log.Debug("nftables: ipv4 disabled")
@@ -278,7 +283,7 @@ func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
 	}
 	if err := c.conn.Flush(); err != nil {
 		if len(els) == 1 {
-			log.Warningf("deleting %s, failed to flush: %s", els[0].Key, err)
+			log.Warningf("deleting %s, failed to flush: %s", reprIP(els[0].Key), err)
 			return nil
 		}
 		log.Warningf("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
