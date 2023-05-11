@@ -283,10 +283,10 @@ func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
 	}
 	if err := c.conn.Flush(); err != nil {
 		if len(els) == 1 {
-			log.Warningf("deleting %s, failed to flush: %s", reprIP(els[0].Key), err)
+			log.Debugf("deleting %s, failed to flush: %s", reprIP(els[0].Key), err)
 			return nil
 		}
-		log.Warningf("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
+		log.Infof("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
 		for _, el := range els {
 			if err := c.deleteElementChunk([]nftables.SetElement{el}); err != nil {
 				return err
