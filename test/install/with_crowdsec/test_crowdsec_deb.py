@@ -54,7 +54,7 @@ def test_deb_install_purge(deb_package_path, bouncer_under_test, must_be_root):
         cfg = yaml.safe_load(f)
         api_key = cfg['api_key']
         # the api key has been set to a random value
-        assert api_key == zxcvbn(api_key)['score'] == 4
+        assert zxcvbn(api_key)['score'] == 4
 
     with open(config+'.id') as f:
         bouncer_name = f.read().strip()
@@ -125,6 +125,8 @@ def test_deb_install_purge_yaml_local(deb_package_path, bouncer_under_test, must
     p = subprocess.check_output([bouncer_exe, '-c', config, '-T'])
     merged_config = yaml.safe_load(p)
     assert merged_config['api_key'] == '123456'
+
+    os.unlink(config.with_suffix('.yaml.local'))
 
     p = subprocess.run(
         ['dpkg', '--purge', package_name],
