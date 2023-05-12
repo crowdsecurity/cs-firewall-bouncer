@@ -183,7 +183,7 @@ set_local_lapi_url() {
     fi
     command -v cscli >/dev/null || return 0
 
-    port=$(cscli config show --key "Config.API.Server.ListenURI" | cut -d ":" -f2 || true)
+    port=$(cscli config show --key "Config.API.Server.ListenURI" 2>/dev/null | cut -d ":" -f2 || true)
     if [ "$port" = "" ]; then
         port=8080
     fi

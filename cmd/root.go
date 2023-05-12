@@ -35,7 +35,7 @@ const (
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
 	if err := backend.ShutDown(); err != nil {
-		log.Errorf("unable to shutdown backend: %s", err)
+		log.Errorf("while shutting down backend: %s", err)
 	}
 }
 
@@ -188,7 +188,7 @@ func Execute() error {
 
 	g.Go(func() error {
 		bouncer.Run(ctx)
-		return fmt.Errorf("stream api init failed")
+		return fmt.Errorf("bouncer stream halted")
 	})
 
 	if config.PrometheusConfig.Enabled {
