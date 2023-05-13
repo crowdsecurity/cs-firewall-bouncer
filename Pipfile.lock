@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d035b9d4e82a85395e07fe4b9a892645e72665cb1d28b911e287a2061771aacc"
+            "sha256": "c1f622d66dd61981fcc94900950440e95998b17fcfebf3f98d10d4c16c502632"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -217,11 +217,11 @@
         },
         "docker": {
             "hashes": [
-                "sha256:5ec18b9c49d48ee145a5b5824bb126dc32fc77931e18444783fc07a7724badc0",
-                "sha256:8308b23d3d0982c74f7aa0a3abd774898c0c4fba006e9c3bde4f68354e470fe2"
+                "sha256:134cd828f84543cbf8e594ff81ca90c38288df3c0a559794c12f2e4b634ea19e",
+                "sha256:dcc088adc2ec4e7cfc594e275d8bd2c9738c56c808de97476939ef67db5af8c2"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==6.1.1"
+            "version": "==6.1.2"
         },
         "exceptiongroup": {
             "hashes": [
@@ -395,7 +395,7 @@
         },
         "pytest-cs": {
             "git": "https://github.com/crowdsecurity/pytest-cs.git",
-            "ref": "e146c11a6024f5156e590f25483d822badea6bb3"
+            "ref": "4a3451084215053af8a48ff37507b4f86bf75c10"
         },
         "pytest-datadir": {
             "hashes": [

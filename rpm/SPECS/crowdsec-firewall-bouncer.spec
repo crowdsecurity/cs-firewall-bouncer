@@ -33,6 +33,9 @@ rm -rf %{buildroot}
 
 mkdir -p %{buildroot}%{_bindir}
 install -m 755 %{name} %{buildroot}%{_bindir}/%{name}
+# symlink for compatibility with old versions
+mkdir -p %{buildroot}/usr/sbin
+ln -s %{_bindir}/%{name} %{buildroot}/usr/sbin/%{name}
 
 mkdir -p %{buildroot}/etc/crowdsec/bouncers
 install -m 600 config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
@@ -128,6 +131,7 @@ Requires: nftables,gettext
 %files -n %{name}-nftables
 %defattr(-,root,root,-)
 %{_bindir}/%{name}
+/usr/sbin/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
