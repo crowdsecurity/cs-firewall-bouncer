@@ -1,7 +1,7 @@
 [packages]
 exceptiongroup = "1.1.1"
 pexpect = "4.8.0"
-pytest-cs = {ref = "0.7.15", git = "https://github.com/crowdsecurity/pytest-cs.git"}
+pytest-cs = {ref = "0.7.16", git = "https://github.com/crowdsecurity/pytest-cs.git"}
 pytest-dependency = "0.5.1"
 pytest-dotenv = "0.5.2"
 flask = "2.2.3"
