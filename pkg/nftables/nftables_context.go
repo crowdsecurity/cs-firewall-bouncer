@@ -150,6 +150,11 @@ func (c *nftContext) initSetOnly() error {
 		}
 
 		if err := c.conn.Flush(); err != nil {
+			// If the error contains "out of range", check the set name length.
+			// Some systems have a limit of 15 characters, which is not due to the kernel.
+			if strings.Contains(err.Error(), "out of range") && len(c.blacklists) > 15 {
+				return fmt.Errorf("nftables: %w. Set name '%s' is too long for this system -- try '%s'", err, c.blacklists, c.blacklists[:15])
+			}
 			return err
 		}
 	}
@@ -196,6 +201,11 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	}
 
 	if err := c.conn.Flush(); err != nil {
+		// If the error contains "out of range", check the set name length.
+		// Some systems have a limit of 15 characters, which is not due to the kernel.
+		if strings.Contains(err.Error(), "out of range") && len(c.blacklists) > 15 {
+			return fmt.Errorf("nftables: %w. Set name '%s' is too long for this system -- try '%s'", err, c.blacklists, c.blacklists[:15])
+		}
 		return err
 	}
 
