@@ -19,12 +19,12 @@ import (
 )
 
 var HookNameToHookID = map[string]nftables.ChainHook{
-	"prerouting":  nftables.ChainHookPrerouting,
-	"input":       nftables.ChainHookInput,
-	"forward":     nftables.ChainHookForward,
-	"output":      nftables.ChainHookOutput,
-	"postrouting": nftables.ChainHookPostrouting,
-	"ingress":     nftables.ChainHookIngress,
+	"prerouting":  *nftables.ChainHookPrerouting,
+	"input":       *nftables.ChainHookInput,
+	"forward":     *nftables.ChainHookForward,
+	"output":      *nftables.ChainHookOutput,
+	"postrouting": *nftables.ChainHookPostrouting,
+	"ingress":     *nftables.ChainHookIngress,
 }
 
 type nftContext struct {
@@ -183,12 +183,14 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	c.set = set
 
 	for _, hook := range hooks {
+		hooknum := HookNameToHookID[hook]
+		priority := nftables.ChainPriority(c.priority)
 		chain := c.conn.AddChain(&nftables.Chain{
 			Name:     c.chainName + "-" + hook,
 			Table:    c.table,
 			Type:     nftables.ChainTypeFilter,
-			Hooknum:  HookNameToHookID[hook],
-			Priority: nftables.ChainPriority(c.priority),
+			Hooknum:  &hooknum,
+			Priority: &priority,
 		})
 
 		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
