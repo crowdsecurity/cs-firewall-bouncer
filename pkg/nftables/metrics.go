@@ -122,6 +122,13 @@ func (n *nft) CollectMetrics() {
 		return
 	}
 
+	cmd := exec.Command(path, "-j", "list", "tables")
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		log.Warningf("nft -j is not supported (requires 0.9.7), nftables metrics are disabled")
+		return
+	}
+
 	t := time.NewTicker(metrics.MetricCollectionInterval)
 
 	for range t.C {
