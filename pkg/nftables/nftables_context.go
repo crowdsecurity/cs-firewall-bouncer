@@ -221,8 +221,8 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 	}
 
 	if err != nil && strings.Contains(err.Error(), "out of range") {
-		return fmt.Errorf("nftables: %w. Please check the name length of tables, sets and chains. " +
-			"Some legacy systems have 32 or 15 character limits. " +
+		return fmt.Errorf("nftables: %w. Please check the name length of tables, sets and chains. "+
+			"Some legacy systems have 32 or 15 character limits. "+
 			"For example, use 'crowdsec-set' instead of 'crowdsec-blacklist'", err)
 	}
 
