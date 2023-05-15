@@ -211,11 +211,22 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 
 	log.Debugf("nftables: ip%s init starting", c.version)
 
+	var err error
+
 	if c.setOnly {
-		return c.initSetOnly()
+		err = c.initSetOnly()
+	} else {
+		err = c.initOwnTable(hooks, denyLog, denyLogPrefix, denyAction)
+
 	}
 
-	return c.initOwnTable(hooks, denyLog, denyLogPrefix, denyAction)
+	if err != nil && strings.Contains(err.Error(), "out of range") {
+		return fmt.Errorf("nftables: %w. Please check the name length of tables, sets and chains. "+
+			"Some legacy systems have 32 or 15 character limits. "+
+			"For example, use 'crowdsec-set' instead of 'crowdsec-blacklists'", err)
+	}
+
+	return err
 }
 
 func (c *nftContext) lookupTable() (*nftables.Table, error) {
