@@ -38,29 +38,12 @@ type Set struct {
 	} `json:"nftables"`
 }
 
-var disabledCollection = false
-
-func hasNftJ() bool {
-	// return true if nft -j is supported.
-	cmd := exec.Command("nft", "-j", "list", "tables")
-	_, err := cmd.CombinedOutput()
-	return err == nil
-}
-
 func (c *nftContext) collectDroppedPackets(path string, hook string) (int, int, error) {
-	if disabledCollection {
-		return 0, 0, nil
-	}
-
 	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, c.chainName+"-"+hook)
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		if hasNftJ() {
-			return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
-		}
-		disabledCollection = true
-		log.Warningf("nft -j is not supported (requires 0.9.7), some metrics are disabled")
+		return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
 	}
 
 	parsedOut := Counter{}
@@ -88,18 +71,11 @@ func (c *nftContext) ipFamily() string {
 }
 
 func (c *nftContext) collectActiveBannedIPs(path string) (int, error) {
-	if disabledCollection {
-		return 0, nil
-	}
 	cmd := exec.Command(path, "-j", "list", "set", c.ipFamily(), c.tableName, c.blacklists)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		if hasNftJ() {
-			return 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
-		}
-		disabledCollection = true
-		log.Warningf("nft -j is not supported (requires 0.9.7), some metrics are disabled")
+		return 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
 	}
 
 	set := Set{}
@@ -143,6 +119,13 @@ func (n *nft) CollectMetrics() {
 	path, err := exec.LookPath("nft")
 	if err != nil {
 		log.Error("can't monitor dropped packets: ", err)
+		return
+	}
+
+	cmd := exec.Command(path, "-j", "list", "tables")
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		log.Warningf("nft -j is not supported (requires 0.9.7), nftables metrics are disabled")
 		return
 	}
 
