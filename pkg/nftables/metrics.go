@@ -38,45 +38,81 @@ type Set struct {
 	} `json:"nftables"`
 }
 
-func collectDroppedPackets(path string, family string, tableName string, chainName string) (float64, float64, error) {
-	cmd := exec.Command(path, "-j", "list", "chain", family, tableName, chainName)
+func (c *nftContext) collectDroppedPackets(path string, hook string) (int, int, error) {
+	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, c.chainName+"-"+hook)
 	out, err := cmd.CombinedOutput()
+
 	if err != nil {
 		return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
 	}
+
 	parsedOut := Counter{}
 	if err := json.Unmarshal(out, &parsedOut); err != nil {
 		return 0, 0, err
 	}
-	var tdp, tdb float64
-OUT:
+
 	for _, r := range parsedOut.Nftables {
 		for _, expr := range r.Rule.Expr {
 			if expr.Counter != nil {
-				tdp = float64(expr.Counter.Packets)
-				tdb = float64(expr.Counter.Bytes)
-				break OUT
+				return expr.Counter.Packets, expr.Counter.Bytes, nil
 			}
 		}
 	}
-	return tdp, tdb, nil
+
+	return 0, 0, nil
 }
 
-func collectActiveBannedIPs(path string, family string, tableName string, setName string) (float64, error) {
-	cmd := exec.Command(path, "-j", "list", "set", family, tableName, setName)
+func (c *nftContext) ipFamily() string {
+	if c.version == "v4" {
+		return "ip"
+	}
+
+	return "ip6"
+}
+
+func (c *nftContext) collectActiveBannedIPs(path string) (int, error) {
+	cmd := exec.Command(path, "-j", "list", "set", c.ipFamily(), c.tableName, c.blacklists)
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
 	}
+
 	set := Set{}
 	if err := json.Unmarshal(out, &set); err != nil {
 		return 0, err
 	}
+
 	ret := 0
 	for _, r := range set.Nftables {
 		ret += len(r.Set.Elem)
 	}
-	return float64(ret), nil
+
+	return ret, nil
+}
+
+func (c *nftContext) collectDropped(path string, hooks []string) (int, int, int) {
+	if c.conn == nil {
+		return 0, 0, 0
+	}
+
+	var droppedPackets, droppedBytes, banned int
+
+	for _, hook := range hooks {
+		pkt, byt, err := c.collectDroppedPackets(path, hook)
+		if err != nil {
+			log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
+		}
+		droppedPackets += pkt
+		droppedBytes += byt
+	}
+
+	banned, err := c.collectActiveBannedIPs(path)
+	if err != nil {
+		log.Errorf("can't collect total banned IPs for ip%s from nft: %s", c.version, err)
+	}
+
+	return droppedPackets, droppedBytes, banned
 }
 
 func (n *nft) CollectMetrics() {
@@ -85,36 +121,22 @@ func (n *nft) CollectMetrics() {
 		log.Error("can't monitor dropped packets: ", err)
 		return
 	}
+
+	cmd := exec.Command(path, "-j", "list", "tables")
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		log.Warningf("nft -j is not supported (requires 0.9.7), nftables metrics are disabled")
+		return
+	}
+
 	t := time.NewTicker(metrics.MetricCollectionInterval)
 
-	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes, bannedIP4, bannedIP6 float64
 	for range t.C {
-		if n.conn != nil {
-			for _, hook := range n.Hooks {
-				ip4DroppedPackets, ip4DroppedBytes, err = collectDroppedPackets(path, "ip", n.TableName4, n.ChainName4+"-"+hook)
-				if err != nil {
-					log.Error("can't collect dropped packets for ipv4 from nft: ", err)
-				}
-			}
-			bannedIP4, err = collectActiveBannedIPs(path, "ip", n.TableName4, n.BlacklistsIpv4)
-			if err != nil {
-				log.Error("can't collect total banned IPs for ipv4 from nft:", err)
-			}
-		}
-		if n.conn6 != nil {
-			for _, hook := range n.Hooks {
-				ip6DroppedPackets, ip6DroppedBytes, err = collectDroppedPackets(path, "ip6", n.TableName6, n.ChainName6+"-"+hook)
-				if err != nil {
-					log.Error("can't collect dropped packets for ipv6 from nft: ", err)
-				}
-			}
-			bannedIP6, err = collectActiveBannedIPs(path, "ip6", n.TableName6, n.BlacklistsIpv6)
-			if err != nil {
-				log.Error("can't collect total banned IPs for ipv6 from nft:", err)
-			}
-		}
-		metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-		metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
-		metrics.TotalActiveBannedIPs.Set(bannedIP4 + bannedIP6)
+		ip4DroppedPackets, ip4DroppedBytes, bannedIP4 := n.v4.collectDropped(path, n.Hooks)
+		ip6DroppedPackets, ip6DroppedBytes, bannedIP6 := n.v6.collectDropped(path, n.Hooks)
+
+		metrics.TotalDroppedPackets.Set(float64(ip4DroppedPackets + ip6DroppedPackets))
+		metrics.TotalDroppedBytes.Set(float64(ip6DroppedBytes + ip4DroppedBytes))
+		metrics.TotalActiveBannedIPs.Set(float64(bannedIP4 + bannedIP6))
 	}
 }

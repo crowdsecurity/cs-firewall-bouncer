@@ -1,6 +1,6 @@
-package pf
+package slicetools
 
-func chunkItems[T any](items []T, chunkSize int) [][]T {
+func Chunks[T any](items []T, chunkSize int) [][]T {
 	// optimization for small slices
 	if len(items) <= chunkSize {
 		if len(items) == 0 {
