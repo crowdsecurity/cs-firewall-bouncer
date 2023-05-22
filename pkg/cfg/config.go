@@ -7,9 +7,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
-	"github.com/crowdsecurity/crowdsec/pkg/yamlpatch"
-
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
+	"github.com/crowdsecurity/go-cs-lib/pkg/ptr"
+	"github.com/crowdsecurity/go-cs-lib/pkg/yamlpatch"
 )
 
 type PrometheusConfig struct {
@@ -151,14 +150,14 @@ func pfConfig(config *BouncerConfig) error {
 func nftablesConfig(config *BouncerConfig) error {
 	// deal with defaults in a backward compatible way
 	if config.Nftables.Ipv4.Enabled == nil {
-		config.Nftables.Ipv4.Enabled = types.BoolPtr(true)
+		config.Nftables.Ipv4.Enabled = ptr.Of(true)
 	}
 
 	if config.Nftables.Ipv6.Enabled == nil {
 		if config.DisableIPV6 {
-			config.Nftables.Ipv4.Enabled = types.BoolPtr(false)
+			config.Nftables.Ipv4.Enabled = ptr.Of(false)
 		} else {
-			config.Nftables.Ipv6.Enabled = types.BoolPtr(true)
+			config.Nftables.Ipv6.Enabled = ptr.Of(true)
 		}
 	}
 

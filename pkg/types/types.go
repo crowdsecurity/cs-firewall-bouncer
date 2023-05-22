@@ -12,7 +12,3 @@ type Backend interface {
 	Commit() error
 	CollectMetrics()
 }
-
-func BoolPtr(b bool) *bool {
-	return &b
-}

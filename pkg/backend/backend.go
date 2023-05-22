@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/iptables"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/nftables"

@@ -13,8 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 
+	"github.com/crowdsecurity/go-cs-lib/pkg/slicetools"
+
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/slicetools"
 )
 
 var HookNameToHookID = map[string]nftables.ChainHook{
