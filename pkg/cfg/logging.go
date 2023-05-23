@@ -8,6 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/crowdsecurity/go-cs-lib/pkg/logtools"
 )
 
 type LoggingConfig struct {
@@ -25,7 +27,7 @@ func (c *LoggingConfig) LoggerForFile(fileName string) (io.Writer, error) {
 		return os.Stderr, nil
 	}
 
-	logPath, err := setLogFilePermissions(c.LogDir, fileName)
+	logPath, err := logtools.SetLogFilePermissions(c.LogDir, fileName)
 	if err != nil {
 		return nil, err
 	}

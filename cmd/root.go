@@ -13,18 +13,19 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-systemd/v22/daemon"
-	"github.com/crowdsecurity/crowdsec/pkg/models"
-	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/crowdsecurity/crowdsec/pkg/models"
+	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/crowdsecurity/go-cs-lib/pkg/version"
+
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/backend"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/version"
 )
 
 const (
@@ -124,11 +125,11 @@ func Execute() error {
 	flag.Parse()
 
 	if *bouncerVersion {
-		fmt.Print(version.ShowStr())
+		fmt.Print(version.FullString())
 		return nil
 	}
 
-	log.Infof("crowdsec-firewall-bouncer %s", version.VersionStr())
+	log.Infof("crowdsec-firewall-bouncer %s", version.String())
 
 	if configPath == nil || *configPath == "" {
 		return fmt.Errorf("configuration file is required")
@@ -174,7 +175,7 @@ func Execute() error {
 	if err != nil {
 		return fmt.Errorf("unable to configure bouncer: %w", err)
 	}
-	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.VersionStr())
+	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.String())
 	if err := bouncer.Init(); err != nil {
 		return err
 	}

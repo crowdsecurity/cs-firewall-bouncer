@@ -6,12 +6,13 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/crowdsecurity/crowdsec v1.4.6
 	github.com/crowdsecurity/go-cs-bouncer v0.0.3
+	github.com/crowdsecurity/go-cs-lib v0.0.0-20230522120244-fa545c12e7ee
 	github.com/google/nftables v0.0.0-20220808154552-2eca00135732
 	github.com/prometheus/client_golang v1.14.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.2
 	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.6.0
+	golang.org/x/sys v0.7.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0
 )
