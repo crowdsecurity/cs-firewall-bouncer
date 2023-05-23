@@ -3,10 +3,12 @@ package cfg
 import (
 	"fmt"
 	"io"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
+	"github.com/crowdsecurity/go-cs-lib/pkg/csstring"
 	"github.com/crowdsecurity/go-cs-lib/pkg/ptr"
 	"github.com/crowdsecurity/go-cs-lib/pkg/yamlpatch"
 )
@@ -80,7 +82,10 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	if err != nil {
 		return &BouncerConfig{}, err
 	}
-	err = yaml.Unmarshal(fcontent, &config)
+
+	configBuff := csstring.StrictExpand(string(fcontent), os.LookupEnv)
+
+	err = yaml.Unmarshal([]byte(configBuff), &config)
 	if err != nil {
 		return &BouncerConfig{}, fmt.Errorf("failed to unmarshal: %w", err)
 	}
