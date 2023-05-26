@@ -41,14 +41,20 @@ func backendCleanup(backend *backend.BackendCTX) {
 
 func HandleSignals(ctx context.Context) error {
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
 
 	select {
-	case <-signalChan:
-		return fmt.Errorf("received SIGTERM")
+	case s := <-signalChan:
+		switch s {
+		case syscall.SIGTERM:
+			return fmt.Errorf("received SIGTERM")
+		case syscall.SIGINT:
+			return fmt.Errorf("received SIGINT")
+		}
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+	return nil
 }
 
 func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
