@@ -38,8 +38,8 @@ type Set struct {
 	} `json:"nftables"`
 }
 
-func (c *nftContext) collectDroppedPackets(path string, hook string) (int, int, error) {
-	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, c.chainName+"-"+hook)
+func (c *nftContext) collectDroppedPackets(path string, chain string) (int, int, error) {
+	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, chain)
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -98,13 +98,22 @@ func (c *nftContext) collectDropped(path string, hooks []string) (int, int, int)
 
 	var droppedPackets, droppedBytes, banned int
 
-	for _, hook := range hooks {
-		pkt, byt, err := c.collectDroppedPackets(path, hook)
+	if c.setOnly {
+		pkt, byt, err := c.collectDroppedPackets(path, c.chainName)
 		if err != nil {
 			log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
 		}
 		droppedPackets += pkt
 		droppedBytes += byt
+	} else {
+		for _, hook := range hooks {
+			pkt, byt, err := c.collectDroppedPackets(path, c.chainName+"-"+hook)
+			if err != nil {
+				log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
+			}
+			droppedPackets += pkt
+			droppedBytes += byt
+		}
 	}
 
 	banned, err := c.collectActiveBannedIPs(path)
