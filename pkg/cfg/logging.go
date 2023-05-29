@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"gopkg.in/natefinch/lumberjack.v2"
-
-	"github.com/crowdsecurity/go-cs-lib/pkg/logtools"
 )
 
 type LoggingConfig struct {
@@ -27,10 +26,11 @@ func (c *LoggingConfig) LoggerForFile(fileName string) (io.Writer, error) {
 		return os.Stderr, nil
 	}
 
-	logPath, err := logtools.SetLogFilePermissions(c.LogDir, fileName)
-	if err != nil {
-		return nil, err
-	}
+	// logPath, err := logtools.SetLogFilePermissions(c.LogDir, fileName)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	logPath := filepath.Join(c.LogDir, fileName)
 
 	l := &lumberjack.Logger{
 		Filename:   logPath,
