@@ -26,10 +26,7 @@ func (c *LoggingConfig) LoggerForFile(fileName string) (io.Writer, error) {
 		return os.Stderr, nil
 	}
 
-	// logPath, err := logtools.SetLogFilePermissions(c.LogDir, fileName)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// rely on lumberjack to create log file during first write
 	logPath := filepath.Join(c.LogDir, fileName)
 
 	l := &lumberjack.Logger{
