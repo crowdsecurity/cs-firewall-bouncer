@@ -129,8 +129,6 @@ func Execute() error {
 		return nil
 	}
 
-	log.Infof("crowdsec-firewall-bouncer %s", version.String())
-
 	if configPath == nil || *configPath == "" {
 		return fmt.Errorf("configuration file is required")
 	}
@@ -153,6 +151,8 @@ func Execute() error {
 	if *verbose {
 		log.SetLevel(log.DebugLevel)
 	}
+
+	log.Infof("crowdsec-firewall-bouncer %s", version.String())
 
 	backend, err := backend.NewBackend(config)
 	if err != nil {
