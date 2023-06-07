@@ -2,7 +2,8 @@ name: build-binary-package
 
 on:
   release:
-    types: prereleased
+    types:
+    - prereleased
 
 permissions:
   # Use write for: hub release edit
