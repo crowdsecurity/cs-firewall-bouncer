@@ -35,10 +35,10 @@ const (
 )
 
 type BouncerConfig struct {
-	Mode            string        `yaml:"mode"`			// ipset,iptables,tc
-	PidDir          string        `yaml:"pid_dir"`			// unused
+	Mode            string        `yaml:"mode"`    // ipset,iptables,tc
+	PidDir          string        `yaml:"pid_dir"` // unused
 	UpdateFrequency string        `yaml:"update_frequency"`
-	Daemon          *bool         `yaml:"daemonize"`		// unused
+	Daemon          *bool         `yaml:"daemonize"` // unused
 	Logging         LoggingConfig `yaml:",inline"`
 	DisableIPV6     bool          `yaml:"disable_ipv6"`
 	DenyAction      string        `yaml:"deny_action"`
