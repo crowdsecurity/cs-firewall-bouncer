@@ -1,7 +1,5 @@
 mode: nftables
-pid_dir: /var/run/
 update_frequency: 0.01s
-daemonize: false
 log_mode: stdout
 log_dir: ./
 log_level: info

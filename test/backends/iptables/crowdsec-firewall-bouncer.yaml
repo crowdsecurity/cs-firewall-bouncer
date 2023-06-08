@@ -1,7 +1,5 @@
 mode: iptables
-pid_dir: /var/run/
 update_frequency: 0.1s
-daemonize: false
 log_mode: stdout
 log_dir: ./
 log_level: info
