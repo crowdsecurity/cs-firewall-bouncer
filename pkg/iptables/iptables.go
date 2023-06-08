@@ -28,7 +28,7 @@ type iptables struct {
 
 func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	var err error
-	var ret = &iptables{}
+	ret := &iptables{}
 	ipv4Ctx := &ipTablesContext{
 		Name:             "ipset",
 		version:          "v4",

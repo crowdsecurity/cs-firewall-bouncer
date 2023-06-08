@@ -9,16 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/crowdsecurity/go-cs-lib/pkg/ptr"
 )
 
 type LoggingConfig struct {
+	LogLevel     *log.Level `yaml:"log_level"`
 	LogMode      string     `yaml:"log_mode"`
 	LogDir       string     `yaml:"log_dir"`
-	LogLevel     *log.Level `yaml:"log_level"`
-	CompressLogs *bool      `yaml:"compress_logs,omitempty"`
 	LogMaxSize   int        `yaml:"log_max_size,omitempty"`
 	LogMaxFiles  int        `yaml:"log_max_files,omitempty"`
 	LogMaxAge    int        `yaml:"log_max_age,omitempty"`
+	CompressLogs *bool      `yaml:"compress_logs,omitempty"`
 }
 
 func (c *LoggingConfig) LoggerForFile(fileName string) (io.Writer, error) {
@@ -26,11 +28,11 @@ func (c *LoggingConfig) LoggerForFile(fileName string) (io.Writer, error) {
 		return os.Stderr, nil
 	}
 
-	// rely on lumberjack to create log file during first write
-	logPath := filepath.Join(c.LogDir, fileName)
+	// default permissions will be 0600 from lumberjack
+	// and are preserved if the file already exists
 
 	l := &lumberjack.Logger{
-		Filename:   logPath,
+		Filename:   filepath.Join(c.LogDir, fileName),
 		MaxSize:    c.LogMaxSize,
 		MaxBackups: c.LogMaxFiles,
 		MaxAge:     c.LogMaxAge,
@@ -50,8 +52,7 @@ func (c *LoggingConfig) setDefaults() {
 	}
 
 	if c.LogLevel == nil {
-		defaultLevel := log.InfoLevel
-		c.LogLevel = &defaultLevel
+		c.LogLevel = ptr.Of(log.InfoLevel)
 	}
 
 	if c.LogMaxSize == 0 {
@@ -67,8 +68,7 @@ func (c *LoggingConfig) setDefaults() {
 	}
 
 	if c.CompressLogs == nil {
-		defaultCompress := true
-		c.CompressLogs = &defaultCompress
+		c.CompressLogs = ptr.Of(true)
 	}
 }
 
