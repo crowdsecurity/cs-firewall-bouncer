@@ -35,10 +35,10 @@ const (
 )
 
 type BouncerConfig struct {
-	Mode            string        `yaml:"mode"` // ipset,iptables,tc
-	PidDir          string        `yaml:"pid_dir"`
+	Mode            string        `yaml:"mode"`			// ipset,iptables,tc
+	PidDir          string        `yaml:"pid_dir"`			// unused
 	UpdateFrequency string        `yaml:"update_frequency"`
-	Daemon          bool          `yaml:"daemonize"`
+	Daemon          *bool         `yaml:"daemonize"`		// unused
 	Logging         LoggingConfig `yaml:",inline"`
 	DisableIPV6     bool          `yaml:"disable_ipv6"`
 	DenyAction      string        `yaml:"deny_action"`
@@ -102,10 +102,8 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		config.SupportedDecisionsTypes = []string{"ban"}
 	}
 
-	if config.PidDir == "" {
-		log.Warningf("missing 'pid_dir' directive, using default: '/var/run/'")
-
-		config.PidDir = "/var/run/"
+	if config.PidDir != "" {
+		log.Debug("Ignoring deprecated 'pid_dir' option")
 	}
 
 	if config.DenyLog && config.DenyLogPrefix == "" {

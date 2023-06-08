@@ -3,10 +3,9 @@ module github.com/crowdsecurity/cs-firewall-bouncer
 go 1.20
 
 require (
-	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/crowdsecurity/crowdsec v1.5.2
 	github.com/crowdsecurity/go-cs-bouncer v0.0.5
-	github.com/crowdsecurity/go-cs-lib v0.0.0-20230522124854-671e895fa788
+	github.com/crowdsecurity/go-cs-lib v0.0.2
 	github.com/google/nftables v0.0.0-20220808154552-2eca00135732
 	github.com/prometheus/client_golang v1.15.1
 	github.com/sirupsen/logrus v1.9.2
@@ -22,6 +21,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/crowdsecurity/grokky v0.2.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect

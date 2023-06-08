@@ -12,7 +12,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	"github.com/crowdsecurity/go-cs-lib/pkg/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/pkg/version"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/backend"
@@ -229,15 +229,19 @@ func Execute() error {
 		}
 	})
 
-	if config.Daemon {
-		sent, err := daemon.SdNotify(false, "READY=1")
-		if !sent && err != nil {
-			log.Errorf("Failed to notify: %v", err)
+	if config.Daemon != nil {
+		if *config.Daemon {
+			log.Debug("Ignoring deprecated 'daemonize' option")
+		} else {
+			log.Warn("The 'daemonize' config option is deprecated and treated as always true")
 		}
-		g.Go(func() error {
-			return HandleSignals(ctx)
-		})
 	}
+
+	_ = csdaemon.NotifySystemd(log.StandardLogger())
+
+	g.Go(func() error {
+		return HandleSignals(ctx)
+	})
 
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("process terminated with error: %w", err)
