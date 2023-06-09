@@ -48,7 +48,6 @@ def bouncer_with_lapi(bouncer, crowdsec, fw_cfg_factory, api_key_factory, tmp_pa
 _default_config = {
     'mode': 'dry-run',
     'log_level': 'info',
-    'update_frequency': "10s",
 }
 
 
