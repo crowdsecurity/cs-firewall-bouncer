@@ -1,5 +1,4 @@
 import json
-import pytest
 
 def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factory):
     """TLS with server-only certificate"""
