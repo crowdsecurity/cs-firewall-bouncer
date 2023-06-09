@@ -158,7 +158,7 @@ func Execute() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	log.Infof("crowdsec-firewall-bouncer %s", version.String())
+	log.Infof("Starting crowdsec-firewall-bouncer %s", version.String())
 
 	backend, err := backend.NewBackend(config)
 	if err != nil {
@@ -181,6 +181,7 @@ func Execute() error {
 	if err != nil {
 		return fmt.Errorf("unable to configure bouncer: %w", err)
 	}
+
 	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.String())
 	if err := bouncer.Init(); err != nil {
 		return err

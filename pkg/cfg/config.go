@@ -32,6 +32,7 @@ const (
 	IptablesMode = "iptables"
 	NftablesMode = "nftables"
 	PfMode       = "pf"
+	DryRunMode   = "dry-run"
 )
 
 type BouncerConfig struct {
@@ -139,6 +140,8 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		if err != nil {
 			return nil, err
 		}
+	case DryRunMode:
+		// nothing specific to do
 	default:
 		log.Warningf("unexpected %s mode", config.Mode)
 	}
