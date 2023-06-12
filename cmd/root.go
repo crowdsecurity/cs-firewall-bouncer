@@ -158,16 +158,11 @@ func Execute() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	log.Infof("crowdsec-firewall-bouncer %s", version.String())
+	log.Infof("Starting crowdsec-firewall-bouncer %s", version.String())
 
 	backend, err := backend.NewBackend(config)
 	if err != nil {
 		return err
-	}
-
-	if *testConfig {
-		log.Info("config is valid")
-		return nil
 	}
 
 	if err = backend.Init(); err != nil {
@@ -179,11 +174,17 @@ func Execute() error {
 	bouncer := &csbouncer.StreamBouncer{}
 	err = bouncer.ConfigReader(bytes.NewReader(configBytes))
 	if err != nil {
-		return fmt.Errorf("unable to configure bouncer: %w", err)
+		return err
 	}
+
 	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.String())
 	if err := bouncer.Init(); err != nil {
-		return err
+		return fmt.Errorf("unable to configure bouncer: %w", err)
+	}
+
+	if *testConfig {
+		log.Info("config is valid")
+		return nil
 	}
 
 	if bouncer.InsecureSkipVerify != nil {

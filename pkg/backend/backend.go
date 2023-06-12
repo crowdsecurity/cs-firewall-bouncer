@@ -9,6 +9,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/dryrun"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/iptables"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/nftables"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/pf"
@@ -86,6 +87,11 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 			log.Warning("pf mode can only work with openbsd and freebsd. It is available on other platforms only for testing purposes")
 		}
 		b.firewall, err = pf.NewPF(config)
+		if err != nil {
+			return nil, err
+		}
+	case "dry-run":
+		b.firewall, err = dryrun.NewDryRun(config)
 		if err != nil {
 			return nil, err
 		}

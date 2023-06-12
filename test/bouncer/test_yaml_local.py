@@ -2,6 +2,8 @@
 def test_yaml_local(bouncer, fw_cfg_factory):
     cfg = fw_cfg_factory()
 
+    cfg.pop('mode')
+
     with bouncer(cfg) as fw:
         fw.wait_for_lines_fnmatch([
             "*unable to load configuration: config does not contain 'mode'*",
