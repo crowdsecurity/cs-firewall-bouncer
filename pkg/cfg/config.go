@@ -81,22 +81,22 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 
 	fcontent, err := io.ReadAll(reader)
 	if err != nil {
-		return &BouncerConfig{}, err
+		return nil, err
 	}
 
 	configBuff := csstring.StrictExpand(string(fcontent), os.LookupEnv)
 
 	err = yaml.Unmarshal([]byte(configBuff), &config)
 	if err != nil {
-		return &BouncerConfig{}, fmt.Errorf("failed to unmarshal: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal: %w", err)
 	}
 
 	if err = config.Logging.setup("crowdsec-firewall-bouncer.log"); err != nil {
-		return &BouncerConfig{}, fmt.Errorf("failed to setup logging: %w", err)
+		return nil, fmt.Errorf("failed to setup logging: %w", err)
 	}
 
 	if config.Mode == "" {
-		return &BouncerConfig{}, fmt.Errorf("config does not contain 'mode'")
+		return nil, fmt.Errorf("config does not contain 'mode'")
 	}
 
 	if len(config.SupportedDecisionsTypes) == 0 {
@@ -189,10 +189,10 @@ func nftablesConfig(config *BouncerConfig) error {
 
 	if !*config.Nftables.Ipv4.Enabled && !*config.Nftables.Ipv6.Enabled {
 		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
-	} else {
-		if config.NftablesHooks == nil || len(config.NftablesHooks) == 0 {
-			config.NftablesHooks = []string{"input"}
-		}
+	}
+
+	if config.NftablesHooks == nil || len(config.NftablesHooks) == 0 {
+		config.NftablesHooks = []string{"input"}
 	}
 
 	return nil

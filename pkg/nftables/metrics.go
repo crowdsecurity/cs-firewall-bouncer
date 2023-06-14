@@ -31,8 +31,7 @@ type Set struct {
 	Nftables []struct {
 		Set struct {
 			Elem []struct {
-				Elem struct {
-				} `json:"elem"`
+				Elem struct{} `json:"elem"`
 			} `json:"elem"`
 		} `json:"set,omitempty"`
 	} `json:"nftables"`
@@ -41,7 +40,6 @@ type Set struct {
 func (c *nftContext) collectDroppedPackets(path string, chain string) (int, int, error) {
 	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, chain)
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
 	}

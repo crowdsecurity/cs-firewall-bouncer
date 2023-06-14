@@ -73,7 +73,7 @@ func (ipt *iptables) CollectMetrics() {
 			log.Error(err)
 			continue
 		}
-		var newCount float64 = 0
+		newCount := float64(0)
 		for _, ipset := range ipsets.Ipset {
 			if ipset.Name == ipt.v4.SetName || (ipt.v6 != nil && ipset.Name == ipt.v6.SetName) {
 				if ipset.Header.Numentries == "" {

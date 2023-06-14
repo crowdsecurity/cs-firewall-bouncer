@@ -218,7 +218,6 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 		err = c.initSetOnly()
 	} else {
 		err = c.initOwnTable(hooks, denyLog, denyLogPrefix, denyAction)
-
 	}
 
 	if err != nil && strings.Contains(err.Error(), "out of range") {
@@ -246,7 +245,8 @@ func (c *nftContext) lookupTable() (*nftables.Table, error) {
 }
 
 func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
-	denyLog bool, denyLogPrefix string, denyAction string) *nftables.Rule {
+	denyLog bool, denyLogPrefix string, denyAction string,
+) *nftables.Rule {
 	r := &nftables.Rule{
 		Table: c.table,
 		Chain: chain,
