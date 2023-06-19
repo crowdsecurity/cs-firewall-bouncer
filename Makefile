@@ -89,6 +89,15 @@ func-tests: build
 
 RELDIR = $(BINARY_NAME)-$(BUILD_VERSION)
 
+.PHONY: vendor
+vendor:
+	$(GOCMD) mod vendor
+	tar czf vendor.tgz vendor
+
+.PHONY: vendor-remove
+vendor-remove:
+	$(RM) -r vendor vendor.tgz
+
 # Called during platform-all, to reuse the directory for other platforms
 .PHONY: clean-release-dir
 clean-release-dir:
