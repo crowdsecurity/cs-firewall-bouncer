@@ -79,14 +79,3 @@ jobs:
         EOT
         sleep 5
         sudo -E pipenv run pytest ./test/install/with_crowdsec
-
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3
-      with:
-        version: v1.51
-        args: --issues-exit-code=1 --timeout 10m
-        only-new-issues: false
-        # the cache is already managed above, enabling it here
-        # gives errors when extracting
-        skip-pkg-cache: true
-        skip-build-cache: true
