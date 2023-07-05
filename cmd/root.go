@@ -41,15 +41,15 @@ func backendCleanup(backend *backend.BackendCTX) {
 
 func HandleSignals(ctx context.Context) error {
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(signalChan, syscall.SIGTERM, os.Interrupt)
 
 	select {
 	case s := <-signalChan:
 		switch s {
 		case syscall.SIGTERM:
 			return fmt.Errorf("received SIGTERM")
-		case syscall.SIGINT:
-			return fmt.Errorf("received SIGINT")
+		case os.Interrupt: // cross-platform SIGINT
+			return fmt.Errorf("received interrupt")
 		}
 	case <-ctx.Done():
 		return ctx.Err()
