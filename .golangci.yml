@@ -166,9 +166,6 @@ issues:
   max-issues-per-linter: 0
   max-same-issues: 10
   exclude-rules:
-    - path: go.mod
-      text: "replacement are not allowed: github.com/koneu/natend"
-
     # `err` is often shadowed, we may continue to do it
     - linters:
         - govet

@@ -6,7 +6,7 @@ require (
 	github.com/crowdsecurity/crowdsec v1.5.3-rc1
 	github.com/crowdsecurity/go-cs-bouncer v0.0.7
 	github.com/crowdsecurity/go-cs-lib v0.0.2
-	github.com/google/nftables v0.1.0
+	github.com/google/nftables v0.1.1-0.20230710063801-8a10f689006b
 	github.com/prometheus/client_golang v1.15.1
 	github.com/sirupsen/logrus v1.9.2
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
@@ -42,8 +42,8 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/mdlayher/netlink v1.6.0 // indirect
-	github.com/mdlayher/socket v0.2.3 // indirect
+	github.com/mdlayher/netlink v1.7.1 // indirect
+	github.com/mdlayher/socket v0.4.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -61,5 +61,3 @@ require (
 exclude github.com/mattn/go-sqlite3 v2.0.3+incompatible
 
 exclude github.com/mattn/go-sqlite3 v2.0.1+incompatible
-
-replace github.com/koneu/natend => ./koneu/natend

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/nftables"
+	"github.com/google/nftables/binaryutil"
 	"github.com/google/nftables/expr"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -140,10 +141,11 @@ func (c *nftContext) initSetOnly() error {
 		log.Debugf("nftables: could not find ip%s blacklist '%s' in table '%s': creating...", c.version, c.blacklists, c.tableName)
 
 		set = &nftables.Set{
-			Name:       c.blacklists,
-			Table:      c.table,
-			KeyType:    c.typeIPAddr,
-			HasTimeout: true,
+			Name:         c.blacklists,
+			Table:        c.table,
+			KeyType:      c.typeIPAddr,
+			KeyByteOrder: binaryutil.BigEndian,
+			HasTimeout:   true,
 		}
 
 		if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -170,10 +172,11 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	})
 
 	set := &nftables.Set{
-		Name:       c.blacklists,
-		Table:      c.table,
-		KeyType:    c.typeIPAddr,
-		HasTimeout: true,
+		Name:         c.blacklists,
+		Table:        c.table,
+		KeyType:      c.typeIPAddr,
+		KeyByteOrder: binaryutil.BigEndian,
+		HasTimeout:   true,
 	}
 
 	if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
