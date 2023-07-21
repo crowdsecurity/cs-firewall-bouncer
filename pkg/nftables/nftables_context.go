@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/nftables"
+	"github.com/google/nftables/binaryutil"
 	"github.com/google/nftables/expr"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -19,12 +20,12 @@ import (
 )
 
 var HookNameToHookID = map[string]nftables.ChainHook{
-	"prerouting":  nftables.ChainHookPrerouting,
-	"input":       nftables.ChainHookInput,
-	"forward":     nftables.ChainHookForward,
-	"output":      nftables.ChainHookOutput,
-	"postrouting": nftables.ChainHookPostrouting,
-	"ingress":     nftables.ChainHookIngress,
+	"prerouting":  *nftables.ChainHookPrerouting,
+	"input":       *nftables.ChainHookInput,
+	"forward":     *nftables.ChainHookForward,
+	"output":      *nftables.ChainHookOutput,
+	"postrouting": *nftables.ChainHookPostrouting,
+	"ingress":     *nftables.ChainHookIngress,
 }
 
 type nftContext struct {
@@ -140,10 +141,11 @@ func (c *nftContext) initSetOnly() error {
 		log.Debugf("nftables: could not find ip%s blacklist '%s' in table '%s': creating...", c.version, c.blacklists, c.tableName)
 
 		set = &nftables.Set{
-			Name:       c.blacklists,
-			Table:      c.table,
-			KeyType:    c.typeIPAddr,
-			HasTimeout: true,
+			Name:         c.blacklists,
+			Table:        c.table,
+			KeyType:      c.typeIPAddr,
+			KeyByteOrder: binaryutil.BigEndian,
+			HasTimeout:   true,
 		}
 
 		if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -170,10 +172,11 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	})
 
 	set := &nftables.Set{
-		Name:       c.blacklists,
-		Table:      c.table,
-		KeyType:    c.typeIPAddr,
-		HasTimeout: true,
+		Name:         c.blacklists,
+		Table:        c.table,
+		KeyType:      c.typeIPAddr,
+		KeyByteOrder: binaryutil.BigEndian,
+		HasTimeout:   true,
 	}
 
 	if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -183,12 +186,14 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	c.set = set
 
 	for _, hook := range hooks {
+		hooknum := HookNameToHookID[hook]
+		priority := nftables.ChainPriority(c.priority)
 		chain := c.conn.AddChain(&nftables.Chain{
 			Name:     c.chainName + "-" + hook,
 			Table:    c.table,
 			Type:     nftables.ChainTypeFilter,
-			Hooknum:  HookNameToHookID[hook],
-			Priority: nftables.ChainPriority(c.priority),
+			Hooknum:  &hooknum,
+			Priority: &priority,
 		})
 
 		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
