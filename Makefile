@@ -18,9 +18,9 @@ BUILD_TIMESTAMP?=$(shell date +%F"_"%T)
 BUILD_TAG?=$(shell git rev-parse HEAD)
 
 LD_OPTS_VARS=\
--X 'github.com/crowdsecurity/go-cs-lib/pkg/version.Version=$(BUILD_VERSION)' \
--X 'github.com/crowdsecurity/go-cs-lib/pkg/version.BuildDate=$(BUILD_TIMESTAMP)' \
--X 'github.com/crowdsecurity/go-cs-lib/pkg/version.Tag=$(BUILD_TAG)'
+-X 'github.com/crowdsecurity/go-cs-lib/version.Version=$(BUILD_VERSION)' \
+-X 'github.com/crowdsecurity/go-cs-lib/version.BuildDate=$(BUILD_TIMESTAMP)' \
+-X 'github.com/crowdsecurity/go-cs-lib/version.Tag=$(BUILD_TAG)'
 
 export CGO_ENABLED=0
 export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \

@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 
-	"github.com/crowdsecurity/go-cs-lib/pkg/slicetools"
+	"github.com/crowdsecurity/go-cs-lib/slicetools"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 )
