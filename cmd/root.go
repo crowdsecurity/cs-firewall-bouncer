@@ -20,8 +20,8 @@ import (
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
-	"github.com/crowdsecurity/go-cs-lib/pkg/csdaemon"
-	"github.com/crowdsecurity/go-cs-lib/pkg/version"
+	"github.com/crowdsecurity/go-cs-lib/csdaemon"
+	"github.com/crowdsecurity/go-cs-lib/version"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/backend"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
