@@ -197,7 +197,10 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 		})
 
 		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
-		r := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
+		r, err := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
+		if err != nil {
+			return err
+		}
 		c.conn.AddRule(r)
 	}
 
@@ -251,7 +254,7 @@ func (c *nftContext) lookupTable() (*nftables.Table, error) {
 
 func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 	denyLog bool, denyLogPrefix string, denyAction string,
-) *nftables.Rule {
+) (*nftables.Rule, error) {
 	r := &nftables.Rule{
 		Table: c.table,
 		Chain: chain,
@@ -280,18 +283,26 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 		})
 	}
 
-	if strings.EqualFold(denyAction, "REJECT") {
+	action := strings.ToUpper(denyAction)
+	if action == "" {
+		action = "DROP"
+	}
+
+	switch action {
+	case "DROP":
+		r.Exprs = append(r.Exprs, &expr.Verdict{
+			Kind: expr.VerdictDrop,
+		})
+	case "REJECT":
 		r.Exprs = append(r.Exprs, &expr.Reject{
 			Type: unix.NFT_REJECT_ICMP_UNREACH,
 			Code: unix.NFT_REJECT_ICMPX_ADMIN_PROHIBITED,
 		})
-	} else {
-		r.Exprs = append(r.Exprs, &expr.Verdict{
-			Kind: expr.VerdictDrop,
-		})
+	default:
+		return nil, fmt.Errorf("invalid deny_action '%s', must be one of DROP, REJECT", action)
 	}
 
-	return r
+	return r, nil
 }
 
 func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
