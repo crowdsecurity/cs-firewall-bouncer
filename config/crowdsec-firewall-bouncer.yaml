@@ -53,6 +53,6 @@ pf:
   anchor_name: ""
 
 prometheus:
-  enabled: true
+  enabled: false
   listen_addr: 127.0.0.1
   listen_port: 60601
