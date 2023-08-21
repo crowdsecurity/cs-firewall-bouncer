@@ -93,10 +93,11 @@ RELDIR = $(BINARY_NAME)-$(BUILD_VERSION)
 vendor:
 	$(GOCMD) mod vendor
 	tar czf vendor.tgz vendor
+	tar --create --auto-compress --file=$(RELDIR)-vendor.tar.xz vendor
 
 .PHONY: vendor-remove
 vendor-remove:
-	$(RM) -r vendor vendor.tgz
+	$(RM) -r vendor vendor.tgz *-vendor.tar.xz
 
 # Called during platform-all, to reuse the directory for other platforms
 .PHONY: clean-release-dir
