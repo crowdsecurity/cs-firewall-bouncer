@@ -302,6 +302,8 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 		return nil, fmt.Errorf("invalid deny_action '%s', must be one of DROP, REJECT", action)
 	}
 
+	log.Tracef("using '%s' as deny_action", action)
+
 	return r, nil
 }
 
