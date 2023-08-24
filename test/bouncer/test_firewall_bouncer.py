@@ -1,6 +1,7 @@
 
 import json
 
+
 def test_backend_mode(bouncer, fw_cfg_factory):
     cfg = fw_cfg_factory()
 

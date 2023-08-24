@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
@@ -52,12 +53,18 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		Chains:           []string{},
 	}
 
-	var target string
-	if strings.EqualFold(config.DenyAction, "REJECT") {
-		target = "REJECT"
-	} else {
+	allowedActions := []string{"DROP", "REJECT", "TARPIT"}
+
+	target := strings.ToUpper(config.DenyAction)
+	if target == "" {
 		target = "DROP"
 	}
+
+	if !slices.Contains(allowedActions, target) {
+		return nil, fmt.Errorf("invalid deny_action '%s', must be one of %s", config.DenyAction, strings.Join(allowedActions, ", "))
+	}
+
+	log.Tracef("using '%s' as deny_action", target)
 
 	ipsetBin, err := exec.LookPath("ipset")
 	if err != nil {
