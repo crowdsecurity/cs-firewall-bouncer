@@ -61,7 +61,7 @@ clean: clean-release-dir clean-debian clean-rpm
 
 .PHONY: binary
 binary: goversion
-	$(GOBUILD) $(LD_OPTS) $(BUILD_VENDOR_FLAGS) -o $(BINARY_NAME)
+	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME)
 
 .PHONY: build
 build: clean binary
@@ -90,7 +90,7 @@ func-tests: build
 RELDIR = $(BINARY_NAME)-$(BUILD_VERSION)
 
 .PHONY: vendor
-vendor:
+vendor: vendor-remove
 	$(GOCMD) mod vendor
 	tar czf vendor.tgz vendor
 	tar --create --auto-compress --file=$(RELDIR)-vendor.tar.xz vendor
