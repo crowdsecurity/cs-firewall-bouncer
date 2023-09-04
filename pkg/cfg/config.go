@@ -124,7 +124,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	}
 
 	if config.SetSize == 0 {
-		config.SetSize = 65536
+		config.SetSize = 131072
 	}
 
 	switch config.Mode {
