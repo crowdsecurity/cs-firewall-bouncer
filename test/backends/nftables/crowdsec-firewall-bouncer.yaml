@@ -13,18 +13,20 @@ supported_decisions_types:
 iptables_chains:
   - INPUT
 
-nftables_hooks:
-  - input
-  - forward
-
 nftables:
-  ipv4:
     enabled: true
-    set-only: false
-    table: crowdsec
-    chain: crowdsec-chain
-  ipv6:
-    enabled: true
-    set-only: false
-    table: crowdsec6
-    chain: crowdsec6-chain
+    targets:
+    - blacklist: crowdsec-blacklists
+      set-only: false
+      table: crowdsec
+      chain: crowdsec-chain
+      family: ip
+      protocol: ip
+      hook: input
+    - blacklist: crowdsec6-blacklists
+      set-only: false
+      table: crowdsec6
+      chain: crowdsec6-chain
+      family: ip6
+      protocol: ip6
+      hook: input

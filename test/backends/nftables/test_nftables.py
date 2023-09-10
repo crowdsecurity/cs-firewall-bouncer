@@ -52,7 +52,6 @@ class TestNFTables(unittest.TestCase):
         rules = {
             node["rule"]["chain"] for node in output["nftables"] if "rule" in node
         }  # maybe stricter check ?
-        assert "crowdsec-chain-forward" in rules
         assert "crowdsec-chain-input" in rules
 
         # IPV6
@@ -68,7 +67,6 @@ class TestNFTables(unittest.TestCase):
             node["rule"]["chain"] for node in output["nftables"] if "rule" in node
         }  # maybe stricter check ?
         assert "crowdsec6-chain-input" in rules
-        assert "crowdsec6-chain-forward" in rules
 
     def test_duplicate_decisions_across_decision_stream(self):
         d1, d2, d3 = generate_n_decisions(3, dup_count=1)
