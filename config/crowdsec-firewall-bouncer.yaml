@@ -30,22 +30,22 @@ iptables_chains:
 
 ## nftables
 nftables:
-  ipv4:
-    enabled: true
+  enabled: true
+  targets:
+  - blacklist: crowdsec-blacklists
     set-only: false
     table: crowdsec
     chain: crowdsec-chain
-    priority: -10
-  ipv6:
-    enabled: true
+    family: ip
+    protocol: ip
+    hook: input
+  - blacklist: crowdsec6-blacklists
     set-only: false
     table: crowdsec6
     chain: crowdsec6-chain
-    priority: -10
-
-nftables_hooks:
-  - input
-  - forward
+    family: ip6
+    protocol: ip6
+    hook: input
 
 # packet filter
 pf:
