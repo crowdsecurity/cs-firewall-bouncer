@@ -23,24 +23,25 @@ const (
 )
 
 type nft struct {
-	v4                *nftContext
-	v6                *nftContext
+	contexts          []*nftContext
 	decisionsToAdd    []*models.Decision
 	decisionsToDelete []*models.Decision
 	DenyAction        string
 	DenyLog           bool
 	DenyLogPrefix     string
-	Hooks             []string
 }
 
 func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
+	var contexts []*nftContext
+	for _, target := range config.Nftables.Targets {
+		contexts = append(contexts, NewNFTContext(&target))
+	}
+
 	ret := &nft{
-		v4:            NewNFTV4Context(config),
-		v6:            NewNFTV6Context(config),
+		contexts:      contexts,
 		DenyAction:    config.DenyAction,
 		DenyLog:       config.DenyLog,
 		DenyLogPrefix: config.DenyLogPrefix,
-		Hooks:         config.NftablesHooks,
 	}
 
 	return ret, nil
@@ -49,12 +50,10 @@ func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
 func (n *nft) Init() error {
 	log.Debug("nftables: Init()")
 
-	if err := n.v4.init(n.Hooks, n.DenyLog, n.DenyLogPrefix, n.DenyAction); err != nil {
-		return err
-	}
-
-	if err := n.v6.init(n.Hooks, n.DenyLog, n.DenyLogPrefix, n.DenyAction); err != nil {
-		return err
+	for _, context := range n.contexts {
+		if err := context.init(n.DenyLog, n.DenyLogPrefix, n.DenyAction); err != nil {
+			return err
+		}
 	}
 
 	log.Infof("nftables initiated")
@@ -69,12 +68,10 @@ func (n *nft) Add(decision *models.Decision) error {
 
 func (n *nft) getBannedState() (map[string]struct{}, error) {
 	banned := make(map[string]struct{})
-	if err := n.v4.setBanned(banned); err != nil {
-		return nil, err
-	}
-
-	if err := n.v6.setBanned(banned); err != nil {
-		return nil, err
+	for _, context := range n.contexts {
+		if err := context.setBanned(banned); err != nil {
+			return nil, err
+		}
 	}
 
 	return banned, nil
@@ -103,34 +100,25 @@ func (n *nft) commitDeletedDecisions() error {
 			continue
 		}
 
+		log.Tracef("adding %s to buffer", ip)
 		if strings.Contains(ip.String(), ":") {
-			if n.v6.conn != nil {
-				log.Tracef("adding %s to buffer", ip)
-
-				ip6 = append(ip6, nftables.SetElement{Key: ip.To16()})
-			}
-
-			continue
-		}
-
-		if n.v4.conn != nil {
-			log.Tracef("adding %s to buffer", ip)
-
+			ip6 = append(ip6, nftables.SetElement{Key: ip.To16()})
+		} else {
 			ip4 = append(ip4, nftables.SetElement{Key: ip.To4()})
 		}
 	}
 
-	if len(ip4) > 0 {
-		log.Debugf("removing %d ip%s elements from set", len(ip4), n.v4.version)
-		if err := n.v4.deleteElements(ip4); err != nil {
-			return err
-		}
-	}
-
-	if len(ip6) > 0 {
-		log.Debugf("removing %d ip%s elements from set", len(ip6), n.v6.version)
-		if err := n.v6.deleteElements(ip6); err != nil {
-			return err
+	for _, context := range n.contexts {
+		if context.version == "ip" && len(ip4) > 0 {
+			log.Debugf("removing %d %s elements from set", len(ip4), "ip")
+			if err := context.deleteElements(ip4); err != nil {
+				return err
+			}
+		} else if context.version == "ip6" && len(ip6) > 0 {
+			log.Debugf("removing %d %s elements from set", len(ip6), "ip6")
+			if err := context.deleteElements(ip6); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -157,29 +145,24 @@ func (n *nft) commitAddedDecisions() error {
 
 		t, _ := time.ParseDuration(*decision.Duration)
 
+		log.Tracef("adding %s to buffer", ip)
 		if strings.Contains(ip.String(), ":") {
-			if n.v6.conn != nil {
-				log.Tracef("adding %s to buffer", ip)
-
-				ip6 = append(ip6, nftables.SetElement{Timeout: t, Key: ip.To16()})
-			}
-
-			continue
-		}
-
-		if n.v4.conn != nil {
-			log.Tracef("adding %s to buffer", ip)
-
+			ip6 = append(ip6, nftables.SetElement{Timeout: t, Key: ip.To16()})
+		} else {
 			ip4 = append(ip4, nftables.SetElement{Timeout: t, Key: ip.To4()})
 		}
 	}
 
-	if err := n.v4.addElements(ip4); err != nil {
-		return err
-	}
-
-	if err := n.v6.addElements(ip6); err != nil {
-		return err
+	for _, context := range n.contexts {
+		if context.version == "ip" && len(ip4) > 0 {
+			if err := context.addElements(ip4); err != nil {
+				return err
+			}
+		} else if context.version == "ip6" && len(ip6) > 0 {
+			if err := context.addElements(ip6); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -233,12 +216,10 @@ func (n *nft) Delete(decision *models.Decision) error {
 }
 
 func (n *nft) ShutDown() error {
-	if err := n.v4.shutDown(); err != nil {
-		return err
-	}
-
-	if err := n.v6.shutDown(); err != nil {
-		return err
+	for _, context := range n.contexts {
+		if err := context.shutDown(); err != nil {
+			return err
+		}
 	}
 
 	return nil

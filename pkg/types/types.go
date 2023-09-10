@@ -12,3 +12,14 @@ type Backend interface {
 	Commit() error
 	CollectMetrics()
 }
+
+type NftablesTargetConfig struct {
+	Blacklist string `yaml:"blacklist"`
+	SetOnly   bool   `yaml:"set-only"`
+	Table     string `yaml:"table"`
+	Chain     string `yaml:"chain"`
+	Family    string `yaml:"family"`
+	Protocol  string `yaml:"protocol"`
+	Hook      string `yaml:"hook"`
+	Priority  int    `yaml:"priority"`
+}
