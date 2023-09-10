@@ -60,13 +60,13 @@ func NewNFTContext(target *types.NftablesTargetConfig) *nftContext {
 		tableFamily = nftables.TableFamilyINet
 	}
 
-	var setIpAddrType nftables.SetDatatype
+	var setIPAddrType nftables.SetDatatype
 	var payloadOffset, payloadLength uint32
 	if target.Protocol == "ip" {
-		setIpAddrType = nftables.TypeIPAddr
+		setIPAddrType = nftables.TypeIPAddr
 		payloadOffset, payloadLength = 12, 4
 	} else if target.Protocol == "ip6" {
-		setIpAddrType = nftables.TypeIP6Addr
+		setIPAddrType = nftables.TypeIP6Addr
 		payloadOffset, payloadLength = 8, 16
 	}
 
@@ -74,7 +74,7 @@ func NewNFTContext(target *types.NftablesTargetConfig) *nftContext {
 		version:       target.Protocol,
 		conn:          &nftables.Conn{},
 		tableFamily:   tableFamily,
-		typeIPAddr:    setIpAddrType,
+		typeIPAddr:    setIPAddrType,
 		payloadOffset: payloadOffset,
 		payloadLength: payloadLength,
 		tableName:     target.Table,

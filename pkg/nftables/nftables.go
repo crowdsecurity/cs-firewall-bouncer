@@ -32,9 +32,9 @@ type nft struct {
 }
 
 func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
-	var contexts []*nftContext
-	for _, target := range config.Nftables.Targets {
-		contexts = append(contexts, NewNFTContext(&target))
+	contexts := make([]*nftContext, len(config.Nftables.Targets))
+	for i, target := range config.Nftables.Targets {
+		contexts[i] = NewNFTContext(&target)
 	}
 
 	ret := &nft{
