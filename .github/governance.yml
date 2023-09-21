@@ -2,11 +2,11 @@ version: v1
 
 issue:
   captures:
-    - regex: 'remediation component version:(?s:.+)version: v(.+)-'
+    - regex: 'remediation component version:(?:[^]+)version: v(.+)-'
       github_release: true
       ignore_case: true
       label: 'version/$CAPTURED'
-    - regex: 'crowdsec version:(?s:.+)version: v(.+)-'
+    - regex: 'crowdsec version:(?:[^]+)version: v(.+)-'
       ignore_case: true
       label: 'cs-version/$CAPTURED'
 
