@@ -36,8 +36,8 @@ body:
     attributes:
       label: version
       value: |
-        firewall version:
-        
+        remediation component version:
+
         <details>
 
         ```console

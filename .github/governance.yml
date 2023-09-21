@@ -2,7 +2,7 @@ version: v1
 
 issue:
   captures:
-    - regex: 'firewall version:(?s:.+)version: v(.+)-'
+    - regex: 'remediation component version:(?s:.+)version: v(.+)-'
       github_release: true
       ignore_case: true
       label: 'version/$CAPTURED'
