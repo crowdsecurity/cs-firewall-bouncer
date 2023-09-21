@@ -2,7 +2,7 @@ version: v1
 
 issue:
   captures:
-    - regex: 'version: v*(.+)-[rc*]?'
+    - regex: 'version: v(.+)-'
       github_release: true
       ignore_case: true
       label: 'version/$CAPTURED'
@@ -21,7 +21,7 @@ issue:
 
           In the meantime, you can:
 
-          1. Check [CrowdSec Documentation](https://docs.crowdsec.net/docs/next/bouncers/intro) to see if your issue can be self resolved.
+          1. Check [Documentation](https://docs.crowdsec.net/docs/next/bouncers/firewall) to see if your issue can be self resolved.
           2. You can also join our [Discord](https://discord.gg/crowdsec)
 
     - prefix: kind
