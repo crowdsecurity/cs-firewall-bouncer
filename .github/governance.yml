@@ -1,0 +1,41 @@
+version: v1
+
+issue:
+  captures:
+    - regex: 'version: v*(.+)-[rc*]?'
+      github_release: true
+      ignore_case: true
+      label: 'version/$CAPTURED'
+
+  labels:
+    - prefix: triage
+      list: ['accepted']
+      multiple: false
+      author_association:
+        collaborator: true
+        member: true
+        owner: true
+      needs:
+        comment: |
+          @$AUTHOR: Thanks for opening an issue, it is currently awaiting triage.
+
+          In the meantime, you can:
+
+          1. Check [CrowdSec Documentation](https://docs.crowdsec.net/docs/next/bouncers/intro) to see if your issue can be self resolved.
+          2. You can also join our [Discord](https://discord.gg/crowdsec)
+
+    - prefix: kind
+      list: ['feature', 'bug', 'packaging', 'enhancement']
+      multiple: false
+      author_association:
+        author: true
+        collaborator: true
+        member: true
+        owner: true
+      needs:
+        comment: |
+          @$AUTHOR: There are no 'kind' label on this issue. You need a 'kind' label to start the triage process.
+          * `/kind feature`
+          * `/kind enhancement`
+          * `/kind bug`
+          * `/kind packaging`
