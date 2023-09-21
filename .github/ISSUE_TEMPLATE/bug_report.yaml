@@ -36,10 +36,29 @@ body:
     attributes:
       label: version
       value: |
+        firewall version:
+        
         <details>
 
         ```console
         $ crowdsec-firewall-bouncer --version
+        # paste output here
+        ```
+
+        </details>
+    validations:
+      required: true
+  - type: textarea
+    id: Version
+    attributes:
+      label: crowdsec version
+      value: |
+        crowdsec version:
+
+        <details>
+        
+        ```console
+        $ crowdsec --version
         # paste output here
         ```
 
