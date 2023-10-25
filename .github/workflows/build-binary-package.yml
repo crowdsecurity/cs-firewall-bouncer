@@ -39,5 +39,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         tag_name="${GITHUB_REF##*/}"
-        # this will find the $PROGRAM_NAME-vendor.tar.xz file as well
-        hub release edit $(find . -name "$PROGRAM_NAME*" -maxdepth 1 -printf "-a %p ") -a vendor.tgz -m "" "$tag_name"
+        # this will upload the $PROGRAM_NAME-vendor.tar.xz file as well
+        gh release upload "$tag_name" $PROGRAM_NAME* vendor.tgz
