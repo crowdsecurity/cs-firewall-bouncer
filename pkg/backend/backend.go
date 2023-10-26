@@ -61,15 +61,19 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 	var err error
 
 	b := &BackendCTX{}
+
 	log.Printf("backend type : %s", config.Mode)
+
 	if config.DisableIPV6 {
 		log.Println("IPV6 is disabled")
 	}
+
 	switch config.Mode {
 	case cfg.IptablesMode, cfg.IpsetMode:
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("iptables and ipset is linux only")
 		}
+
 		b.firewall, err = iptables.NewIPTables(config)
 		if err != nil {
 			return nil, err
@@ -78,6 +82,7 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 		if runtime.GOOS != "linux" {
 			return nil, fmt.Errorf("nftables is linux only")
 		}
+
 		b.firewall, err = nftables.NewNFTables(config)
 		if err != nil {
 			return nil, err
@@ -86,6 +91,7 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 		if !isPFSupported(runtime.GOOS) {
 			log.Warning("pf mode can only work with openbsd and freebsd. It is available on other platforms only for testing purposes")
 		}
+
 		b.firewall, err = pf.NewPF(config)
 		if err != nil {
 			return nil, err
@@ -98,5 +104,6 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 	default:
 		return b, fmt.Errorf("firewall '%s' is not supported", config.Mode)
 	}
+
 	return b, nil
 }

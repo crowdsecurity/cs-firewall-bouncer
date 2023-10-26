@@ -26,40 +26,51 @@ type Ipsets struct {
 
 func collectDroppedPackets(binaryPath string, chains []string, setName string) (float64, float64) {
 	var droppedPackets, droppedBytes float64
+
 	for _, chain := range chains {
 		out, err := exec.Command(binaryPath, "-L", chain, "-v", "-x").CombinedOutput()
 		if err != nil {
 			log.Error(string(out), err)
 			continue
 		}
+
 		for _, line := range strings.Split(string(out), "\n") {
 			if !strings.Contains(line, setName) || strings.Contains(line, "LOG") {
 				continue
 			}
+
 			parts := strings.Fields(line)
+
 			tdp, err := strconv.ParseFloat(parts[IPTablesDroppedPacketIdx], 64)
 			if err != nil {
 				log.Error(err.Error())
 			}
+
 			droppedPackets += tdp
+
 			tdb, err := strconv.ParseFloat(parts[IPTablesDroppedByteIdx], 64)
 			if err != nil {
 				log.Error(err.Error())
 			}
+
 			droppedBytes += tdb
 		}
 	}
+
 	return droppedPackets, droppedBytes
 }
 
 func (ipt *iptables) CollectMetrics() {
-	t := time.NewTicker(metrics.MetricCollectionInterval)
 	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes float64
+
+	t := time.NewTicker(metrics.MetricCollectionInterval)
 	for range t.C {
 		ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
+
 		if ipt.v6 != nil {
 			ip6DroppedPackets, ip6DroppedBytes = collectDroppedPackets(ipt.v6.iptablesBin, ipt.v6.Chains, ipt.v6.SetName)
 		}
+
 		metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
 		metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
 
@@ -68,25 +79,32 @@ func (ipt *iptables) CollectMetrics() {
 			log.Error(err)
 			continue
 		}
+
 		ipsets := Ipsets{}
+
 		if err := xml.Unmarshal(out, &ipsets); err != nil {
 			log.Error(err)
 			continue
 		}
+
 		newCount := float64(0)
+
 		for _, ipset := range ipsets.Ipset {
 			if ipset.Name == ipt.v4.SetName || (ipt.v6 != nil && ipset.Name == ipt.v6.SetName) {
 				if ipset.Header.Numentries == "" {
 					continue
 				}
+
 				count, err := strconv.ParseFloat(ipset.Header.Numentries, 64)
 				if err != nil {
 					log.Errorf("error while parsing  Numentries from ipsets: %s", err)
 					continue
 				}
+
 				newCount += count
 			}
 		}
+
 		metrics.TotalActiveBannedIPs.Set(newCount)
 	}
 }

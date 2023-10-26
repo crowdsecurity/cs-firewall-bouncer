@@ -59,6 +59,7 @@ func HandleSignals(ctx context.Context) error {
 
 func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbDeletedDecisions := 0
+
 	for _, d := range decisions {
 		if !slices.Contains(config.SupportedDecisionsTypes, strings.ToLower(*d.Type)) {
 			log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *d.Value, *d.Type)
@@ -84,10 +85,12 @@ func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, 
 
 	if nbDeletedDecisions > 0 {
 		log.Debug("committing expired decisions")
+
 		if err := backend.Commit(); err != nil {
 			log.Errorf("unable to commit expired decisions %v", err)
 			return
 		}
+
 		log.Debug("committed expired decisions")
 		log.Infof("%d %s deleted", nbDeletedDecisions, noun)
 	}
@@ -95,11 +98,13 @@ func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, 
 
 func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbNewDecisions := 0
+
 	for _, d := range decisions {
 		if !slices.Contains(config.SupportedDecisionsTypes, strings.ToLower(*d.Type)) {
 			log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *d.Value, *d.Type)
 			continue
 		}
+
 		if err := backend.Add(d); err != nil {
 			log.Errorf("unable to insert decision for '%s': %s", *d.Value, err)
 			continue
@@ -113,12 +118,15 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 	if nbNewDecisions == 1 {
 		noun = "decision"
 	}
+
 	if nbNewDecisions > 0 {
 		log.Debug("committing added decisions")
+
 		if err := backend.Commit(); err != nil {
 			log.Errorf("unable to commit add decisions %v", err)
 			return
 		}
+
 		log.Debug("committed added decisions")
 		log.Infof("%d %s added", nbNewDecisions, noun)
 	}
@@ -176,6 +184,7 @@ func Execute() error {
 	defer backendCleanup(backend)
 
 	bouncer := &csbouncer.StreamBouncer{}
+
 	err = bouncer.ConfigReader(bytes.NewReader(configBytes))
 	if err != nil {
 		return err
@@ -207,6 +216,7 @@ func Execute() error {
 			go backend.CollectMetrics()
 			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs)
 		}
+
 		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 
 		go func() {

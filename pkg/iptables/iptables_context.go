@@ -42,6 +42,7 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 			log.Errorf("set %s doesn't exist, can't manage content", ctx.SetName)
 			return fmt.Errorf("set %s doesn't exist: %w", ctx.SetName, err)
 		}
+
 		if ctx.version == "v6" {
 			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300", "family",
 				"inet6", "maxelem", strconv.Itoa(ctx.SetSize))
@@ -49,7 +50,9 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300",
 				"maxelem", strconv.Itoa(ctx.SetSize))
 		}
+
 		log.Infof("ipset set-up : %s", cmd.String())
+
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("error while creating set : %w --> %s", err, string(out))
 		}
@@ -58,8 +61,9 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 	// waiting for propagation
 	time.Sleep(1 * time.Second)
 
-	// checking if iptables rules exist
 	checkOk := true
+
+	// checking if iptables rules exist
 	for _, checkCmd := range ctx.CheckIptableCmds {
 		cmd = exec.Command(ctx.iptablesBin, checkCmd...)
 		if stdout, err := cmd.CombinedOutput(); err != nil {
@@ -79,29 +83,34 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 		for _, startCmd := range ctx.StartupCmds {
 			cmd = exec.Command(ctx.iptablesBin, startCmd...)
 			log.Infof("iptables set-up : %s", cmd.String())
+
 			if out, err := cmd.CombinedOutput(); err != nil {
 				log.Warningf("Error inserting set in iptables (%s): %v : %s", cmd.String(), err, string(out))
 				return fmt.Errorf("while inserting set in iptables: %w", err)
 			}
 		}
 	}
+
 	return nil
 }
 
 func (ctx *ipTablesContext) add(decision *models.Decision) error {
 	/*Create our set*/
-
 	banDuration, err := time.ParseDuration(*decision.Duration)
 	if err != nil {
 		return err
 	}
+
 	log.Debugf("ipset add ban [%s] (for %d seconds)", *decision.Value, int(banDuration.Seconds()))
+
 	if banDuration.Seconds() > 2147483 {
 		log.Warnf("Ban duration too long (%d seconds), maximum for ipset is 2147483, setting duration to 2147482", int(banDuration.Seconds()))
 		banDuration = time.Duration(2147482) * time.Second
 	}
+
 	cmd := exec.Command(ctx.ipsetBin, "-exist", "add", ctx.SetName, *decision.Value, "timeout", strconv.Itoa(int(banDuration.Seconds())))
 	log.Debugf("ipset add : %s", cmd.String())
+
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while inserting in set (%s): %v --> %s", cmd.String(), err, string(out))
 	}
@@ -116,6 +125,7 @@ func (ctx *ipTablesContext) shutDown() error {
 	for _, startCmd := range ctx.ShutdownCmds {
 		cmd = exec.Command(ctx.iptablesBin, startCmd...)
 		log.Infof("iptables clean-up : %s", cmd.String())
+
 		if out, err := cmd.CombinedOutput(); err != nil {
 			if strings.Contains(string(out), "Set "+ctx.SetName+" doesn't exist.") {
 				log.Infof("ipset '%s' doesn't exist, skip", ctx.SetName)
@@ -132,8 +142,10 @@ func (ctx *ipTablesContext) shutDown() error {
 	} else {
 		ipsetCmd = "destroy"
 	}
+
 	cmd = exec.Command(ctx.ipsetBin, "-exist", ipsetCmd, ctx.SetName)
 	log.Infof("ipset clean-up : %s", cmd.String())
+
 	if out, err := cmd.CombinedOutput(); err != nil {
 		if strings.Contains(string(out), "The set with the given name does not exist") {
 			log.Infof("ipset '%s' doesn't exist, skip", ctx.SetName)
@@ -141,6 +153,7 @@ func (ctx *ipTablesContext) shutDown() error {
 			log.Errorf("set %s error : %v - %s", ipsetCmd, err, string(out))
 		}
 	}
+
 	return nil
 }
 
@@ -150,6 +163,7 @@ func (ctx *ipTablesContext) delete(decision *models.Decision) error {
 		ipset -exist add test 192.168.0.1 timeout 600
 	*/
 	log.Debugf("ipset del ban for [%s]", *decision.Value)
+
 	cmd := exec.Command(ctx.ipsetBin, "-exist", "del", ctx.SetName, *decision.Value)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while deleting from set (%s): %v --> %s", cmd.String(), err, string(out))
