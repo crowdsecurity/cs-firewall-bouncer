@@ -6,6 +6,7 @@ package iptables
 import (
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,10 +44,10 @@ func (ctx *ipTablesContext) CheckAndCreate() error {
 		}
 		if ctx.version == "v6" {
 			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300", "family",
-				"inet6", "maxelem", fmt.Sprintf("%d", ctx.SetSize))
+				"inet6", "maxelem", strconv.Itoa(ctx.SetSize))
 		} else {
 			cmd = exec.Command(ctx.ipsetBin, "-exist", "create", ctx.SetName, ctx.SetType, "timeout", "300",
-				"maxelem", fmt.Sprintf("%d", ctx.SetSize))
+				"maxelem", strconv.Itoa(ctx.SetSize))
 		}
 		log.Infof("ipset set-up : %s", cmd.String())
 		if out, err := cmd.CombinedOutput(); err != nil {
@@ -99,7 +100,7 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 		log.Warnf("Ban duration too long (%d seconds), maximum for ipset is 2147483, setting duration to 2147482", int(banDuration.Seconds()))
 		banDuration = time.Duration(2147482) * time.Second
 	}
-	cmd := exec.Command(ctx.ipsetBin, "-exist", "add", ctx.SetName, *decision.Value, "timeout", fmt.Sprintf("%d", int(banDuration.Seconds())))
+	cmd := exec.Command(ctx.ipsetBin, "-exist", "add", ctx.SetName, *decision.Value, "timeout", strconv.Itoa(int(banDuration.Seconds())))
 	log.Debugf("ipset add : %s", cmd.String())
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while inserting in set (%s): %v --> %s", cmd.String(), err, string(out))
