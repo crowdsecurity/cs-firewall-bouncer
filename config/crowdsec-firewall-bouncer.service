@@ -11,6 +11,9 @@ ExecStartPost=/bin/sleep 0.1
 Restart=always
 RestartSec=10
 LimitNOFILE=65536
+# don't send a termination signal to the children processes,
+# because the iptables backend needs to run ipset multiple times to properly shutdown
+KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
