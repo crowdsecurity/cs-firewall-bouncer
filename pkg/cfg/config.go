@@ -69,10 +69,12 @@ type BouncerConfig struct {
 // MergedConfig() returns the byte content of the patched configuration file (with .yaml.local).
 func MergedConfig(configPath string) ([]byte, error) {
 	patcher := yamlpatch.NewPatcher(configPath, ".local")
+
 	data, err := patcher.MergedPatchContent()
 	if err != nil {
 		return nil, err
 	}
+
 	return data, nil
 }
 
@@ -119,6 +121,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	if config.BlacklistsIpv6 == "" {
 		config.BlacklistsIpv6 = "crowdsec6-blacklists"
 	}
+
 	if config.SetType == "" {
 		config.SetType = "nethash"
 	}

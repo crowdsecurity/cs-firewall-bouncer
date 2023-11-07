@@ -122,6 +122,7 @@ func (n *nft) commitDeletedDecisions() error {
 
 	if len(ip4) > 0 {
 		log.Debugf("removing %d ip%s elements from set", len(ip4), n.v4.version)
+
 		if err := n.v4.deleteElements(ip4); err != nil {
 			return err
 		}
@@ -129,6 +130,7 @@ func (n *nft) commitDeletedDecisions() error {
 
 	if len(ip6) > 0 {
 		log.Debugf("removing %d ip%s elements from set", len(ip6), n.v6.version)
+
 		if err := n.v6.deleteElements(ip6); err != nil {
 			return err
 		}

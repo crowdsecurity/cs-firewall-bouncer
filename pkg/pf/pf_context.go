@@ -26,6 +26,7 @@ func (ctx *pfContext) checkTable() error {
 	log.Infof("Checking pf table: %s", ctx.table)
 
 	cmd := execPfctl(ctx.anchor, "-s", "Tables")
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("pfctl error: %s - %w", out, err)
@@ -35,6 +36,7 @@ func (ctx *pfContext) checkTable() error {
 		if ctx.anchor != "" {
 			return fmt.Errorf("table %s in anchor %s doesn't exist", ctx.table, ctx.anchor)
 		}
+
 		return fmt.Errorf("table %s doesn't exist", ctx.table)
 	}
 
@@ -44,6 +46,7 @@ func (ctx *pfContext) checkTable() error {
 func (ctx *pfContext) shutDown() error {
 	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "flush")
 	log.Infof("pf table clean-up: %s", cmd)
+
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Errorf("Error while flushing table (%s): %v --> %s", cmd, err, out)
 	}
@@ -56,6 +59,7 @@ func getStateIPs() (map[string]bool, error) {
 	ret := make(map[string]bool)
 
 	cmd := exec.Command(pfctlCmd, "-s", "states")
+
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -73,6 +77,7 @@ func getStateIPs() (map[string]bool, error) {
 		if strings.Contains(ip, ":") {
 			ip = strings.Split(ip, ":")[0]
 		}
+
 		ret[ip] = true
 
 		// left side
@@ -80,11 +85,12 @@ func getStateIPs() (map[string]bool, error) {
 		if strings.Contains(ip, ":") {
 			ip = strings.Split(ip, ":")[0]
 		}
-		ret[ip] = true
 
+		ret[ip] = true
 	}
 
 	log.Tracef("Found IPs in state table: %v", len(ret))
+
 	return ret, nil
 }
 
@@ -128,9 +134,10 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 }
 
 func (ctx *pfContext) addChunk(decisions []*models.Decision) error {
+	log.Debugf("Adding chunk with %d decisions", len(decisions))
+
 	addArgs := []string{"-t", ctx.table, "-T", "add"}
 
-	log.Debugf("Adding chunk with %d decisions", len(decisions))
 	for _, d := range decisions {
 		addArgs = append(addArgs, *d.Value)
 	}
@@ -150,6 +157,7 @@ func (ctx *pfContext) delete(decisions []*models.Decision) error {
 			log.Errorf("error while deleting decision chunk: %s", err)
 		}
 	}
+
 	return nil
 }
 
@@ -172,6 +180,7 @@ func (ctx *pfContext) init() error {
 	if err := ctx.shutDown(); err != nil {
 		return fmt.Errorf("pf table flush failed: %w", err)
 	}
+
 	if err := ctx.checkTable(); err != nil {
 		return fmt.Errorf("pf init failed: %w", err)
 	}

@@ -28,12 +28,11 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
-const (
-	name = "crowdsec-firewall-bouncer"
-)
+const name = "crowdsec-firewall-bouncer"
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
+
 	if err := backend.ShutDown(); err != nil {
 		log.Errorf("while shutting down backend: %s", err)
 	}
@@ -54,22 +53,27 @@ func HandleSignals(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+
 	return nil
 }
 
 func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbDeletedDecisions := 0
+
 	for _, d := range decisions {
 		if !slices.Contains(config.SupportedDecisionsTypes, strings.ToLower(*d.Type)) {
 			log.Debugf("decisions for ip '%s' will not be deleted because its type is '%s'", *d.Value, *d.Type)
 			continue
 		}
+
 		if err := backend.Delete(d); err != nil {
 			if !strings.Contains(err.Error(), "netlink receive: no such file or directory") {
 				log.Errorf("unable to delete decision for '%s': %s", *d.Value, err)
 			}
+
 			continue
 		}
+
 		log.Debugf("deleted %s", *d.Value)
 		nbDeletedDecisions++
 	}
@@ -78,12 +82,15 @@ func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, 
 	if nbDeletedDecisions == 1 {
 		noun = "decision"
 	}
+
 	if nbDeletedDecisions > 0 {
 		log.Debug("committing expired decisions")
+
 		if err := backend.Commit(); err != nil {
 			log.Errorf("unable to commit expired decisions %v", err)
 			return
 		}
+
 		log.Debug("committed expired decisions")
 		log.Infof("%d %s deleted", nbDeletedDecisions, noun)
 	}
@@ -91,11 +98,13 @@ func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, 
 
 func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, config *cfg.BouncerConfig) {
 	nbNewDecisions := 0
+
 	for _, d := range decisions {
 		if !slices.Contains(config.SupportedDecisionsTypes, strings.ToLower(*d.Type)) {
 			log.Debugf("decisions for ip '%s' will not be added because its type is '%s'", *d.Value, *d.Type)
 			continue
 		}
+
 		if err := backend.Add(d); err != nil {
 			log.Errorf("unable to insert decision for '%s': %s", *d.Value, err)
 			continue
@@ -109,19 +118,21 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 	if nbNewDecisions == 1 {
 		noun = "decision"
 	}
+
 	if nbNewDecisions > 0 {
 		log.Debug("committing added decisions")
+
 		if err := backend.Commit(); err != nil {
 			log.Errorf("unable to commit add decisions %v", err)
 			return
 		}
+
 		log.Debug("committed added decisions")
 		log.Infof("%d %s added", nbNewDecisions, noun)
 	}
 }
 
 func Execute() error {
-	var err error
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
 	bouncerVersion := flag.Bool("V", false, "display version and exit (deprecated)")
@@ -173,6 +184,7 @@ func Execute() error {
 	defer backendCleanup(backend)
 
 	bouncer := &csbouncer.StreamBouncer{}
+
 	err = bouncer.ConfigReader(bytes.NewReader(configBytes))
 	if err != nil {
 		return err
@@ -204,9 +216,12 @@ func Execute() error {
 			go backend.CollectMetrics()
 			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs)
 		}
+
 		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
+
 		go func() {
 			http.Handle("/metrics", promhttp.Handler())
+
 			listenOn := net.JoinHostPort(
 				config.PrometheusConfig.ListenAddress,
 				config.PrometheusConfig.ListenPort,
@@ -215,6 +230,7 @@ func Execute() error {
 			log.Error(http.ListenAndServe(listenOn, nil))
 		}()
 	}
+
 	g.Go(func() error {
 		log.Infof("Processing new and deleted decisions . . .")
 		for {

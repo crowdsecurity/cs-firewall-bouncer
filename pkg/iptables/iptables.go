@@ -29,7 +29,9 @@ type iptables struct {
 
 func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	var err error
+
 	ret := &iptables{}
+
 	ipv4Ctx := &ipTablesContext{
 		Name:             "ipset",
 		version:          "v4",
@@ -70,6 +72,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to find ipset")
 	}
+
 	ipv4Ctx.ipsetBin = ipsetBin
 	if config.Mode == cfg.IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
@@ -96,10 +99,12 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			}
 		}
 	}
+
 	ret.v4 = ipv4Ctx
 	if config.DisableIPV6 {
 		return ret, nil
 	}
+
 	ipv6Ctx.ipsetBin = ipsetBin
 	if config.Mode == cfg.IpsetMode {
 		ipv6Ctx.ipsetContentOnly = true
@@ -126,6 +131,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			}
 		}
 	}
+
 	ret.v6 = ipv6Ctx
 
 	return ret, nil
@@ -135,18 +141,20 @@ func (ipt *iptables) Init() error {
 	var err error
 
 	log.Printf("iptables for ipv4 initiated")
+
 	// flush before init
-	if err := ipt.v4.shutDown(); err != nil {
+	if err = ipt.v4.shutDown(); err != nil {
 		return fmt.Errorf("iptables shutdown failed: %w", err)
 	}
 
 	// Create iptable to rule to attach the set
-	if err := ipt.v4.CheckAndCreate(); err != nil {
+	if err = ipt.v4.CheckAndCreate(); err != nil {
 		return fmt.Errorf("iptables init failed: %w", err)
 	}
 
 	if ipt.v6 != nil {
 		log.Printf("iptables for ipv6 initiated")
+
 		err = ipt.v6.shutDown() // flush before init
 		if err != nil {
 			return fmt.Errorf("iptables shutdown failed: %w", err)
@@ -157,6 +165,7 @@ func (ipt *iptables) Init() error {
 			return fmt.Errorf("iptables init failed: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -181,15 +190,19 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
 			return nil
 		}
+
 		if err := ipt.v6.add(decision); err != nil {
 			return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv4 rule", *decision.Value)
 		}
+
 		done = true
 	}
+
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.add(decision); err != nil {
 			return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv6 rule", *decision.Value)
 		}
+
 		done = true
 	}
 
@@ -205,35 +218,44 @@ func (ipt *iptables) ShutDown() error {
 	if err != nil {
 		return fmt.Errorf("iptables for ipv4 shutdown failed: %w", err)
 	}
+
 	if ipt.v6 != nil {
 		err = ipt.v6.shutDown()
 		if err != nil {
 			return fmt.Errorf("iptables for ipv6 shutdown failed: %w", err)
 		}
 	}
+
 	return nil
 }
 
 func (ipt *iptables) Delete(decision *models.Decision) error {
 	done := false
+
 	if strings.Contains(*decision.Value, ":") {
 		if ipt.v6 == nil {
 			log.Debugf("not deleting '%s' because ipv6 is disabled", *decision.Value)
 			return nil
 		}
+
 		if err := ipt.v6.delete(decision); err != nil {
 			return fmt.Errorf("failed deleting ban")
 		}
+
 		done = true
 	}
+
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.delete(decision); err != nil {
 			return fmt.Errorf("failed deleting ban")
 		}
+
 		done = true
 	}
+
 	if !done {
 		return fmt.Errorf("failed deleting ban: ip %s was not recognized", *decision.Value)
 	}
+
 	return nil
 }

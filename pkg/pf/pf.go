@@ -64,7 +64,9 @@ func execPfctl(anchor string, arg ...string) *exec.Cmd {
 	if anchor != "" {
 		arg = append([]string{"-a", anchor}, arg...)
 	}
+
 	log.Tracef("Running: %s %s", pfctlCmd, arg)
+
 	return exec.Command(pfctlCmd, arg...)
 }
 
@@ -92,12 +94,15 @@ func (pf *pf) Init() error {
 
 func (pf *pf) Commit() error {
 	defer pf.reset()
+
 	if err := pf.commitDeletedDecisions(); err != nil {
 		return err
 	}
+
 	if err := pf.commitAddedDecisions(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
