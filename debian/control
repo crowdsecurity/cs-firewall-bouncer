@@ -10,7 +10,6 @@ Description: Firewall bouncer for Crowdsec (iptables+ipset)
 Depends: gettext-base, iptables, ipset
 Replaces: crowdsec-firewall-bouncer
 Conflicts: crowdsec-firewall-bouncer-nftables
-Suggest: netfilter-persistent, ipset-persistent
 
 Package: crowdsec-firewall-bouncer-nftables
 Architecture: any
@@ -18,4 +17,3 @@ Description: Firewall bouncer for Crowdsec (nftables)
 Depends: gettext-base, nftables
 Replaces: crowdsec-firewall-bouncer
 Conflicts: crowdsec-firewall-bouncer-iptables
-Suggest: netfilter-persistent, ipset-persistent
