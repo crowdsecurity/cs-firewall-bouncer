@@ -8,8 +8,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/crowdsecurity/crowdsec/pkg/models"
 	"github.com/crowdsecurity/go-cs-lib/slicetools"
+
+	"github.com/crowdsecurity/crowdsec/pkg/models"
 )
 
 type pfContext struct {

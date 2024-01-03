@@ -31,12 +31,10 @@ type ipTablesContext struct {
 }
 
 func (ctx *ipTablesContext) CheckAndCreate() error {
-	var err error
-
 	log.Infof("Checking existing set")
 	/* check if the set already exist */
 	cmd := exec.Command(ctx.ipsetBin, "-L", ctx.SetName)
-	if _, err = cmd.CombinedOutput(); err != nil { // it doesn't exist
+	if _, err := cmd.CombinedOutput(); err != nil { // it doesn't exist
 		if ctx.ipsetContentOnly {
 			/*if we manage ipset content only, error*/
 			log.Errorf("set %s doesn't exist, can't manage content", ctx.SetName)

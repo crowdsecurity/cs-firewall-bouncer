@@ -28,8 +28,6 @@ type iptables struct {
 }
 
 func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
-	var err error
-
 	ret := &iptables{}
 
 	ipv4Ctx := &ipTablesContext{
