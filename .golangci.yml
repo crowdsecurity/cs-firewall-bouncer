@@ -1,6 +1,14 @@
 # see https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
 
 linters-settings:
+  gci:
+    sections:
+     - standard
+     - default
+     - prefix(github.com/crowdsecurity)
+     - prefix(github.com/crowdsecurity/crowdsec)
+     - prefix(github.com/crowdsecurity/cs-firewall-bouncer)
+
   gocyclo:
     min-complexity: 30
 
@@ -16,15 +24,27 @@ linters-settings:
 
   govet:
     check-shadowing: true
+
   lll:
     line-length: 140
+
   misspell:
     locale: US
+
+  nlreturn:
+    block-size: 4
+
   nolintlint:
-    allow-leading-space: true # don't require machine-readable nolint directives (i.e. with no leading space)
     allow-unused: false # report any unused nolint directives
     require-explanation: false # don't require an explanation for nolint directives
     require-specific: false # don't require nolint directives to be specific about which linter is being skipped
+
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/pkg/errors"
+            desc: "errors.New() is deprecated in favor of fmt.Errorf()"
 
 linters:
   enable-all: true
@@ -47,7 +67,6 @@ linters:
     # Disabled
     #
     - gci               # Gci control golang package import order and make it always deterministic.
-    - depguard          # Go linter that checks if package imports are in a list of acceptable packages
 
     #
     # Enabled
@@ -60,6 +79,7 @@ linters:
     # - containedctx        # containedctx is a linter that detects struct contained context.Context field
     # - contextcheck        # check the function whether use a non-inherited context
     # - decorder            # check declaration order and count of types, constants, variables and functions
+    # - depguard          # Go linter that checks if package imports are in a list of acceptable packages
     # - dogsled             # Checks assignments with too many blank identifiers (e.g. x, _, _, _, := f())
     # - durationcheck       # check for two durations multiplied together
     # - errcheck            # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases
@@ -71,6 +91,7 @@ linters:
     # - exportloopref       # checks for pointers to enclosing loop variables
     # - forcetypeassert     # finds forced type assertions
     # - funlen              # Tool for detection of long functions
+    # - ginkgolinter        # enforces standards of using ginkgo and gomega
     # - gochecknoinits      # Checks that no init functions are present in Go code
     # - godot               # Check if comments end in a period
     # - gofmt               # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
@@ -164,7 +185,7 @@ linters:
 
 issues:
   max-issues-per-linter: 0
-  max-same-issues: 10
+  max-same-issues: 0
   exclude-rules:
     # `err` is often shadowed, we may continue to do it
     - linters:
