@@ -93,11 +93,9 @@ func (pf *pf) countIPs(table string) int {
 }
 
 // CollectMetrics collects metrics from pfctl.
-// The firewall rules are not controlled by this package, so we can only
-// trust they are set up correctly, and retrieve stats from the firewall tables.
+// In pf mode the firewall rules are not controlled by the bouncer, so we can only
+// trust they are set up correctly, and retrieve stats from the pfctl tables.
 func (pf *pf) CollectMetrics() {
-	t := time.NewTicker(metrics.MetricCollectionInterval)
-
 	droppedPackets := float64(0)
 	droppedBytes := float64(0)
 
@@ -111,13 +109,15 @@ func (pf *pf) CollectMetrics() {
 		tables = append(tables, pf.inet6.table)
 	}
 
+	t := time.NewTicker(metrics.MetricCollectionInterval)
+
 	for range t.C {
 		cmd := execPfctl("", "-v", "-sr")
 
 		out, err := cmd.Output()
 		if err != nil {
 			log.Errorf("failed to run 'pfctl -v -sr': %s", err)
-			return
+			continue
 		}
 
 		reader := strings.NewReader(string(out))

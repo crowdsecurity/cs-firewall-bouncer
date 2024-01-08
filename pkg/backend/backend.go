@@ -41,6 +41,7 @@ func (b *BackendCTX) Delete(decision *models.Decision) error {
 }
 
 func (b *BackendCTX) CollectMetrics() {
+	log.Trace("Collecting backend-specific metrics")
 	b.firewall.CollectMetrics()
 }
 
@@ -62,7 +63,7 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 
 	b := &BackendCTX{}
 
-	log.Printf("backend type : %s", config.Mode)
+	log.Printf("backend type: %s", config.Mode)
 
 	if config.DisableIPV6 {
 		log.Println("IPV6 is disabled")
