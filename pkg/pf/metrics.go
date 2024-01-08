@@ -78,6 +78,23 @@ func parseMetrics(reader *strings.Reader, tables []string) map[string]counter {
 	return ret
 }
 
+// countIPs returns the number of IPs in a table.
+func (pf *pf) countIPs(table string) int {
+	cmd := execPfctl("", "-T", "show", "-t", table)
+
+	out, err := cmd.Output()
+	if err != nil {
+		log.Errorf("failed to run 'pfctl -T show -t %s': %s", table, err)
+		return 0
+	}
+
+	// one IP per line
+	return strings.Count(string(out), "\n")
+}
+
+// CollectMetrics collects metrics from pfctl.
+// The firewall rules are not controlled by this package, so we can only
+// trust they are set up correctly, and retrieve stats from the firewall tables.
 func (pf *pf) CollectMetrics() {
 	t := time.NewTicker(metrics.MetricCollectionInterval)
 
@@ -105,6 +122,7 @@ func (pf *pf) CollectMetrics() {
 
 		reader := strings.NewReader(string(out))
 		stats := parseMetrics(reader, tables)
+		bannedIPs := 0
 
 		for _, table := range tables {
 			st, ok := stats[table]
@@ -114,10 +132,12 @@ func (pf *pf) CollectMetrics() {
 
 			droppedPackets += float64(st.packets)
 			droppedBytes += float64(st.bytes)
+
+			bannedIPs += pf.countIPs(table)
 		}
 
 		metrics.TotalDroppedPackets.Set(droppedPackets)
 		metrics.TotalDroppedBytes.Set(droppedBytes)
-		metrics.TotalActiveBannedIPs.Set(0)
+		metrics.TotalActiveBannedIPs.Set(float64(bannedIPs))
 	}
 }
