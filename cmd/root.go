@@ -213,7 +213,7 @@ func Execute() error {
 	})
 
 	if config.PrometheusConfig.Enabled {
-		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode {
+		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.PfMode {
 			go backend.CollectMetrics()
 			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs)
 		}
