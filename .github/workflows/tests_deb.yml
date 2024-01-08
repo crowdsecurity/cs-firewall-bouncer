@@ -35,6 +35,7 @@ jobs:
 
     - name: Install functional test dependencies
       run: |
+        sudo apt update
         sudo apt install -y build-essential debhelper devscripts fakeroot lintian
         docker network create net-test
         python3 -m pip install --upgrade pipenv wheel
