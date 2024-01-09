@@ -19,7 +19,8 @@ type counter struct {
 }
 
 var (
-	rexpTable   = regexp.MustCompile(`^block .* from <(?P<table>\w+)> .*"$`)
+	// table names can contain _ or - characters
+	rexpTable   = regexp.MustCompile(`^block .* from <(?P<table>[^ ]+)> .*"$`)
 	rexpMetrics = regexp.MustCompile(`^\s+\[.*Packets: (?P<packets>\d+)\s+Bytes: (?P<bytes>\d+).*\]$`)
 )
 
