@@ -240,7 +240,7 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 }
 
 func (c *nftContext) lookupTable() (*nftables.Table, error) {
-	tables, err := c.conn.ListTables()
+	tables, err := c.conn.ListTablesOfFamily(c.tableFamily)
 	if err != nil {
 		return nil, err
 	}
