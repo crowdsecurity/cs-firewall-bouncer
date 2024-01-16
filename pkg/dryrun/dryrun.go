@@ -31,6 +31,10 @@ func (d *dryRun) Add(decision *models.Decision) error {
 	return nil
 }
 
+func (d *dryRun) Set(decisions []*models.Decision) (int, int, error) {
+	return 0, 0, nil
+}
+
 func (d *dryRun) CollectMetrics() {
 	log.Infof("backend.CollectMetrics() called")
 }

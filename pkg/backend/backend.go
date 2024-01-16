@@ -40,6 +40,10 @@ func (b *BackendCTX) Delete(decision *models.Decision) error {
 	return b.firewall.Delete(decision)
 }
 
+func (b *BackendCTX) Set(decisions []*models.Decision) (int, int, error) {
+	return b.firewall.Set(decisions)
+}
+
 func (b *BackendCTX) CollectMetrics() {
 	b.firewall.CollectMetrics()
 }

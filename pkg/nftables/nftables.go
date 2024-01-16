@@ -67,6 +67,37 @@ func (n *nft) Add(decision *models.Decision) error {
 	return nil
 }
 
+func (n *nft) Set(decisions []*models.Decision) (added int, deleted int, err error) {
+	banned, err := n.getBannedState()
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get current state: %w", err)
+	}
+
+	// Map for fast lookup and decide what to add
+	dm := map[string]*models.Decision{}
+	for _, d := range decisions {
+		dm[*d.Value] = d
+
+		if _, ok := banned[*d.Value]; !ok {
+			n.Add(d)
+			added++
+		}
+	}
+
+	// Check which we need to delete
+	for ip, _ := range banned {
+		if dm[ip] == nil {
+			n.Delete(&models.Decision{
+				Value: &ip,
+			})
+
+			deleted++
+		}
+	}
+
+	return
+}
+
 func (n *nft) getBannedState() (map[string]struct{}, error) {
 	banned := make(map[string]struct{})
 	if err := n.v4.setBanned(banned); err != nil {
@@ -93,8 +124,6 @@ func (n *nft) commitDeletedDecisions() error {
 
 	ip4 := []nftables.SetElement{}
 	ip6 := []nftables.SetElement{}
-
-	n.decisionsToDelete = normalizedDecisions(n.decisionsToDelete)
 
 	for _, decision := range n.decisionsToDelete {
 		ip := net.ParseIP(*decision.Value)

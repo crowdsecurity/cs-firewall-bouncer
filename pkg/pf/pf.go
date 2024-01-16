@@ -106,6 +106,10 @@ func (pf *pf) Commit() error {
 	return nil
 }
 
+func (pf *pf) Set(decisions []*models.Decision) (int, int, error) {
+	return 0, 0, nil
+}
+
 func (pf *pf) Add(decision *models.Decision) error {
 	pf.decisionsToAdd = append(pf.decisionsToAdd, decision)
 	return nil

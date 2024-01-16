@@ -9,6 +9,7 @@ type Backend interface {
 	ShutDown() error
 	Add(decision *models.Decision) error
 	Delete(decision *models.Decision) error
+	Set([]*models.Decision) (int, int, error)
 	Commit() error
 	CollectMetrics()
 }

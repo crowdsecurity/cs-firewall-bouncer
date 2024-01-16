@@ -171,6 +171,10 @@ func (ipt *iptables) Commit() error {
 	return nil
 }
 
+func (ipt *iptables) Set(decisions []*models.Decision) (int, int, error) {
+	return 0, 0, nil
+}
+
 func (ipt *iptables) Add(decision *models.Decision) error {
 	done := false
 

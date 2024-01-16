@@ -17,6 +17,7 @@ venv/
 
 # built by make
 /crowdsec-firewall-bouncer
+/cs-firewall-bouncer
 /crowdsec-firewall-bouncer-*
 /crowdsec-firewall-bouncer.tgz
 

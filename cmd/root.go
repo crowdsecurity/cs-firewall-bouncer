@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -18,7 +19,7 @@ import (
 	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 
-	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
+	csbouncer "github.com/blind-oracle/go-cs-bouncer"
 	"github.com/crowdsecurity/go-cs-lib/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/version"
 
@@ -184,7 +185,7 @@ func Execute() error {
 
 	defer backendCleanup(backend)
 
-	bouncer := &csbouncer.StreamBouncer{}
+	bouncer := &csbouncer.LiveBouncer{}
 
 	err = bouncer.ConfigReader(bytes.NewReader(configBytes))
 	if err != nil {
@@ -207,11 +208,6 @@ func Execute() error {
 
 	g, ctx := errgroup.WithContext(context.Background())
 
-	g.Go(func() error {
-		bouncer.Run(ctx)
-		return fmt.Errorf("bouncer stream halted")
-	})
-
 	if config.PrometheusConfig.Enabled {
 		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode {
 			go backend.CollectMetrics()
@@ -232,18 +228,42 @@ func Execute() error {
 		}()
 	}
 
+	tickerIntervalDuration, err := time.ParseDuration(config.UpdateFrequency)
+	if err != nil {
+		return fmt.Errorf("unable to parse lapi update interval '%s': %w", config.UpdateFrequency, err)
+	}
+
 	g.Go(func() error {
 		log.Infof("Processing new and deleted decisions . . .")
+		ticker := time.NewTicker(tickerIntervalDuration)
 		for {
 			select {
 			case <-ctx.Done():
 				return nil
-			case decisions := <-bouncer.Stream:
-				if decisions == nil {
+			case <-ticker.C:
+				decisions, err := bouncer.Get("ip")
+				if err != nil {
+					log.Errorf("Unable to fetch decisions: %s", err)
 					continue
 				}
-				deleteDecisions(backend, decisions.Deleted, config)
-				addDecisions(backend, decisions.New, config)
+
+				log.Debugf("Got %d decisions", len(*decisions))
+
+				added, deleted, err := backend.Set(*decisions)
+				if err != nil {
+					log.Errorf("Unable to set decisions: %s", err)
+					continue
+				}
+
+				if added > 0 || deleted > 0 {
+					err := backend.Commit()
+					if err != nil {
+						log.Errorf("Unable to commit decisions: %s", err)
+						continue
+					}
+
+					log.Infof("Decisions added: %d, deleted: %d", added, deleted)
+				}
 			}
 		}
 	})
