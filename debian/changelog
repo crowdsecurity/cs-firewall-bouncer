@@ -1,4 +1,4 @@
-crowdsec-firewall-bouncer (1.0.12) UNRELEASED; urgency=medium
+crowdsec-firewall-bouncer (1.0.13) UNRELEASED; urgency=medium
 
   * debian package
   * pf support
