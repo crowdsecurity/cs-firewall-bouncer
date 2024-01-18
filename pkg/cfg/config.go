@@ -50,9 +50,12 @@ type BouncerConfig struct {
 	SetType         string        `yaml:"ipset_type"`
 	SetSize         int           `yaml:"ipset_size"`
 
+	DecisionsType   string   `yaml:"decisions_type"`
+	DecisionsScopes []string `yaml:"decisions_scopes"`
+
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
-	IptablesChains          []string `yaml:"iptables_chains"`
-	SupportedDecisionsTypes []string `yaml:"supported_decisions_types"`
+	IptablesChains []string `yaml:"iptables_chains"`
+
 	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
 	Nftables struct {
 		Ipv4 nftablesFamilyConfig `yaml:"ipv4"`
@@ -101,8 +104,12 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		return nil, fmt.Errorf("config does not contain 'mode'")
 	}
 
-	if len(config.SupportedDecisionsTypes) == 0 {
-		config.SupportedDecisionsTypes = []string{"ban"}
+	if config.DecisionsType == "" {
+		config.DecisionsType = "ban"
+	}
+
+	if len(config.DecisionsScopes) == 0 {
+		config.DecisionsScopes = []string{"ip"}
 	}
 
 	if config.PidDir != "" {

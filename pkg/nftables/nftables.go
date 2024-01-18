@@ -74,7 +74,7 @@ func (n *nft) Set(decisions []*models.Decision) (added int, deleted int, err err
 	}
 
 	// Map for fast lookup and decide what to add
-	dm := map[string]*models.Decision{}
+	dm := make(map[string]*models.Decision, len(decisions))
 	for _, d := range decisions {
 		dm[*d.Value] = d
 
@@ -86,8 +86,6 @@ func (n *nft) Set(decisions []*models.Decision) (added int, deleted int, err err
 
 	// Check which we need to delete
 	for ip, _ := range banned {
-		log.Tracef("%s banned", ip)
-
 		if dm[ip] == nil {
 			ip := strings.Clone(ip)
 			n.Delete(&models.Decision{
@@ -132,8 +130,7 @@ func (n *nft) commitDeletedDecisions() error {
 
 		if ip.To4() == nil {
 			if n.v6.conn != nil {
-				log.Tracef("adding %s to buffer", ip)
-
+				log.Tracef("adding %s to buffer (v6)", ip)
 				ip6 = append(ip6, nftables.SetElement{Key: ip.To16()})
 			}
 
@@ -141,8 +138,7 @@ func (n *nft) commitDeletedDecisions() error {
 		}
 
 		if n.v4.conn != nil {
-			log.Tracef("adding %s to buffer", ip)
-
+			log.Tracef("adding %s to buffer (v4)", ip)
 			ip4 = append(ip4, nftables.SetElement{Key: ip.To4()})
 		}
 	}
@@ -184,7 +180,6 @@ func (n *nft) commitAddedDecisions() error {
 		if ip.To4() == nil {
 			if n.v6.conn != nil {
 				log.Tracef("adding %s to buffer", ip)
-
 				ip6 = append(ip6, nftables.SetElement{Timeout: t, Key: ip.To16()})
 			}
 
@@ -193,7 +188,6 @@ func (n *nft) commitAddedDecisions() error {
 
 		if n.v4.conn != nil {
 			log.Tracef("adding %s to buffer", ip)
-
 			ip4 = append(ip4, nftables.SetElement{Timeout: t, Key: ip.To4()})
 		}
 	}

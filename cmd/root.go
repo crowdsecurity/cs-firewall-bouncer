@@ -155,14 +155,15 @@ func Execute() error {
 	}
 
 	g.Go(func() error {
-		log.Infof("Processing new and deleted decisions . . .")
+		log.Infof("Processing decisions . . .")
 		ticker := time.NewTicker(tickerIntervalDuration)
 		for {
 			select {
 			case <-ctx.Done():
 				return nil
+
 			case <-ticker.C:
-				decisions, err := bouncer.Get("ip")
+				decisions, err := bouncer.Get(config.DecisionsScopes, config.DecisionsType)
 				if err != nil {
 					log.Errorf("Unable to fetch decisions: %s", err)
 					continue

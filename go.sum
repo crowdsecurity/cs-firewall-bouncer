@@ -4,8 +4,8 @@ github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3d
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/blind-oracle/go-cs-bouncer v0.0.16 h1:ueK+x6RUguZ9FOZWENLLVyy+WzyXaKRECdS+oAPcA8I=
-github.com/blind-oracle/go-cs-bouncer v0.0.16/go.mod h1:ptEhumBTtXRGaLsF/Ew0UlWflGhlkHoS9bD3ClTvQpU=
+github.com/blind-oracle/go-cs-bouncer v0.0.19 h1:PxfkMpYduPsXBdkaUHEUebGhMsTQQBRHY99aA1/dRG0=
+github.com/blind-oracle/go-cs-bouncer v0.0.19/go.mod h1:jW/Qd3lFNznEGubEtIB7yz9wYPlw/G9KmS4gDBHMuvo=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/coreos/go-systemd/v22 v22.5.0 h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8iXXhfZs=
