@@ -28,7 +28,7 @@ def test_backend_mode(bouncer, fw_cfg_factory):
     with bouncer(cfg) as fw:
         fw.wait_for_lines_fnmatch([
             "*Starting crowdsec-firewall-bouncer*",
-            "*backend type : dry-run*",
+            "*backend type: dry-run*",
             "*backend.Init() called*",
             "*unable to configure bouncer: config does not contain LAPI url*",
         ])
