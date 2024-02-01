@@ -293,18 +293,22 @@ func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
 	if err := c.conn.SetDeleteElements(c.set, els); err != nil {
 		return fmt.Errorf("failed to remove %s elements from set: %w", c.version, err)
 	}
+
 	if err := c.conn.Flush(); err != nil {
 		if len(els) == 1 {
 			log.Debugf("deleting %s, failed to flush: %s", reprIP(els[0].Key), err)
 			return nil
 		}
-		log.Infof("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
+
+		log.Debugf("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
+
 		for _, el := range els {
 			if err := c.deleteElementChunk([]nftables.SetElement{el}); err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -314,11 +318,13 @@ func (c *nftContext) deleteElements(els []nftables.SetElement) error {
 	}
 
 	log.Debugf("splitting %d elements into chunks of %d", len(els), chunkSize)
+
 	for _, chunk := range slicetools.Chunks(els, chunkSize) {
 		if err := c.deleteElementChunk(chunk); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

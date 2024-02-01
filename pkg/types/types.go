@@ -7,8 +7,8 @@ import (
 type Backend interface {
 	Init() error
 	ShutDown() error
-	Add(*models.Decision) error
-	Delete(*models.Decision) error
+	Add(decision *models.Decision) error
+	Delete(decision *models.Decision) error
 	Commit() error
 	CollectMetrics()
 }

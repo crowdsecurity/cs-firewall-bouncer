@@ -28,7 +28,7 @@ def test_backend_mode(bouncer, fw_cfg_factory):
     with bouncer(cfg) as fw:
         fw.wait_for_lines_fnmatch([
             "*Starting crowdsec-firewall-bouncer*",
-            "*backend type : dry-run*",
+            "*backend type: dry-run*",
             "*backend.Init() called*",
             "*unable to configure bouncer: config does not contain LAPI url*",
         ])
@@ -59,7 +59,7 @@ def test_api_url(crowdsec, bouncer, fw_cfg_factory):
 def test_api_key(crowdsec, bouncer, fw_cfg_factory, api_key_factory, bouncer_under_test):
     api_key = api_key_factory()
     env = {
-        'BOUNCER_KEY_firewall': api_key
+        'BOUNCER_KEY_bouncer': api_key
     }
 
     with crowdsec(environment=env) as lapi:
@@ -101,6 +101,6 @@ def test_api_key(crowdsec, bouncer, fw_cfg_factory, api_key_factory, bouncer_und
             assert res.exit_code == 0
             bouncers = json.loads(res.output)
             assert len(bouncers) == 1
-            assert bouncers[0]['name'] == 'firewall'
+            assert bouncers[0]['name'] == 'bouncer'
             assert bouncers[0]['auth_type'] == 'api-key'
             assert bouncers[0]['type'] == bouncer_under_test

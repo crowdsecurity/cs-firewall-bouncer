@@ -1,9 +1,9 @@
 BUILD_REQUIRE_GO_MAJOR ?= 1
 BUILD_REQUIRE_GO_MINOR ?= 20
 
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOTEST=$(GOCMD) test
+GO = go
+GOBUILD = $(GO) build
+GOTEST = $(GO) test
 
 BINARY_NAME=crowdsec-firewall-bouncer
 TARBALL_NAME=$(BINARY_NAME).tgz
@@ -91,7 +91,7 @@ RELDIR = $(BINARY_NAME)-$(BUILD_VERSION)
 
 .PHONY: vendor
 vendor: vendor-remove
-	$(GOCMD) mod vendor
+	$(GO) mod vendor
 	tar czf vendor.tgz vendor
 	tar --create --auto-compress --file=$(RELDIR)-vendor.tar.xz vendor
 

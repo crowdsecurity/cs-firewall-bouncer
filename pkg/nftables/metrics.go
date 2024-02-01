@@ -39,6 +39,7 @@ type Set struct {
 
 func (c *nftContext) collectDroppedPackets(path string, chain string) (int, int, error) {
 	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, chain)
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
@@ -122,6 +123,7 @@ func (n *nft) CollectMetrics() {
 	}
 
 	cmd := exec.Command(path, "-j", "list", "tables")
+
 	_, err = cmd.CombinedOutput()
 	if err != nil {
 		log.Warningf("nft -j is not supported (requires 0.9.7), nftables metrics are disabled")

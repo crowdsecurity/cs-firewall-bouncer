@@ -24,7 +24,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: 1.20.7
+        go-version: 1.21.6
 
     - name: Build
       run: |
@@ -47,6 +47,7 @@ jobs:
 
     - name: Install functional test dependencies
       run: |
+        sudo apt update
         sudo apt install -y nftables iptables ipset
         docker network create net-test
         python3 -m pip install --upgrade pipenv wheel
