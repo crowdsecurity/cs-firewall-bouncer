@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 	"github.com/crowdsecurity/go-cs-lib/csstring"
 	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/crowdsecurity/go-cs-lib/yamlpatch"
@@ -17,14 +18,6 @@ type PrometheusConfig struct {
 	Enabled       bool   `yaml:"enabled"`
 	ListenAddress string `yaml:"listen_addr"`
 	ListenPort    string `yaml:"listen_port"`
-}
-
-type nftablesFamilyConfig struct {
-	Enabled  *bool  `yaml:"enabled"`
-	SetOnly  bool   `yaml:"set-only"`
-	Table    string `yaml:"table"`
-	Chain    string `yaml:"chain"`
-	Priority int    `yaml:"priority"`
 }
 
 const (
@@ -45,21 +38,21 @@ type BouncerConfig struct {
 	DenyAction      string        `yaml:"deny_action"`
 	DenyLog         bool          `yaml:"deny_log"`
 	DenyLogPrefix   string        `yaml:"deny_log_prefix"`
-	BlacklistsIpv4  string        `yaml:"blacklists_ipv4"`
-	BlacklistsIpv6  string        `yaml:"blacklists_ipv6"`
+	BlacklistsIpv4  string        `yaml:"blacklists_ipv4"` // unused for nftables
+	BlacklistsIpv6  string        `yaml:"blacklists_ipv6"` // unused for nftables
 	SetType         string        `yaml:"ipset_type"`
 	SetSize         int           `yaml:"ipset_size"`
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
 	SupportedDecisionsTypes []string `yaml:"supported_decisions_types"`
-	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
+	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74,
+	// https://github.com/crowdsecurity/cs-firewall-bouncer/issues/153
 	Nftables struct {
-		Ipv4 nftablesFamilyConfig `yaml:"ipv4"`
-		Ipv6 nftablesFamilyConfig `yaml:"ipv6"`
+		Enabled *bool                        `yaml:"enabled"`
+		Targets []types.NftablesTargetConfig `yaml:"targets"`
 	} `yaml:"nftables"`
-	NftablesHooks []string `yaml:"nftables_hooks"`
-	PF            struct {
+	PF struct {
 		AnchorName string `yaml:"anchor_name"`
 		BatchSize  int    `yaml:"batch_size"`
 	} `yaml:"pf"`
@@ -157,45 +150,8 @@ func pfConfig(config *BouncerConfig) error {
 }
 
 func nftablesConfig(config *BouncerConfig) error {
-	// deal with defaults in a backward compatible way
-	if config.Nftables.Ipv4.Enabled == nil {
-		config.Nftables.Ipv4.Enabled = ptr.Of(true)
-	}
-
-	if config.Nftables.Ipv6.Enabled == nil {
-		if config.DisableIPV6 {
-			config.Nftables.Ipv4.Enabled = ptr.Of(false)
-		} else {
-			config.Nftables.Ipv6.Enabled = ptr.Of(true)
-		}
-	}
-
-	if *config.Nftables.Ipv4.Enabled {
-		if config.Nftables.Ipv4.Table == "" {
-			config.Nftables.Ipv4.Table = "crowdsec"
-		}
-
-		if config.Nftables.Ipv4.Chain == "" {
-			config.Nftables.Ipv4.Chain = "crowdsec-chain"
-		}
-	}
-
-	if *config.Nftables.Ipv6.Enabled {
-		if config.Nftables.Ipv6.Table == "" {
-			config.Nftables.Ipv6.Table = "crowdsec6"
-		}
-
-		if config.Nftables.Ipv6.Chain == "" {
-			config.Nftables.Ipv6.Chain = "crowdsec6-chain"
-		}
-	}
-
-	if !*config.Nftables.Ipv4.Enabled && !*config.Nftables.Ipv6.Enabled {
-		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
-	}
-
-	if config.NftablesHooks == nil || len(config.NftablesHooks) == 0 {
-		config.NftablesHooks = []string{"input"}
+	if config.Nftables.Enabled == nil {
+		config.Nftables.Enabled = ptr.Of(false)
 	}
 
 	return nil

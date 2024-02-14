@@ -16,7 +16,7 @@ import (
 
 	"github.com/crowdsecurity/go-cs-lib/slicetools"
 
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 var HookNameToHookID = map[string]nftables.ChainHook{
@@ -29,16 +29,17 @@ var HookNameToHookID = map[string]nftables.ChainHook{
 }
 
 type nftContext struct {
+	version       string
 	conn          *nftables.Conn
 	set           *nftables.Set
 	table         *nftables.Table
 	tableFamily   nftables.TableFamily
 	typeIPAddr    nftables.SetDatatype
-	version       string
 	payloadOffset uint32
 	payloadLength uint32
 	priority      int
-	blacklists    string
+	blacklist     string
+	hook          string
 	chainName     string
 	tableName     string
 	setOnly       bool
@@ -49,60 +50,43 @@ func reprIP(ip []byte) string {
 	return net.IP(ip).String()
 }
 
-func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
-	if !*config.Nftables.Ipv4.Enabled {
-		log.Debug("nftables: ipv4 disabled")
-
-		return &nftContext{}
+func NewNFTContext(target *types.NftablesTargetConfig) *nftContext {
+	var tableFamily nftables.TableFamily
+	if target.Family == "ip" {
+		tableFamily = nftables.TableFamilyIPv4
+	} else if target.Family == "ip6" {
+		tableFamily = nftables.TableFamilyIPv6
+	} else if target.Family == "inet" {
+		tableFamily = nftables.TableFamilyINet
 	}
 
-	log.Debug("nftables: ipv4 enabled")
+	var setIPAddrType nftables.SetDatatype
+	var payloadOffset, payloadLength uint32
+	if target.Protocol == "ip" {
+		setIPAddrType = nftables.TypeIPAddr
+		payloadOffset, payloadLength = 12, 4
+	} else if target.Protocol == "ip6" {
+		setIPAddrType = nftables.TypeIP6Addr
+		payloadOffset, payloadLength = 8, 16
+	}
 
 	ret := &nftContext{
+		version:       target.Protocol,
 		conn:          &nftables.Conn{},
-		version:       "v4",
-		tableFamily:   nftables.TableFamilyIPv4,
-		typeIPAddr:    nftables.TypeIPAddr,
-		payloadOffset: 12,
-		payloadLength: 4,
-		tableName:     config.Nftables.Ipv4.Table,
-		chainName:     config.Nftables.Ipv4.Chain,
-		blacklists:    config.BlacklistsIpv4,
-		setOnly:       config.Nftables.Ipv4.SetOnly,
-		priority:      config.Nftables.Ipv4.Priority,
+		tableFamily:   tableFamily,
+		typeIPAddr:    setIPAddrType,
+		payloadOffset: payloadOffset,
+		payloadLength: payloadLength,
+		tableName:     target.Table,
+		chainName:     target.Chain,
+		hook:          target.Hook,
+		blacklist:     target.Blacklist,
+		setOnly:       target.SetOnly,
+		priority:      target.Priority,
 	}
 
-	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
-		*config.Nftables.Ipv4.Enabled, ret.tableName, ret.chainName, ret.blacklists, ret.setOnly)
-
-	return ret
-}
-
-func NewNFTV6Context(config *cfg.BouncerConfig) *nftContext {
-	if !*config.Nftables.Ipv6.Enabled {
-		log.Debug("nftables: ipv6 disabled")
-
-		return &nftContext{}
-	}
-
-	log.Debug("nftables: ipv6 enabled")
-
-	ret := &nftContext{
-		conn:          &nftables.Conn{},
-		version:       "v6",
-		tableFamily:   nftables.TableFamilyIPv6,
-		typeIPAddr:    nftables.TypeIP6Addr,
-		payloadOffset: 8,
-		payloadLength: 16,
-		tableName:     config.Nftables.Ipv6.Table,
-		chainName:     config.Nftables.Ipv6.Chain,
-		blacklists:    config.BlacklistsIpv6,
-		setOnly:       config.Nftables.Ipv6.SetOnly,
-		priority:      config.Nftables.Ipv6.Priority,
-	}
-
-	log.Debugf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
-		*config.Nftables.Ipv6.Enabled, ret.tableName, ret.chainName, ret.blacklists, ret.setOnly)
+	log.Debugf("nftables: %s, table: %s, chain: %s, blacklist: %s, set-only: %t",
+		target.Protocol, target.Table, target.Chain, ret.blacklist, ret.setOnly)
 
 	return ret
 }
@@ -129,19 +113,19 @@ func (c *nftContext) initSetOnly() error {
 	var err error
 
 	// Use existing nftables configuration
-	log.Debugf("nftables: ip%s set-only", c.version)
+	log.Debugf("nftables: %s set-only", c.version)
 
 	c.table, err = c.lookupTable()
 	if err != nil {
 		return err
 	}
 
-	set, err := c.conn.GetSetByName(c.table, c.blacklists)
+	set, err := c.conn.GetSetByName(c.table, c.blacklist)
 	if err != nil {
-		log.Debugf("nftables: could not find ip%s blacklist '%s' in table '%s': creating...", c.version, c.blacklists, c.tableName)
+		log.Debugf("nftables: could not find %s blacklist '%s' in table '%s': creating...", c.version, c.blacklist, c.tableName)
 
 		set = &nftables.Set{
-			Name:         c.blacklists,
+			Name:         c.blacklist,
 			Table:        c.table,
 			KeyType:      c.typeIPAddr,
 			KeyByteOrder: binaryutil.BigEndian,
@@ -158,13 +142,13 @@ func (c *nftContext) initSetOnly() error {
 	}
 
 	c.set = set
-	log.Debugf("nftables: ip%s set '%s' configured", c.version, c.blacklists)
+	log.Debugf("nftables: %s set '%s' configured", c.version, c.blacklist)
 
 	return nil
 }
 
-func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix string, denyAction string) error {
-	log.Debugf("nftables: ip%s own table", c.version)
+func (c *nftContext) initOwnTable(denyLog bool, denyLogPrefix string, denyAction string) error {
+	log.Debugf("nftables: %s own table", c.version)
 
 	c.table = c.conn.AddTable(&nftables.Table{
 		Family: c.tableFamily,
@@ -172,7 +156,7 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	})
 
 	set := &nftables.Set{
-		Name:         c.blacklists,
+		Name:         c.blacklist,
 		Table:        c.table,
 		KeyType:      c.typeIPAddr,
 		KeyByteOrder: binaryutil.BigEndian,
@@ -185,49 +169,45 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 
 	c.set = set
 
-	for _, hook := range hooks {
-		hooknum := HookNameToHookID[hook]
-		priority := nftables.ChainPriority(c.priority)
-		chain := c.conn.AddChain(&nftables.Chain{
-			Name:     c.chainName + "-" + hook,
-			Table:    c.table,
-			Type:     nftables.ChainTypeFilter,
-			Hooknum:  &hooknum,
-			Priority: &priority,
-		})
+	hooknum := HookNameToHookID[c.hook]
+	priority := nftables.ChainPriority(c.priority)
+	chain := c.conn.AddChain(&nftables.Chain{
+		Name:     c.chainName + "-" + c.hook,
+		Table:    c.table,
+		Type:     nftables.ChainTypeFilter,
+		Hooknum:  &hooknum,
+		Priority: &priority,
+	})
 
-		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
-
-		r, err := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
-		if err != nil {
-			return err
-		}
-
-		c.conn.AddRule(r)
+	log.Debugf("nftables: %s chain '%s' created", c.version, chain.Name)
+	r, err := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
+	if err != nil {
+		return err
 	}
+	c.conn.AddRule(r)
 
 	if err := c.conn.Flush(); err != nil {
 		return err
 	}
 
-	log.Debugf("nftables: ip%s table created", c.version)
+	log.Debugf("nftables: %s table created", c.version)
 
 	return nil
 }
 
-func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, denyAction string) error {
+func (c *nftContext) init(denyLog bool, denyLogPrefix string, denyAction string) error {
 	if c.conn == nil {
 		return nil
 	}
 
-	log.Debugf("nftables: ip%s init starting", c.version)
+	log.Debugf("nftables: %s init starting", c.version)
 
 	var err error
 
 	if c.setOnly {
 		err = c.initSetOnly()
 	} else {
-		err = c.initOwnTable(hooks, denyLog, denyLogPrefix, denyAction)
+		err = c.initOwnTable(denyLog, denyLogPrefix, denyAction)
 	}
 
 	if err != nil && strings.Contains(err.Error(), "out of range") {
@@ -311,7 +291,7 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 
 func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
 	if err := c.conn.SetDeleteElements(c.set, els); err != nil {
-		return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
+		return fmt.Errorf("failed to remove %s elements from set: %w", c.version, err)
 	}
 
 	if err := c.conn.Flush(); err != nil {
@@ -350,14 +330,14 @@ func (c *nftContext) deleteElements(els []nftables.SetElement) error {
 
 func (c *nftContext) addElements(els []nftables.SetElement) error {
 	for _, chunk := range slicetools.Chunks(els, chunkSize) {
-		log.Debugf("adding %d ip%s elements to set", len(chunk), c.version)
+		log.Debugf("adding %d %s elements to set", len(chunk), c.version)
 
 		if err := c.conn.SetAddElements(c.set, chunk); err != nil {
-			return fmt.Errorf("failed to add ip%s elements to set: %w", c.version, err)
+			return fmt.Errorf("failed to add %s elements to set: %w", c.version, err)
 		}
 
 		if err := c.conn.Flush(); err != nil {
-			return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
+			return fmt.Errorf("failed to flush %s conn: %w", c.version, err)
 		}
 	}
 

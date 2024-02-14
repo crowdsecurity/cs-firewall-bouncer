@@ -62,15 +62,11 @@ func (c *nftContext) collectDroppedPackets(path string, chain string) (int, int,
 }
 
 func (c *nftContext) ipFamily() string {
-	if c.version == "v4" {
-		return "ip"
-	}
-
-	return "ip6"
+	return c.version
 }
 
 func (c *nftContext) collectActiveBannedIPs(path string) (int, error) {
-	cmd := exec.Command(path, "-j", "list", "set", c.ipFamily(), c.tableName, c.blacklists)
+	cmd := exec.Command(path, "-j", "list", "set", c.ipFamily(), c.tableName, c.blacklist)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -90,38 +86,33 @@ func (c *nftContext) collectActiveBannedIPs(path string) (int, error) {
 	return ret, nil
 }
 
-func (c *nftContext) collectDropped(path string, hooks []string) (int, int, int) {
+func (c *nftContext) collectDropped(path string, droppedPackets *int, droppedBytes *int, banned *int) {
 	if c.conn == nil {
-		return 0, 0, 0
+		return
 	}
-
-	var droppedPackets, droppedBytes, banned int
 
 	if c.setOnly {
 		pkt, byt, err := c.collectDroppedPackets(path, c.chainName)
 		if err != nil {
-			log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
+			log.Errorf("can't collect dropped packets for %s from nft: %s", c.version, err)
 		}
-
-		droppedPackets += pkt
-		droppedBytes += byt
+		*droppedPackets += pkt
+		*droppedBytes += byt
 	} else {
-		for _, hook := range hooks {
-			pkt, byt, err := c.collectDroppedPackets(path, c.chainName+"-"+hook)
-			if err != nil {
-				log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
-			}
-			droppedPackets += pkt
-			droppedBytes += byt
+		pkt, byt, err := c.collectDroppedPackets(path, c.chainName+"-"+c.hook)
+		if err != nil {
+			log.Errorf("can't collect dropped packets for %s from nft: %s", c.version, err)
 		}
+		*droppedPackets += pkt
+		*droppedBytes += byt
 	}
 
-	banned, err := c.collectActiveBannedIPs(path)
+	tmpBanned, err := c.collectActiveBannedIPs(path)
 	if err != nil {
-		log.Errorf("can't collect total banned IPs for ip%s from nft: %s", c.version, err)
+		log.Errorf("can't collect total banned IPs for %s from nft: %s", c.version, err)
+	} else {
+		*banned += tmpBanned
 	}
-
-	return droppedPackets, droppedBytes, banned
 }
 
 func (n *nft) CollectMetrics() {
@@ -142,8 +133,16 @@ func (n *nft) CollectMetrics() {
 	t := time.NewTicker(metrics.MetricCollectionInterval)
 
 	for range t.C {
-		ip4DroppedPackets, ip4DroppedBytes, bannedIP4 := n.v4.collectDropped(path, n.Hooks)
-		ip6DroppedPackets, ip6DroppedBytes, bannedIP6 := n.v6.collectDropped(path, n.Hooks)
+		var ip4DroppedPackets, ip4DroppedBytes, bannedIP4,
+			ip6DroppedPackets, ip6DroppedBytes, bannedIP6 int
+
+		for _, context := range n.contexts {
+			if context.version == "ip" {
+				context.collectDropped(path, &ip4DroppedPackets, &ip4DroppedBytes, &bannedIP4)
+			} else if context.version == "ip6" {
+				context.collectDropped(path, &ip6DroppedPackets, &ip6DroppedBytes, &bannedIP6)
+			}
+		}
 
 		metrics.TotalDroppedPackets.Set(float64(ip4DroppedPackets + ip6DroppedPackets))
 		metrics.TotalDroppedBytes.Set(float64(ip6DroppedBytes + ip4DroppedBytes))
