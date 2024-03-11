@@ -65,7 +65,7 @@ func (ipt *iptables) CollectMetrics() {
 
 	t := time.NewTicker(metrics.MetricCollectionInterval)
 	for range t.C {
-		if ipt.v4 != nil || !ipt.v4.ipsetContentOnly {
+		if ipt.v4 != nil && !ipt.v4.ipsetContentOnly {
 			ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
 		}
 
