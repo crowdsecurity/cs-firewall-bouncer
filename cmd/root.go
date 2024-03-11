@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
@@ -222,7 +222,9 @@ func Execute() error {
 		return errors.New("bouncer stream halted")
 	})
 
-	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, *bouncer.MetricsInterval, metricsUpdater, log.StandardLogger())
+	interval := *bouncer.MetricsInterval
+
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, interval, metricsUpdater, log.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("unable to create metrics provider: %w", err)
 	}
