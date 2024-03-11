@@ -1,14 +1,13 @@
 package cfg
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
-	"github.com/crowdsecurity/go-cs-lib/csstring"
 	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/crowdsecurity/go-cs-lib/yamlpatch"
 )
@@ -86,9 +85,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		return nil, err
 	}
 
-	configBuff := csstring.StrictExpand(string(fcontent), os.LookupEnv)
-
-	err = yaml.Unmarshal([]byte(configBuff), &config)
+	err = yaml.Unmarshal(fcontent, &config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal: %w", err)
 	}
@@ -98,7 +95,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	}
 
 	if config.Mode == "" {
-		return nil, fmt.Errorf("config does not contain 'mode'")
+		return nil, errors.New("config does not contain 'mode'")
 	}
 
 	if len(config.SupportedDecisionsTypes) == 0 {
@@ -152,7 +149,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	return config, nil
 }
 
-func pfConfig(config *BouncerConfig) error {
+func pfConfig(_ *BouncerConfig) error {
 	return nil
 }
 
@@ -191,7 +188,7 @@ func nftablesConfig(config *BouncerConfig) error {
 	}
 
 	if !*config.Nftables.Ipv4.Enabled && !*config.Nftables.Ipv6.Enabled {
-		return fmt.Errorf("both IPv4 and IPv6 disabled, doing nothing")
+		return errors.New("both IPv4 and IPv6 disabled, doing nothing")
 	}
 
 	if config.NftablesHooks == nil || len(config.NftablesHooks) == 0 {

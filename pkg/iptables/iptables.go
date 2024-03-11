@@ -4,6 +4,7 @@
 package iptables
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -68,7 +69,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 
 	ipsetBin, err := exec.LookPath("ipset")
 	if err != nil {
-		return nil, fmt.Errorf("unable to find ipset")
+		return nil, errors.New("unable to find ipset")
 	}
 
 	ipv4Ctx.ipsetBin = ipsetBin
@@ -77,7 +78,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	} else {
 		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
 		if err != nil {
-			return nil, fmt.Errorf("unable to find iptables")
+			return nil, errors.New("unable to find iptables")
 		}
 		ipv4Ctx.Chains = config.IptablesChains
 		for _, v := range config.IptablesChains {
@@ -109,7 +110,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	} else {
 		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
 		if err != nil {
-			return nil, fmt.Errorf("unable to find ip6tables")
+			return nil, errors.New("unable to find ip6tables")
 		}
 		ipv6Ctx.Chains = config.IptablesChains
 		for _, v := range config.IptablesChains {
@@ -237,7 +238,7 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 		}
 
 		if err := ipt.v6.delete(decision); err != nil {
-			return fmt.Errorf("failed deleting ban")
+			return errors.New("failed deleting ban")
 		}
 
 		done = true
@@ -245,7 +246,7 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 
 	if strings.Contains(*decision.Value, ".") {
 		if err := ipt.v4.delete(decision); err != nil {
-			return fmt.Errorf("failed deleting ban")
+			return errors.New("failed deleting ban")
 		}
 
 		done = true
