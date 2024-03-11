@@ -149,7 +149,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	return config, nil
 }
 
-func pfConfig(config *BouncerConfig) error {
+func pfConfig(_ *BouncerConfig) error {
 	return nil
 }
 

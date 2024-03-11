@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 
@@ -72,7 +73,7 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 	switch config.Mode {
 	case cfg.IptablesMode, cfg.IpsetMode:
 		if runtime.GOOS != "linux" {
-			return nil, fmt.Errorf("iptables and ipset is linux only")
+			return nil, errors.New("iptables and ipset is linux only")
 		}
 
 		b.firewall, err = iptables.NewIPTables(config)
@@ -81,7 +82,7 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 		}
 	case cfg.NftablesMode:
 		if runtime.GOOS != "linux" {
-			return nil, fmt.Errorf("nftables is linux only")
+			return nil, errors.New("nftables is linux only")
 		}
 
 		b.firewall, err = nftables.NewNFTables(config)
