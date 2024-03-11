@@ -30,7 +30,7 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
-const name = "crowdsec-firewall-bouncer"
+const bouncerType = "crowdsec-firewall-bouncer"
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -136,6 +136,11 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 	}
 }
 
+// metricsUpdater receives a metrics struct with basic data and populates it with the current metrics.
+func metricsUpdater(met *models.RemediationComponentsMetricsItems0) {
+	log.Debugf("Updating metrics")
+}
+
 func Execute() error {
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
@@ -176,7 +181,7 @@ func Execute() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	log.Infof("Starting crowdsec-firewall-bouncer %s", version.String())
+	log.Infof("Starting %s %s", bouncerType, version.String())
 
 	backend, err := backend.NewBackend(config)
 	if err != nil {
@@ -196,7 +201,7 @@ func Execute() error {
 		return err
 	}
 
-	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.String())
+	bouncer.UserAgent = fmt.Sprintf("%s/%s", bouncerType, version.String())
 	if err := bouncer.Init(); err != nil {
 		return fmt.Errorf("unable to configure bouncer: %w", err)
 	}
@@ -215,6 +220,15 @@ func Execute() error {
 	g.Go(func() error {
 		bouncer.Run(ctx)
 		return errors.New("bouncer stream halted")
+	})
+
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, *bouncer.MetricsInterval, metricsUpdater, log.StandardLogger())
+	if err != nil {
+		return fmt.Errorf("unable to create metrics provider: %w", err)
+	}
+
+	g.Go(func() error {
+		return metricsProvider.Run(ctx)
 	})
 
 	if config.PrometheusConfig.Enabled {
