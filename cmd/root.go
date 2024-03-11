@@ -263,7 +263,7 @@ func Execute() error {
 		}
 	}
 
-	_ = csdaemon.NotifySystemd(log.StandardLogger())
+	_ = csdaemon.Notify(csdaemon.Ready, log.StandardLogger())
 
 	g.Go(func() error {
 		return HandleSignals(ctx)
