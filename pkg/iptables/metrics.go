@@ -65,14 +65,18 @@ func (ipt *iptables) CollectMetrics() {
 
 	t := time.NewTicker(metrics.MetricCollectionInterval)
 	for range t.C {
-		ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
+		if ipt.v4 != nil && !ipt.v4.ipsetContentOnly {
+			ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
+		}
 
-		if ipt.v6 != nil {
+		if ipt.v6 != nil && !ipt.v6.ipsetContentOnly {
 			ip6DroppedPackets, ip6DroppedBytes = collectDroppedPackets(ipt.v6.iptablesBin, ipt.v6.Chains, ipt.v6.SetName)
 		}
 
-		metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-		metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
+		if (ipt.v4 != nil && !ipt.v4.ipsetContentOnly) || (ipt.v6 != nil && !ipt.v6.ipsetContentOnly) {
+			metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
+			metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
+		}
 
 		out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
 		if err != nil {
