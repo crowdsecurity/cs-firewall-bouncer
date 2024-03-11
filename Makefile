@@ -1,9 +1,9 @@
 BUILD_REQUIRE_GO_MAJOR ?= 1
 BUILD_REQUIRE_GO_MINOR ?= 20
 
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOTEST=$(GOCMD) test
+GO = go
+GOBUILD = $(GO) build
+GOTEST = $(GO) test
 
 BINARY_NAME=crowdsec-firewall-bouncer
 TARBALL_NAME=$(BINARY_NAME).tgz
@@ -21,6 +21,10 @@ LD_OPTS_VARS=\
 -X 'github.com/crowdsecurity/go-cs-lib/version.Version=$(BUILD_VERSION)' \
 -X 'github.com/crowdsecurity/go-cs-lib/version.BuildDate=$(BUILD_TIMESTAMP)' \
 -X 'github.com/crowdsecurity/go-cs-lib/version.Tag=$(BUILD_TAG)'
+
+ifneq (,$(DOCKER_BUILD))
+LD_OPTS_VARS += -X 'github.com/crowdsecurity/go-cs-lib/version.System=docker'
+endif
 
 export CGO_ENABLED=0
 export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
@@ -91,7 +95,7 @@ RELDIR = $(BINARY_NAME)-$(BUILD_VERSION)
 
 .PHONY: vendor
 vendor: vendor-remove
-	$(GOCMD) mod vendor
+	$(GO) mod vendor
 	tar czf vendor.tgz vendor
 	tar --create --auto-compress --file=$(RELDIR)-vendor.tar.xz vendor
 

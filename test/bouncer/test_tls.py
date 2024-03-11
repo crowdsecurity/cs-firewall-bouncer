@@ -33,7 +33,7 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factor
 
         with bouncer(cfg) as cb:
             cb.wait_for_lines_fnmatch([
-                "*backend type : dry-run*",
+                "*backend type: dry-run*",
                 "*Using API key auth*",
                 "*auth-api: auth with api key failed*",
                 "*tls: failed to verify certificate: x509: certificate signed by unknown authority*",
@@ -43,7 +43,7 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factor
 
         with bouncer(cfg) as cb:
             cb.wait_for_lines_fnmatch([
-                "*backend type : dry-run*",
+                "*backend type: dry-run*",
                 "*Using CA cert *ca.crt*",
                 "*Using API key auth*",
                 "*Processing new and deleted decisions*",
@@ -95,7 +95,7 @@ def test_tls_mutual(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factor
 
         with bouncer(cfg) as cb:
             cb.wait_for_lines_fnmatch([
-                "*backend type : dry-run*",
+                "*backend type: dry-run*",
                 "*Using CA cert*",
                 "*Using cert auth with cert * and key *",
                 "*Processing new and deleted decisions . . .*",

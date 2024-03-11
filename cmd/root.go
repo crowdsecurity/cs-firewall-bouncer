@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -20,6 +20,7 @@ import (
 
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/crowdsecurity/go-cs-lib/csdaemon"
+	"github.com/crowdsecurity/go-cs-lib/csstring"
 	"github.com/crowdsecurity/go-cs-lib/version"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -47,9 +48,9 @@ func HandleSignals(ctx context.Context) error {
 	case s := <-signalChan:
 		switch s {
 		case syscall.SIGTERM:
-			return fmt.Errorf("received SIGTERM")
+			return errors.New("received SIGTERM")
 		case os.Interrupt: // cross-platform SIGINT
-			return fmt.Errorf("received interrupt")
+			return errors.New("received interrupt")
 		}
 	case <-ctx.Done():
 		return ctx.Err()
@@ -76,6 +77,7 @@ func deleteDecisions(backend *backend.BackendCTX, decisions []*models.Decision, 
 		}
 
 		log.Debugf("deleted %s", *d.Value)
+
 		nbDeletedDecisions++
 	}
 
@@ -112,6 +114,7 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 		}
 
 		log.Debugf("Adding '%s' for '%s'", *d.Value, *d.Duration)
+
 		nbNewDecisions++
 	}
 
@@ -149,25 +152,27 @@ func Execute() error {
 	}
 
 	if configPath == nil || *configPath == "" {
-		return fmt.Errorf("configuration file is required")
+		return errors.New("configuration file is required")
 	}
 
-	configBytes, err := cfg.MergedConfig(*configPath)
+	configMerged, err := cfg.MergedConfig(*configPath)
 	if err != nil {
 		return fmt.Errorf("unable to read config file: %w", err)
 	}
 
 	if *showConfig {
-		fmt.Println(string(configBytes))
+		fmt.Println(string(configMerged))
 		return nil
 	}
 
-	config, err := cfg.NewConfig(bytes.NewReader(configBytes))
+	configExpanded := csstring.StrictExpand(string(configMerged), os.LookupEnv)
+
+	config, err := cfg.NewConfig(strings.NewReader(configExpanded))
 	if err != nil {
 		return fmt.Errorf("unable to load configuration: %w", err)
 	}
 
-	if *verbose {
+	if *verbose && log.GetLevel() < log.DebugLevel {
 		log.SetLevel(log.DebugLevel)
 	}
 
@@ -186,7 +191,7 @@ func Execute() error {
 
 	bouncer := &csbouncer.StreamBouncer{}
 
-	err = bouncer.ConfigReader(bytes.NewReader(configBytes))
+	err = bouncer.ConfigReader(strings.NewReader(configExpanded))
 	if err != nil {
 		return err
 	}
@@ -209,11 +214,11 @@ func Execute() error {
 
 	g.Go(func() error {
 		bouncer.Run(ctx)
-		return fmt.Errorf("bouncer stream halted")
+		return errors.New("bouncer stream halted")
 	})
 
 	if config.PrometheusConfig.Enabled {
-		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode {
+		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
 			go backend.CollectMetrics()
 			if config.Mode == cfg.IpsetMode {
 				prometheus.MustRegister(metrics.TotalActiveBannedIPs)
@@ -238,6 +243,7 @@ func Execute() error {
 
 	g.Go(func() error {
 		log.Infof("Processing new and deleted decisions . . .")
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -246,6 +252,7 @@ func Execute() error {
 				if decisions == nil {
 					continue
 				}
+
 				deleteDecisions(backend, decisions.Deleted, config)
 				addDecisions(backend, decisions.New, config)
 			}
@@ -260,7 +267,7 @@ func Execute() error {
 		}
 	}
 
-	_ = csdaemon.NotifySystemd(log.StandardLogger())
+	_ = csdaemon.Notify(csdaemon.Ready, log.StandardLogger())
 
 	g.Go(func() error {
 		return HandleSignals(ctx)

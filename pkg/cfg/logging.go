@@ -1,10 +1,11 @@
 package cfg
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
@@ -74,7 +75,7 @@ func (c *LoggingConfig) setDefaults() {
 
 func (c *LoggingConfig) validate() error {
 	if c.LogMode != "stdout" && c.LogMode != "file" {
-		return fmt.Errorf("log_mode should be either 'stdout' or 'file'")
+		return errors.New("log_mode should be either 'stdout' or 'file'")
 	}
 
 	return nil
@@ -93,7 +94,7 @@ func (c *LoggingConfig) setup(fileName string) error {
 		return nil
 	}
 
-	log.SetFormatter(&log.TextFormatter{TimestampFormat: "02-01-2006 15:04:05", FullTimestamp: true})
+	log.SetFormatter(&log.TextFormatter{TimestampFormat: time.RFC3339, FullTimestamp: true})
 
 	logger, err := c.LoggerForFile(fileName)
 	if err != nil {

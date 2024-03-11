@@ -59,7 +59,8 @@ func NewPF(config *cfg.BouncerConfig) (types.Backend, error) {
 	return ret, nil
 }
 
-// execPfctl runs a pfctl command by prepending the anchor name if we have one.
+// execPfctl runs a pfctl command by prepending the anchor name if needed.
+// Some commands return an error if an anchor is specified.
 func execPfctl(anchor string, arg ...string) *exec.Cmd {
 	if anchor != "" {
 		arg = append([]string{"-a", anchor}, arg...)
@@ -176,9 +177,6 @@ func (pf *pf) commitAddedDecisions() error {
 	}
 
 	return nil
-}
-
-func (pf *pf) CollectMetrics() {
 }
 
 func (pf *pf) Delete(decision *models.Decision) error {
