@@ -3,14 +3,13 @@ module github.com/crowdsecurity/cs-firewall-bouncer
 go 1.21
 
 require (
-	github.com/crowdsecurity/crowdsec v1.6.0
-	github.com/crowdsecurity/go-cs-bouncer v0.0.13
+	github.com/crowdsecurity/crowdsec v1.6.1-0.20240308133748-11e105ae1a80
+	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240311151039-162a124c6fe1
 	github.com/crowdsecurity/go-cs-lib v0.0.7
 	github.com/google/nftables v0.1.1-0.20230710063801-8a10f689006b
 	github.com/prometheus/client_golang v1.17.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	golang.org/x/sync v0.6.0
 	golang.org/x/sys v0.15.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -21,6 +20,7 @@ require (
 	github.com/antonmedv/expr v1.15.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/blackfireio/osinfo v1.0.5 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
