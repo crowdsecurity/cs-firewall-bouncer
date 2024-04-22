@@ -201,7 +201,10 @@ func (n *nft) commitAddedDecisions() error {
 				}
 				ip6[origin] = append(ip6[origin], nftables.SetElement{Timeout: t, Key: ip.To16()})
 				if !n.v6.setOnly {
-					n.createSetAndRuleForOrigin(n.v6, origin)
+					err := n.createSetAndRuleForOrigin(n.v6, origin)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			continue
@@ -218,6 +221,10 @@ func (n *nft) commitAddedDecisions() error {
 			ip4[origin] = append(ip4[origin], nftables.SetElement{Timeout: t, Key: ip.To4()})
 			if !n.v4.setOnly {
 				n.createSetAndRuleForOrigin(n.v4, origin)
+				err := n.createSetAndRuleForOrigin(n.v4, origin)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -275,11 +282,12 @@ func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 	for ip, decision := range vals {
 		d := decision.duration.String()
 		i := ip // copy it because we don't same value for all decisions as `ip` is same pointer :)
+		origin := decision.origin
 
 		finalDecisions = append(finalDecisions, &models.Decision{
 			Duration: &d,
 			Value:    &i,
-			Origin:   &decision.origin,
+			Origin:   &origin,
 		})
 	}
 
@@ -301,12 +309,4 @@ func (n *nft) ShutDown() error {
 	}
 
 	return nil
-}
-
-func maxTime(a time.Duration, b time.Duration) time.Duration {
-	if a > b {
-		return a
-	}
-
-	return b
 }
