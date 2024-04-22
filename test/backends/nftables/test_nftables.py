@@ -31,9 +31,9 @@ class TestNFTables(unittest.TestCase):
         run_cmd("nft", "delete", "table", "ip6", "crowdsec6", ignore_error=True)
 
     def test_table_rule_set_are_created(self):
-        d1, d2, d3 = generate_n_decisions(3)
-        d4 = generate_n_decisions(1, ipv4=False)
-        self.lapi.ds.insert_decisions([d1, d2, d3, d4])
+        d1 = generate_n_decisions(3)
+        d2 = generate_n_decisions(1, ipv4=False)
+        self.lapi.ds.insert_decisions(d1 + d2)
         sleep(1)
         output = json.loads(run_cmd("nft", "-j", "list", "tables"))
         tables = {
@@ -83,7 +83,7 @@ class TestNFTables(unittest.TestCase):
         sleep(1)
         assert self.fb.poll() is None
         self.assertEqual(
-            get_set_elements("ip", "crowdsec", "crowdsec-blacklists"), {"0.0.0.0", "0.0.0.1"}
+            get_set_elements("ip", "crowdsec", "crowdsec-blacklists-script"), {"0.0.0.0", "0.0.0.1"}
         )
 
         self.lapi.ds.delete_decision_by_id(d1["id"])
