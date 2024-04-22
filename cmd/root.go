@@ -12,7 +12,9 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/blackfireio/osinfo"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ import (
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/crowdsecurity/go-cs-lib/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/csstring"
+	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/crowdsecurity/go-cs-lib/version"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -31,6 +34,8 @@ import (
 )
 
 const bouncerType = "crowdsec-firewall-bouncer"
+
+var startupTimestamp = time.Now().UTC().Unix()
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -137,8 +142,42 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 }
 
 // metricsUpdater receives a metrics struct with basic data and populates it with the current metrics.
-func metricsUpdater(met *models.RemediationComponentsMetricsItems0) {
+func metricsUpdater(met *models.RemediationComponentsMetrics) {
 	log.Debugf("Updating metrics")
+
+	//FIXME: only get it on startup + handle docker
+	osInfo, err := osinfo.GetOSInfo()
+
+	if err != nil {
+		log.Errorf("unable to get os info: %s", err)
+		return
+	}
+
+	met.Type = bouncerType
+	met.Version = ptr.Of(version.String())
+
+	met.Os = &models.OSversion{
+		Name:    osInfo.Name,
+		Version: osInfo.Version,
+	}
+
+	met.Metrics = []*models.MetricsDetailItem{
+		{
+			Name:  "TotalDroppedPackets",
+			Value: float64(42),
+			Labels: map[string]string{
+				"origin": "capi",
+			},
+			Unit: "packet",
+		},
+	}
+
+	met.Meta = &models.MetricsMeta{
+		UtcNowTimestamp:     time.Now().UTC().Unix(),
+		UtcStartupTimestamp: startupTimestamp,
+		WindowSizeSeconds:   10,
+	}
+
 }
 
 func Execute() error {
