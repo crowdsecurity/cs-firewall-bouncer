@@ -46,13 +46,13 @@ func (c *nftContext) collectActiveBannedIPs() (int, error) {
 	set, err := c.conn.GetSetByName(c.table, c.set.Name)
 
 	if err != nil {
-		return 0, fmt.Errorf("can't get set %s: %s", c.set.Name, err)
+		return 0, fmt.Errorf("can't get set %s: %w", c.set.Name, err)
 	}
 
 	setContent, err := c.conn.GetSetElements(set)
 
 	if err != nil {
-		return 0, fmt.Errorf("can't get set elements for %s: %s", c.set.Name, err)
+		return 0, fmt.Errorf("can't get set elements for %s: %w", c.set.Name, err)
 	}
 
 	return len(setContent), nil
