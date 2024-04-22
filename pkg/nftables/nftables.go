@@ -220,7 +220,6 @@ func (n *nft) commitAddedDecisions() error {
 			}
 			ip4[origin] = append(ip4[origin], nftables.SetElement{Timeout: t, Key: ip.To4()})
 			if !n.v4.setOnly {
-				n.createSetAndRuleForOrigin(n.v4, origin)
 				err := n.createSetAndRuleForOrigin(n.v4, origin)
 				if err != nil {
 					return err

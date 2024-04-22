@@ -346,7 +346,7 @@ func (c *nftContext) deleteElements(els []nftables.SetElement) error {
 }
 
 func (c *nftContext) addElements(els map[string][]nftables.SetElement) error {
-	setName := ""
+	var setName string
 
 	for origin, set := range c.sets {
 		if c.setOnly {
