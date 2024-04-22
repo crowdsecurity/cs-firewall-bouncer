@@ -29,6 +29,7 @@ var HookNameToHookID = map[string]nftables.ChainHook{
 }
 
 type nftContext struct {
+	chains        map[string]*nftables.Chain
 	conn          *nftables.Conn
 	set           *nftables.Set
 	table         *nftables.Table
@@ -196,6 +197,8 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 			Priority: &priority,
 		})
 
+		c.chains[hook] = chain
+
 		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
 
 		r, err := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
@@ -220,6 +223,10 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 		return nil
 	}
 
+	if c.chains == nil {
+		c.chains = make(map[string]*nftables.Chain)
+	}
+
 	log.Debugf("nftables: ip%s init starting", c.version)
 
 	var err error
@@ -235,6 +242,10 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 			"Some legacy systems have 32 or 15 character limits. "+
 			"For example, use 'crowdsec-set' instead of 'crowdsec-blacklists'", err)
 	}
+
+	//metricsCounter := nftables.CounterObj{}
+
+	//c.conn.AddObj()
 
 	return err
 }
