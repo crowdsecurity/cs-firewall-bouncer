@@ -5,17 +5,19 @@ package nftables
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 	"github.com/google/nftables/expr"
+	"github.com/prometheus/client_golang/prometheus"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *nftContext) collectDroppedPackets(chain string) (int, int, error) {
-	droppedPackets := 0
-	droppedBytes := 0
+func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, error) {
+	droppedPackets := make(map[string]int)
+	droppedBytes := make(map[string]int)
 	//setName := ""
 	for chainName, chain := range c.chains {
 		rules, err := c.conn.GetRules(c.table, chain)
@@ -24,16 +26,23 @@ func (c *nftContext) collectDroppedPackets(chain string) (int, int, error) {
 			continue
 		}
 		for _, rule := range rules {
+			origin := ""
+			pkts := 0
+			bytes := 0
 			for _, xpr := range rule.Exprs {
 				switch obj := xpr.(type) {
 				case *expr.Counter:
-					log.Infof("rule %d (%s): packets %d, bytes %d", rule.Position, rule.Table.Name, obj.Packets, obj.Bytes)
-					droppedPackets += int(obj.Packets)
-					droppedBytes += int(obj.Bytes)
+					log.Debugf("rule %d (%s): packets %d, bytes %d", rule.Position, rule.Table.Name, obj.Packets, obj.Bytes)
+					pkts += int(obj.Packets)
+					bytes += int(obj.Bytes)
 				case *expr.Lookup:
-					log.Infof("rule %d (%s): lookup %s", rule.Position, rule.Table.Name, obj.SetName)
-					//setName = obj.SetName
+					log.Debugf("rule %d (%s): lookup %s", rule.Position, rule.Table.Name, obj.SetName)
+					origin, _ = strings.CutPrefix(obj.SetName, fmt.Sprintf("%s-", c.blacklists))
 				}
+			}
+			if origin != "" {
+				droppedPackets[origin] += pkts
+				droppedBytes[origin] += bytes
 			}
 		}
 	}
@@ -41,47 +50,35 @@ func (c *nftContext) collectDroppedPackets(chain string) (int, int, error) {
 	return droppedPackets, droppedBytes, nil
 }
 
-func (c *nftContext) collectActiveBannedIPs() (int, error) {
+func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
 	//Find the size of the set we have created
-	set, err := c.conn.GetSetByName(c.table, c.set.Name)
+	ret := make(map[string]int)
 
-	if err != nil {
-		return 0, fmt.Errorf("can't get set %s: %w", c.set.Name, err)
+	for origin, set := range c.sets {
+		setContent, err := c.conn.GetSetElements(set)
+		if err != nil {
+			return nil, fmt.Errorf("can't get set elements for %s: %w", set.Name, err)
+		}
+		if c.setOnly {
+			ret[c.blacklists] = len(setContent)
+		} else {
+			ret[origin] = len(setContent)
+		}
+		return ret, nil
 	}
 
-	setContent, err := c.conn.GetSetElements(set)
-
-	if err != nil {
-		return 0, fmt.Errorf("can't get set elements for %s: %w", c.set.Name, err)
-	}
-
-	return len(setContent), nil
+	return ret, nil
 }
 
-func (c *nftContext) collectDropped(hooks []string) (int, int, int) {
+func (c *nftContext) collectDropped() (map[string]int, map[string]int, map[string]int) {
 	if c.conn == nil {
-		return 0, 0, 0
+		return nil, nil, nil
 	}
 
-	var droppedPackets, droppedBytes, banned int
+	droppedPackets, droppedBytes, err := c.collectDroppedPackets()
 
-	if c.setOnly {
-		pkt, byt, err := c.collectDroppedPackets(c.chainName)
-		if err != nil {
-			log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
-		}
-
-		droppedPackets += pkt
-		droppedBytes += byt
-	} else {
-		for _, hook := range hooks {
-			pkt, byt, err := c.collectDroppedPackets(c.chainName + "-" + hook)
-			if err != nil {
-				log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
-			}
-			droppedPackets += pkt
-			droppedBytes += byt
-		}
+	if err != nil {
+		log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
 	}
 
 	banned, err := c.collectActiveBannedIPs()
@@ -98,15 +95,35 @@ func (n *nft) CollectMetrics() {
 
 	for range t.C {
 		startTime := time.Now()
-		ip4DroppedPackets, ip4DroppedBytes, bannedIP4 := n.v4.collectDropped(n.Hooks)
-		ip6DroppedPackets, ip6DroppedBytes, bannedIP6 := n.v6.collectDropped(n.Hooks)
+		ip4DroppedPackets, ip4DroppedBytes, bannedIP4 := n.v4.collectDropped()
+		ip6DroppedPackets, ip6DroppedBytes, bannedIP6 := n.v6.collectDropped()
 
 		log.Debugf("metrics collection took %s", time.Since(startTime))
-		log.Debugf("ip4: dropped packets: %d, dropped bytes: %d, banned IPs: %d", ip4DroppedPackets, ip4DroppedBytes, bannedIP4)
-		log.Debugf("ip6: dropped packets: %d, dropped bytes: %d, banned IPs: %d", ip6DroppedPackets, ip6DroppedBytes, bannedIP6)
+		log.Debugf("ip4: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v", ip4DroppedPackets, ip4DroppedBytes, bannedIP4)
+		log.Debugf("ip6: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v", ip6DroppedPackets, ip6DroppedBytes, bannedIP6)
 
-		metrics.TotalDroppedPackets.Set(float64(ip4DroppedPackets + ip6DroppedPackets))
-		metrics.TotalDroppedBytes.Set(float64(ip6DroppedBytes + ip4DroppedBytes))
-		metrics.TotalActiveBannedIPs.Set(float64(bannedIP4 + bannedIP6))
+		for origin, count := range bannedIP4 {
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ip4"}).Set(float64(count))
+		}
+
+		for origin, count := range bannedIP6 {
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ip6"}).Set(float64(count))
+		}
+
+		for origin, count := range ip4DroppedPackets {
+			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ip4"}).Set(float64(count))
+		}
+
+		for origin, count := range ip6DroppedPackets {
+			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ip6"}).Set(float64(count))
+		}
+
+		for origin, count := range ip4DroppedBytes {
+			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ip4"}).Set(float64(count))
+		}
+
+		for origin, count := range ip6DroppedBytes {
+			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ip6"}).Set(float64(count))
+		}
 	}
 }

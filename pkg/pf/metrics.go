@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
@@ -137,8 +138,8 @@ func (pf *pf) CollectMetrics() {
 			bannedIPs += pf.countIPs(table)
 		}
 
-		metrics.TotalDroppedPackets.Set(droppedPackets)
-		metrics.TotalDroppedBytes.Set(droppedBytes)
-		metrics.TotalActiveBannedIPs.Set(float64(bannedIPs))
+		metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
+		metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
+		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
 	}
 }

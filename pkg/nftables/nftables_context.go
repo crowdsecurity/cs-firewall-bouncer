@@ -31,7 +31,7 @@ var HookNameToHookID = map[string]nftables.ChainHook{
 type nftContext struct {
 	chains        map[string]*nftables.Chain
 	conn          *nftables.Conn
-	set           *nftables.Set
+	sets          map[string]*nftables.Set
 	table         *nftables.Table
 	tableFamily   nftables.TableFamily
 	typeIPAddr    nftables.SetDatatype
@@ -71,6 +71,7 @@ func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
 		blacklists:    config.BlacklistsIpv4,
 		setOnly:       config.Nftables.Ipv4.SetOnly,
 		priority:      config.Nftables.Ipv4.Priority,
+		sets:          make(map[string]*nftables.Set),
 	}
 
 	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
@@ -100,6 +101,7 @@ func NewNFTV6Context(config *cfg.BouncerConfig) *nftContext {
 		blacklists:    config.BlacklistsIpv6,
 		setOnly:       config.Nftables.Ipv6.SetOnly,
 		priority:      config.Nftables.Ipv6.Priority,
+		sets:          make(map[string]*nftables.Set),
 	}
 
 	log.Debugf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
@@ -114,13 +116,16 @@ func (c *nftContext) setBanned(banned map[string]struct{}) error {
 		return nil
 	}
 
-	elements, err := c.conn.GetSetElements(c.set)
-	if err != nil {
-		return err
-	}
+	for _, set := range c.sets {
 
-	for _, el := range elements {
-		banned[net.IP(el.Key).String()] = struct{}{}
+		elements, err := c.conn.GetSetElements(set)
+		if err != nil {
+			return err
+		}
+
+		for _, el := range elements {
+			banned[net.IP(el.Key).String()] = struct{}{}
+		}
 	}
 
 	return nil
@@ -158,33 +163,19 @@ func (c *nftContext) initSetOnly() error {
 		}
 	}
 
-	c.set = set
+	c.sets[c.blacklists] = set
 	log.Debugf("nftables: ip%s set '%s' configured", c.version, c.blacklists)
 
 	return nil
 }
 
-func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix string, denyAction string) error {
+func (c *nftContext) initOwnTable(hooks []string) error {
 	log.Debugf("nftables: ip%s own table", c.version)
 
 	c.table = c.conn.AddTable(&nftables.Table{
 		Family: c.tableFamily,
 		Name:   c.tableName,
 	})
-
-	set := &nftables.Set{
-		Name:         c.blacklists,
-		Table:        c.table,
-		KeyType:      c.typeIPAddr,
-		KeyByteOrder: binaryutil.BigEndian,
-		HasTimeout:   true,
-	}
-
-	if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
-		return err
-	}
-
-	c.set = set
 
 	for _, hook := range hooks {
 		hooknum := HookNameToHookID[hook]
@@ -200,13 +191,7 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 		c.chains[hook] = chain
 
 		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
-
-		r, err := c.createRule(chain, set, denyLog, denyLogPrefix, denyAction)
-		if err != nil {
-			return err
-		}
-
-		c.conn.AddRule(r)
+		//Rules and sets are created on the fly when we detect a new origin
 	}
 
 	if err := c.conn.Flush(); err != nil {
@@ -218,7 +203,7 @@ func (c *nftContext) initOwnTable(hooks []string, denyLog bool, denyLogPrefix st
 	return nil
 }
 
-func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, denyAction string) error {
+func (c *nftContext) init(hooks []string) error {
 	if c.conn == nil {
 		return nil
 	}
@@ -234,7 +219,7 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 	if c.setOnly {
 		err = c.initSetOnly()
 	} else {
-		err = c.initOwnTable(hooks, denyLog, denyLogPrefix, denyAction)
+		err = c.initOwnTable(hooks)
 	}
 
 	if err != nil && strings.Contains(err.Error(), "out of range") {
@@ -242,10 +227,6 @@ func (c *nftContext) init(hooks []string, denyLog bool, denyLogPrefix string, de
 			"Some legacy systems have 32 or 15 character limits. "+
 			"For example, use 'crowdsec-set' instead of 'crowdsec-blacklists'", err)
 	}
-
-	//metricsCounter := nftables.CounterObj{}
-
-	//c.conn.AddObj()
 
 	return err
 }
@@ -321,21 +302,26 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 }
 
 func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
-	if err := c.conn.SetDeleteElements(c.set, els); err != nil {
-		return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
-	}
-
-	if err := c.conn.Flush(); err != nil {
-		if len(els) == 1 {
-			log.Debugf("deleting %s, failed to flush: %s", reprIP(els[0].Key), err)
-			return nil
+	//FIXME: only delete IPs from the set they are in
+	//But this could lead to strange behavior if we have duplicate decisions with different origins
+	for _, set := range c.sets {
+		log.Debugf("removing %d ip%s elements from set %s", len(els), c.version, set.Name)
+		if err := c.conn.SetDeleteElements(set, els); err != nil {
+			return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
 		}
 
-		log.Debugf("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
+		if err := c.conn.Flush(); err != nil {
+			if len(els) == 1 {
+				log.Debugf("deleting %s, failed to flush: %s", reprIP(els[0].Key), err)
+				continue
+			}
 
-		for _, el := range els {
-			if err := c.deleteElementChunk([]nftables.SetElement{el}); err != nil {
-				return err
+			log.Debugf("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
+
+			for _, el := range els {
+				if err := c.deleteElementChunk([]nftables.SetElement{el}); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -359,16 +345,26 @@ func (c *nftContext) deleteElements(els []nftables.SetElement) error {
 	return nil
 }
 
-func (c *nftContext) addElements(els []nftables.SetElement) error {
-	for _, chunk := range slicetools.Chunks(els, chunkSize) {
-		log.Debugf("adding %d ip%s elements to set", len(chunk), c.version)
+func (c *nftContext) addElements(els map[string][]nftables.SetElement) error {
+	setName := ""
 
-		if err := c.conn.SetAddElements(c.set, chunk); err != nil {
-			return fmt.Errorf("failed to add ip%s elements to set: %w", c.version, err)
+	for origin, set := range c.sets {
+		if c.setOnly {
+			setName = c.blacklists
+		} else {
+			setName = fmt.Sprintf("%s-%s", c.blacklists, origin)
 		}
+		log.Debugf("Using %s as origin | len of IPs: %d | set name is %s", origin, len(els[origin]), setName)
+		for _, chunk := range slicetools.Chunks(els[origin], chunkSize) {
+			log.Debugf("adding %d ip%s elements to set %s", len(chunk), c.version, setName)
 
-		if err := c.conn.Flush(); err != nil {
-			return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
+			if err := c.conn.SetAddElements(set, chunk); err != nil {
+				return fmt.Errorf("failed to add ip%s elements to set: %w", c.version, err)
+			}
+
+			if err := c.conn.Flush(); err != nil {
+				return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
+			}
 		}
 	}
 
@@ -382,8 +378,8 @@ func (c *nftContext) shutDown() error {
 
 	if c.setOnly {
 		// Flush blacklist4 set empty
-		log.Infof("flushing '%s' set in '%s' table", c.set.Name, c.table.Name)
-		c.conn.FlushSet(c.set)
+		log.Infof("flushing '%s' set in '%s' table", c.sets[c.blacklists].Name, c.table.Name)
+		c.conn.FlushSet(c.sets[c.blacklists])
 	} else {
 		log.Infof("removing '%s' table", c.table.Name)
 		c.conn.DelTable(c.table)
