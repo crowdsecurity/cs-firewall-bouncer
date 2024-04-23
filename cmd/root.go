@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -34,8 +33,6 @@ import (
 )
 
 const bouncerType = "crowdsec-firewall-bouncer"
-
-var startupTimestamp = time.Now().UTC().Unix()
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -169,7 +166,7 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 	met.Metrics = make([]*models.MetricsDetailItem, 0)
 
 	for _, metricFamily := range promMetrics {
-		for _, metric := range metricFamily.Metric {
+		for _, metric := range metricFamily.GetMetric() {
 			switch metricFamily.GetName() {
 			case metrics.ActiveBannedIPsMetricName:
 				labels := metric.GetLabel()
