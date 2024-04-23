@@ -9,18 +9,20 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	io_prometheus_client "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/crowdsecurity/go-cs-lib/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/csstring"
+	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/crowdsecurity/go-cs-lib/version"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -30,7 +32,7 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
-const name = "crowdsec-firewall-bouncer"
+const bouncerType = "crowdsec-firewall-bouncer"
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -136,6 +138,74 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 	}
 }
 
+func getLabelValue(labels []*io_prometheus_client.LabelPair, key string) string {
+
+	for _, label := range labels {
+		if label.GetName() == key {
+			return label.GetValue()
+		}
+	}
+
+	return ""
+}
+
+// metricsUpdater receives a metrics struct with basic data and populates it with the current metrics.
+func metricsUpdater(met *models.RemediationComponentsMetrics) {
+	log.Debugf("Updating metrics")
+
+	//Most of the common fields are set automatically by the metrics provider
+	//We only need to care about the metrics themselves
+
+	promMetrics, err := prometheus.DefaultGatherer.Gather()
+
+	if err != nil {
+		log.Errorf("unable to gather prometheus metrics: %s", err)
+		return
+	}
+
+	met.Metrics = make([]*models.MetricsDetailItem, 0)
+
+	for _, metricFamily := range promMetrics {
+		for _, metric := range metricFamily.GetMetric() {
+			switch metricFamily.GetName() {
+			case metrics.ActiveBannedIPsMetricName:
+				labels := metric.GetLabel()
+				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+					Name:  ptr.Of("blocked_ips"),
+					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Labels: map[string]string{
+						"origin":  getLabelValue(labels, "origin"),
+						"ip_type": getLabelValue(labels, "ip_type"),
+					},
+					Unit: ptr.Of("ip"),
+				})
+			case metrics.DroppedBytesMetricName:
+				labels := metric.GetLabel()
+				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+					Name:  ptr.Of("dropped_bytes"),
+					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Labels: map[string]string{
+						"origin":  getLabelValue(labels, "origin"),
+						"ip_type": getLabelValue(labels, "ip_type"),
+					},
+					Unit: ptr.Of("byte"),
+				})
+			case metrics.DroppedPacketsMetricName:
+				labels := metric.GetLabel()
+				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+					Name:  ptr.Of("dropped_packets"),
+					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Labels: map[string]string{
+						"origin":  getLabelValue(labels, "origin"),
+						"ip_type": getLabelValue(labels, "ip_type"),
+					},
+					Unit: ptr.Of("packet"),
+				})
+			}
+		}
+	}
+}
+
 func Execute() error {
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
@@ -176,7 +246,7 @@ func Execute() error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	log.Infof("Starting crowdsec-firewall-bouncer %s", version.String())
+	log.Infof("Starting %s %s", bouncerType, version.String())
 
 	backend, err := backend.NewBackend(config)
 	if err != nil {
@@ -196,7 +266,7 @@ func Execute() error {
 		return err
 	}
 
-	bouncer.UserAgent = fmt.Sprintf("%s/%s", name, version.String())
+	bouncer.UserAgent = fmt.Sprintf("%s/%s", bouncerType, version.String())
 	if err := bouncer.Init(); err != nil {
 		return fmt.Errorf("unable to configure bouncer: %w", err)
 	}
@@ -215,6 +285,17 @@ func Execute() error {
 	g.Go(func() error {
 		bouncer.Run(ctx)
 		return errors.New("bouncer stream halted")
+	})
+
+	interval := *bouncer.MetricsInterval
+
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, interval, metricsUpdater, log.StandardLogger())
+	if err != nil {
+		return fmt.Errorf("unable to create metrics provider: %w", err)
+	}
+
+	g.Go(func() error {
+		return metricsProvider.Run(ctx)
 	})
 
 	if config.PrometheusConfig.Enabled {

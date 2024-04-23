@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
@@ -74,8 +75,8 @@ func (ipt *iptables) CollectMetrics() {
 		}
 
 		if (ipt.v4 != nil && !ipt.v4.ipsetContentOnly) || (ipt.v6 != nil && !ipt.v6.ipsetContentOnly) {
-			metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-			metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
+			metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(ip4DroppedPackets + ip6DroppedPackets)
+			metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(ip6DroppedBytes + ip4DroppedBytes)
 		}
 
 		out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
@@ -109,6 +110,6 @@ func (ipt *iptables) CollectMetrics() {
 			}
 		}
 
-		metrics.TotalActiveBannedIPs.Set(newCount)
+		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(newCount)
 	}
 }
