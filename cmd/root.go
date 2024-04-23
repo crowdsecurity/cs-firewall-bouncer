@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/blackfireio/osinfo"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	io_prometheus_client "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
@@ -141,43 +141,72 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 	}
 }
 
+func getLabelValue(labels []*io_prometheus_client.LabelPair, key string) string {
+
+	for _, label := range labels {
+		if label.GetName() == key {
+			return label.GetValue()
+		}
+	}
+
+	return ""
+}
+
 // metricsUpdater receives a metrics struct with basic data and populates it with the current metrics.
 func metricsUpdater(met *models.RemediationComponentsMetrics) {
 	log.Debugf("Updating metrics")
 
-	//FIXME: only get it on startup + handle docker
-	osInfo, err := osinfo.GetOSInfo()
+	//Most of the common fields are set automatically by the metrics provider
+	//We only need to care about the metrics themselves
+
+	promMetrics, err := prometheus.DefaultGatherer.Gather()
 
 	if err != nil {
-		log.Errorf("unable to get os info: %s", err)
+		log.Errorf("unable to gather prometheus metrics: %s", err)
 		return
 	}
 
-	met.Type = bouncerType
-	met.Version = ptr.Of(version.String())
+	met.Metrics = make([]*models.MetricsDetailItem, 0)
 
-	met.Os = &models.OSversion{
-		Name:    osInfo.Name,
-		Version: osInfo.Version,
+	for _, metricFamily := range promMetrics {
+		for _, metric := range metricFamily.Metric {
+			switch metricFamily.GetName() {
+			case metrics.ActiveBannedIPsMetricName:
+				labels := metric.GetLabel()
+				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+					Name:  ptr.Of("blocked_ips"),
+					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Labels: map[string]string{
+						"origin":  getLabelValue(labels, "origin"),
+						"ip_type": getLabelValue(labels, "ip_type"),
+					},
+					Unit: ptr.Of("ip"),
+				})
+			case metrics.DroppedBytesMetricName:
+				labels := metric.GetLabel()
+				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+					Name:  ptr.Of("dropped_bytes"),
+					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Labels: map[string]string{
+						"origin":  getLabelValue(labels, "origin"),
+						"ip_type": getLabelValue(labels, "ip_type"),
+					},
+					Unit: ptr.Of("byte"),
+				})
+			case metrics.DroppedPacketsMetricName:
+				labels := metric.GetLabel()
+				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+					Name:  ptr.Of("dropped_packets"),
+					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Labels: map[string]string{
+						"origin":  getLabelValue(labels, "origin"),
+						"ip_type": getLabelValue(labels, "ip_type"),
+					},
+					Unit: ptr.Of("packet"),
+				})
+			}
+		}
 	}
-
-	met.Metrics = []*models.MetricsDetailItem{
-		{
-			Name:  "TotalDroppedPackets",
-			Value: float64(42),
-			Labels: map[string]string{
-				"origin": "capi",
-			},
-			Unit: "packet",
-		},
-	}
-
-	met.Meta = &models.MetricsMeta{
-		UtcNowTimestamp:     time.Now().UTC().Unix(),
-		UtcStartupTimestamp: startupTimestamp,
-		WindowSizeSeconds:   10,
-	}
-
 }
 
 func Execute() error {
