@@ -44,7 +44,7 @@ linters-settings:
       main:
         deny:
           - pkg: "github.com/pkg/errors"
-            desc: "errors.New() is deprecated in favor of fmt.Errorf()"
+            desc: "errors.Wrap() is deprecated in favor of fmt.Errorf()"
 
 linters:
   enable-all: true

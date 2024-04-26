@@ -220,6 +220,7 @@ func Execute() error {
 	if config.PrometheusConfig.Enabled {
 		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
 			go backend.CollectMetrics()
+
 			if config.Mode == cfg.IpsetMode {
 				prometheus.MustRegister(metrics.TotalActiveBannedIPs)
 			} else {
