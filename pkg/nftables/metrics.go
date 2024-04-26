@@ -111,6 +111,7 @@ func (c *nftContext) collectDropped(path string, hooks []string) (int, int, int)
 			if err != nil {
 				log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
 			}
+
 			droppedPackets += pkt
 			droppedBytes += byt
 		}
