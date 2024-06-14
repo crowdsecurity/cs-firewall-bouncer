@@ -190,6 +190,10 @@ func (n *nft) commitAddedDecisions() error {
 
 		origin := *decision.Origin
 
+		if origin == "lists" {
+			origin = origin + "-" + *decision.Scenario
+		}
+
 		if strings.Contains(ip.String(), ":") {
 			if n.v6.conn != nil {
 				if n.v6.setOnly {
@@ -256,6 +260,7 @@ func (n *nft) Commit() error {
 type tmpDecisions struct {
 	duration time.Duration
 	origin   string
+	scenario string
 }
 
 // remove duplicates, normalize decision timeouts, keep the longest decision when dups are present.
@@ -274,6 +279,7 @@ func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 			vals[*d.Value] = tmpDecisions{
 				duration: t,
 				origin:   *d.Origin,
+				scenario: *d.Scenario,
 			}
 		}
 	}
@@ -282,11 +288,13 @@ func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 		d := decision.duration.String()
 		i := ip // copy it because we don't same value for all decisions as `ip` is same pointer :)
 		origin := decision.origin
+		scenario := decision.scenario
 
 		finalDecisions = append(finalDecisions, &models.Decision{
 			Duration: &d,
 			Value:    &i,
 			Origin:   &origin,
+			Scenario: &scenario,
 		})
 	}
 

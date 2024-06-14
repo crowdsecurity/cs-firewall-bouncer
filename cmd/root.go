@@ -298,18 +298,17 @@ func Execute() error {
 		return metricsProvider.Run(ctx)
 	})
 
-	if config.PrometheusConfig.Enabled {
-		if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
-			go backend.CollectMetrics()
-			if config.Mode == cfg.IpsetMode {
-				prometheus.MustRegister(metrics.TotalActiveBannedIPs)
-			} else {
-				prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs)
-			}
+	if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
+		go backend.CollectMetrics()
+		if config.Mode == cfg.IpsetMode {
+			prometheus.MustRegister(metrics.TotalActiveBannedIPs)
+		} else {
+			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs)
 		}
+	}
 
-		prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
-
+	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
+	if config.PrometheusConfig.Enabled {
 		go func() {
 			http.Handle("/metrics", promhttp.Handler())
 
