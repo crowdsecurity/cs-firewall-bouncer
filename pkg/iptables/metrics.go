@@ -4,7 +4,6 @@
 package iptables
 
 import (
-	"encoding/xml"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -79,7 +78,7 @@ func (ipt *iptables) CollectMetrics() {
 			metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(ip6DroppedBytes + ip4DroppedBytes)
 		}
 
-		out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
+		/*out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
 		if err != nil {
 			log.Error(err)
 			continue
@@ -110,6 +109,6 @@ func (ipt *iptables) CollectMetrics() {
 			}
 		}
 
-		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(newCount)
+		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(newCount)*/
 	}
 }

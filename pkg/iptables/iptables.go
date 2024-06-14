@@ -15,6 +15,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/ipsetcmd"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
@@ -31,8 +32,19 @@ type iptables struct {
 func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret := &iptables{}
 
+	v4set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ipset for ipv4: %w", err)
+	}
+
+	v6set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ipset for ipv6: %w", err)
+	}
+
 	ipv4Ctx := &ipTablesContext{
-		Name:             "ipset",
 		version:          "v4",
 		SetName:          config.BlacklistsIpv4,
 		SetType:          config.SetType,
@@ -41,9 +53,9 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		ShutdownCmds:     [][]string{},
 		CheckIptableCmds: [][]string{},
 		Chains:           []string{},
+		ipset:            v4set,
 	}
 	ipv6Ctx := &ipTablesContext{
-		Name:             "ipset",
 		version:          "v6",
 		SetName:          config.BlacklistsIpv6,
 		SetType:          config.SetType,
@@ -52,6 +64,8 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		ShutdownCmds:     [][]string{},
 		CheckIptableCmds: [][]string{},
 		Chains:           []string{},
+
+		ipset: v6set,
 	}
 
 	allowedActions := []string{"DROP", "REJECT", "TARPIT"}
@@ -67,12 +81,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 
 	log.Tracef("using '%s' as deny_action", target)
 
-	ipsetBin, err := exec.LookPath("ipset")
-	if err != nil {
-		return nil, errors.New("unable to find ipset")
-	}
-
-	ipv4Ctx.ipsetBin = ipsetBin
 	if config.Mode == cfg.IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
 	} else {
@@ -104,7 +112,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		return ret, nil
 	}
 
-	ipv6Ctx.ipsetBin = ipsetBin
 	if config.Mode == cfg.IpsetMode {
 		ipv6Ctx.ipsetContentOnly = true
 	} else {
@@ -169,46 +176,39 @@ func (ipt *iptables) Init() error {
 }
 
 func (ipt *iptables) Commit() error {
+	if ipt.v4 != nil {
+		err := ipt.v4.commit()
+		if err != nil {
+			return fmt.Errorf("ipset for ipv4 commit failed: %w", err)
+		}
+	}
+
+	if ipt.v6 != nil {
+		err := ipt.v6.commit()
+		if err != nil {
+			return fmt.Errorf("ipset for ipv6 commit failed: %w", err)
+		}
+	}
+
 	return nil
 }
 
 func (ipt *iptables) Add(decision *models.Decision) error {
-	done := false
-
 	if strings.HasPrefix(*decision.Type, "simulation:") {
 		log.Debugf("measure against '%s' is in simulation mode, skipping it", *decision.Value)
 		return nil
 	}
 
-	// we now have to know if ba is for an ipv4 or ipv6 the obvious way
-	// would be to get the len of net.ParseIp(ba) but this is 16 internally
-	// even for ipv4. so we steal the ugly hack from
-	// https://github.com/asaskevich/govalidator/blob/3b2665001c4c24e3b076d1ca8c428049ecbb925b/validator.go#L501
 	if strings.Contains(*decision.Value, ":") {
 		if ipt.v6 == nil {
 			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
 			return nil
 		}
+		ipt.v6.add(decision)
+	} else {
+		ipt.v4.add(decision)
 
-		if err := ipt.v6.add(decision); err != nil {
-			return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv4 rule", *decision.Value)
-		}
-
-		done = true
 	}
-
-	if strings.Contains(*decision.Value, ".") {
-		if err := ipt.v4.add(decision); err != nil {
-			return fmt.Errorf("failed inserting ban ip '%s' for iptables ipv6 rule", *decision.Value)
-		}
-
-		done = true
-	}
-
-	if !done {
-		return fmt.Errorf("failed inserting ban: ip %s was not recognized", *decision.Value)
-	}
-
 	return nil
 }
 
