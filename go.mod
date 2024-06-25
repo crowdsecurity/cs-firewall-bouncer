@@ -1,11 +1,13 @@
 module github.com/crowdsecurity/cs-firewall-bouncer
 
-go 1.21
+go 1.22
+
+toolchain go1.22.2
 
 require (
-	github.com/crowdsecurity/crowdsec v1.6.2-0.20240423112254-12ce5e3fc14f
-	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240422163908-32a2f150c62e
-	github.com/crowdsecurity/go-cs-lib v0.0.7
+	github.com/crowdsecurity/crowdsec v1.6.3-0.20240625082021-0bfbd3e2bcd7
+	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240625082322-2398d05359c7
+	github.com/crowdsecurity/go-cs-lib v0.0.11
 	github.com/google/nftables v0.2.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/prometheus/client_model v0.5.0
@@ -25,7 +27,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/fatih/color v1.15.0 // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.4 // indirect
 	github.com/go-openapi/jsonpointer v0.20.0 // indirect

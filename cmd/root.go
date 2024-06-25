@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -33,6 +34,8 @@ import (
 )
 
 const bouncerType = "crowdsec-firewall-bouncer"
+
+var metricsInterval time.Duration
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -163,14 +166,20 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 		return
 	}
 
-	met.Metrics = make([]*models.MetricsDetailItem, 0)
+	met.Metrics = append(met.Metrics, &models.DetailedMetrics{
+		Meta: &models.MetricsMeta{
+			UtcNowTimestamp:   ptr.Of(time.Now().Unix()),
+			WindowSizeSeconds: ptr.Of(int64(metricsInterval.Seconds())),
+		},
+		Items: make([]*models.MetricsDetailItem, 0),
+	})
 
 	for _, metricFamily := range promMetrics {
 		for _, metric := range metricFamily.GetMetric() {
 			switch metricFamily.GetName() {
 			case metrics.ActiveBannedIPsMetricName:
 				labels := metric.GetLabel()
-				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("blocked_ips"),
 					Value: ptr.Of(metric.GetGauge().GetValue()),
 					Labels: map[string]string{
@@ -181,7 +190,7 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 				})
 			case metrics.DroppedBytesMetricName:
 				labels := metric.GetLabel()
-				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("dropped_bytes"),
 					Value: ptr.Of(metric.GetGauge().GetValue()),
 					Labels: map[string]string{
@@ -192,7 +201,7 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 				})
 			case metrics.DroppedPacketsMetricName:
 				labels := metric.GetLabel()
-				met.Metrics = append(met.Metrics, &models.MetricsDetailItem{
+				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("dropped_packets"),
 					Value: ptr.Of(metric.GetGauge().GetValue()),
 					Labels: map[string]string{
@@ -287,9 +296,9 @@ func Execute() error {
 		return errors.New("bouncer stream halted")
 	})
 
-	interval := *bouncer.MetricsInterval
+	metricsInterval = *bouncer.MetricsInterval
 
-	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, interval, metricsUpdater, log.StandardLogger())
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, metricsInterval, metricsUpdater, log.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("unable to create metrics provider: %w", err)
 	}
