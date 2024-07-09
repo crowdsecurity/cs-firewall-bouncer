@@ -30,42 +30,13 @@ type iptables struct {
 }
 
 func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
+	var err error
 	ret := &iptables{}
 
-	v4set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
+	defaultSet, err := ipsetcmd.NewIPSet("")
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to create ipset for ipv4: %w", err)
-	}
-
-	v6set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create ipset for ipv6: %w", err)
-	}
-
-	ipv4Ctx := &ipTablesContext{
-		version:          "v4",
-		SetName:          config.BlacklistsIpv4,
-		SetType:          config.SetType,
-		SetSize:          config.SetSize,
-		StartupCmds:      [][]string{},
-		ShutdownCmds:     [][]string{},
-		CheckIptableCmds: [][]string{},
-		Chains:           []string{},
-		ipset:            v4set,
-	}
-	ipv6Ctx := &ipTablesContext{
-		version:          "v6",
-		SetName:          config.BlacklistsIpv6,
-		SetType:          config.SetType,
-		SetSize:          config.SetSize,
-		StartupCmds:      [][]string{},
-		ShutdownCmds:     [][]string{},
-		CheckIptableCmds: [][]string{},
-		Chains:           []string{},
-
-		ipset: v6set,
+		return nil, err
 	}
 
 	allowedActions := []string{"DROP", "REJECT", "TARPIT"}
@@ -79,6 +50,27 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		return nil, fmt.Errorf("invalid deny_action '%s', must be one of %s", config.DenyAction, strings.Join(allowedActions, ", "))
 	}
 
+	ipv4Ctx := &ipTablesContext{
+		version:    "v4",
+		SetName:    config.BlacklistsIpv4,
+		SetType:    config.SetType,
+		SetSize:    config.SetSize,
+		Chains:     []string{},
+		ipsets:     make(map[string]*ipsetcmd.IPSet),
+		defaultSet: defaultSet,
+		target:     target,
+	}
+	ipv6Ctx := &ipTablesContext{
+		version:    "v6",
+		SetName:    config.BlacklistsIpv6,
+		SetType:    config.SetType,
+		SetSize:    config.SetSize,
+		Chains:     []string{},
+		ipsets:     make(map[string]*ipsetcmd.IPSet),
+		defaultSet: defaultSet,
+		target:     target,
+	}
+
 	log.Tracef("using '%s' as deny_action", target)
 
 	if config.Mode == cfg.IpsetMode {
@@ -89,22 +81,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			return nil, errors.New("unable to find iptables")
 		}
 		ipv4Ctx.Chains = config.IptablesChains
-		for _, v := range config.IptablesChains {
-			ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
-				[]string{"-I", v, "-m", "set", "--match-set", ipv4Ctx.SetName, "src", "-j", target})
-			ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
-				[]string{"-D", v, "-m", "set", "--match-set", ipv4Ctx.SetName, "src", "-j", target})
-			ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
-				[]string{"-C", v, "-m", "set", "--match-set", ipv4Ctx.SetName, "src", "-j", target})
-			if config.DenyLog {
-				ipv4Ctx.StartupCmds = append(ipv4Ctx.StartupCmds,
-					[]string{"-I", v, "-m", "set", "--match-set", ipv4Ctx.SetName, "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
-				ipv4Ctx.ShutdownCmds = append(ipv4Ctx.ShutdownCmds,
-					[]string{"-D", v, "-m", "set", "--match-set", ipv4Ctx.SetName, "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
-				ipv4Ctx.CheckIptableCmds = append(ipv4Ctx.CheckIptableCmds,
-					[]string{"-C", v, "-m", "set", "--match-set", ipv4Ctx.SetName, "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
-			}
-		}
 	}
 
 	ret.v4 = ipv4Ctx
@@ -120,22 +96,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			return nil, errors.New("unable to find ip6tables")
 		}
 		ipv6Ctx.Chains = config.IptablesChains
-		for _, v := range config.IptablesChains {
-			ipv6Ctx.StartupCmds = append(ipv6Ctx.StartupCmds,
-				[]string{"-I", v, "-m", "set", "--match-set", ipv6Ctx.SetName, "src", "-j", target})
-			ipv6Ctx.ShutdownCmds = append(ipv6Ctx.ShutdownCmds,
-				[]string{"-D", v, "-m", "set", "--match-set", ipv6Ctx.SetName, "src", "-j", target})
-			ipv6Ctx.CheckIptableCmds = append(ipv6Ctx.CheckIptableCmds,
-				[]string{"-C", v, "-m", "set", "--match-set", ipv6Ctx.SetName, "src", "-j", target})
-			if config.DenyLog {
-				ipv6Ctx.StartupCmds = append(ipv6Ctx.StartupCmds,
-					[]string{"-I", v, "-m", "set", "--match-set", ipv6Ctx.SetName, "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
-				ipv6Ctx.ShutdownCmds = append(ipv6Ctx.ShutdownCmds,
-					[]string{"-D", v, "-m", "set", "--match-set", ipv6Ctx.SetName, "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
-				ipv6Ctx.CheckIptableCmds = append(ipv6Ctx.CheckIptableCmds,
-					[]string{"-C", v, "-m", "set", "--match-set", ipv6Ctx.SetName, "src", "-j", "LOG", "--log-prefix", config.DenyLogPrefix})
-			}
-		}
 	}
 
 	ret.v6 = ipv6Ctx
@@ -153,22 +113,12 @@ func (ipt *iptables) Init() error {
 		return fmt.Errorf("iptables shutdown failed: %w", err)
 	}
 
-	// Create iptable to rule to attach the set
-	if err = ipt.v4.CheckAndCreate(); err != nil {
-		return fmt.Errorf("iptables init failed: %w", err)
-	}
-
 	if ipt.v6 != nil {
 		log.Printf("iptables for ipv6 initiated")
 
 		err = ipt.v6.shutDown() // flush before init
 		if err != nil {
 			return fmt.Errorf("iptables shutdown failed: %w", err)
-		}
-
-		// Create iptable to rule to attach the set
-		if err := ipt.v6.CheckAndCreate(); err != nil {
-			return fmt.Errorf("iptables init failed: %w", err)
 		}
 	}
 
@@ -207,7 +157,6 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 		ipt.v6.add(decision)
 	} else {
 		ipt.v4.add(decision)
-
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -23,93 +24,60 @@ type ipTablesContext struct {
 	SetName          string // crowdsec-netfilter
 	SetType          string
 	SetSize          int
-	StartupCmds      [][]string // -I INPUT -m set --match-set myset src -j DROP
-	ShutdownCmds     [][]string // -D INPUT -m set --match-set myset src -j DROP
-	CheckIptableCmds [][]string
 	ipsetContentOnly bool
 	Chains           []string
 
-	ipset *ipsetcmd.IPSet
+	target string
+
+	ipsets     map[string]*ipsetcmd.IPSet
+	defaultSet *ipsetcmd.IPSet //This one is only used to restore the content, as the file will contain the name of the set for each decision
 
 	toAdd []*models.Decision
 	toDel []*models.Decision
+
+	//To avoid issues with set name length (ipsest name length is limited to 31 characters)
+	//Store the origin of the decisions, and use the index in the slice as the name
+	//This is not stable (ie, between two runs, the index of a set can change), but it's (probably) not an issue
+	originSetMapping []string
 }
 
-func (ctx *ipTablesContext) CheckAndCreate() error {
-	log.Infof("Checking existing set")
-	/* check if the set already exist */
-	if !ctx.ipset.Exists() {
-		if ctx.ipsetContentOnly {
-			/*if we manage ipset content only, error*/
-			log.Errorf("set %s doesn't exist, can't manage content", ctx.SetName)
-			return fmt.Errorf("set %s doesn't exist", ctx.SetName)
-		}
+func (ctx *ipTablesContext) createRule(setName string) {
+	for _, chain := range ctx.Chains {
+		cmd := []string{"-I", chain, "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
 
-		switch ctx.version {
-		case "v4":
-			err := ctx.ipset.Create(ipsetcmd.CreateOptions{
-				Family:  "inet",
-				Timeout: "300",
-				MaxElem: strconv.Itoa(ctx.SetSize),
-				Type:    ctx.SetType,
-			})
-			if err != nil {
-				return err
-			}
-		case "v6":
-			err := ctx.ipset.Create(ipsetcmd.CreateOptions{
-				Family:  "inet6",
-				Timeout: "300",
-				MaxElem: strconv.Itoa(ctx.SetSize),
-				Type:    ctx.SetType,
-			})
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unknown version %s", ctx.version)
+		c := exec.Command(ctx.iptablesBin, cmd...)
+
+		log.Infof("Creating rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while inserting set entry in iptables : %v --> %s", err, string(out))
+			continue
 		}
 	}
+}
 
-	// waiting for propagation
-	time.Sleep(1 * time.Second)
+func (ctx *ipTablesContext) deleteRule(setName string) {
+	for _, chain := range ctx.Chains {
+		cmd := []string{"-D", chain, "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
 
-	checkOk := true
+		log.Infof("Deleting rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
 
-	// checking if iptables rules exist
-	for _, checkCmd := range ctx.CheckIptableCmds {
-		cmd := exec.Command(ctx.iptablesBin, checkCmd...)
-		if stdout, err := cmd.CombinedOutput(); err != nil {
-			checkOk = false
-			/*rule doesn't exist, avoid alarming error messages*/
-			if strings.Contains(string(stdout), "iptables: Bad rule") {
-				log.Infof("Rule doesn't exist (%s)", cmd.String())
-			} else {
-				log.Warningf("iptables check command (%s) failed : %s", cmd.String(), err)
-				log.Debugf("output: %s", string(stdout))
-			}
+		c := exec.Command(ctx.iptablesBin, cmd...)
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
+			continue
 		}
 	}
-	/*if any of the check command error'ed, exec the setup command*/
-	if !checkOk {
-		// if doesn't exist, create it
-		for _, startCmd := range ctx.StartupCmds {
-			cmd := exec.Command(ctx.iptablesBin, startCmd...)
-			log.Infof("iptables set-up : %s", cmd.String())
-
-			if out, err := cmd.CombinedOutput(); err != nil {
-				log.Warningf("Error inserting set in iptables (%s): %v : %s", cmd.String(), err, string(out))
-				return fmt.Errorf("while inserting set in iptables: %w", err)
-			}
-		}
-	}
-
-	return nil
 }
 
 func (ctx *ipTablesContext) commit() error {
 
 	tmpFile, err := os.CreateTemp("", "cs-firewall-bouncer-ipset-")
+
+	if err != nil {
+		return err
+	}
 
 	defer func() {
 		tmpFile.Close()
@@ -119,35 +87,20 @@ func (ctx *ipTablesContext) commit() error {
 		ctx.toDel = nil
 	}()
 
-	if err != nil {
-		return err
-	}
-
-	for _, decision := range ctx.toAdd {
-		banDuration, err := time.ParseDuration(*decision.Duration)
-		if err != nil {
-			return err
+	for _, decision := range ctx.toDel {
+		origin := *decision.Origin
+		if origin == "lists" {
+			origin = origin + ":" + *decision.Scenario
 		}
 
-		if banDuration.Seconds() > 2147483 {
-			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is 2147483, setting duration to 2147482", int(banDuration.Seconds()))
-			banDuration = time.Duration(2147482) * time.Second
-		}
+		set, ok := ctx.ipsets[origin]
 
-		addCmd := fmt.Sprintf("add %s %s timeout %d -exist\n", ctx.ipset.Name(), *decision.Value, int(banDuration.Seconds()))
-
-		log.Debugf("%s", addCmd)
-
-		_, err = tmpFile.WriteString(addCmd)
-
-		if err != nil {
-			log.Errorf("error while writing to temp file : %s", err)
+		if !ok {
+			//No set for this origin, skip, as there's nothing to delete
 			continue
 		}
-	}
 
-	for _, decision := range ctx.toDel {
-		delCmd := fmt.Sprintf("del %s %s -exist\n", ctx.ipset.Name(), *decision.Value)
+		delCmd := fmt.Sprintf("del %s %s -exist\n", set.Name(), *decision.Value)
 
 		log.Debugf("%s", delCmd)
 
@@ -159,7 +112,83 @@ func (ctx *ipTablesContext) commit() error {
 		}
 	}
 
-	return ctx.ipset.Restore(tmpFile.Name())
+	for _, decision := range ctx.toAdd {
+		banDuration, err := time.ParseDuration(*decision.Duration)
+		if err != nil {
+			log.Errorf("error while parsing ban duration : %s", err)
+			continue
+		}
+
+		if banDuration.Seconds() > 2147483 {
+			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is 2147483, setting duration to 2147482", int(banDuration.Seconds()))
+			banDuration = time.Duration(2147482) * time.Second
+		}
+
+		origin := *decision.Origin
+
+		if origin == "lists" {
+			origin = origin + ":" + *decision.Scenario
+		}
+
+		set, ok := ctx.ipsets[origin]
+
+		if !ok {
+
+			idx := slices.Index(ctx.originSetMapping, origin)
+
+			if idx == -1 {
+				ctx.originSetMapping = append(ctx.originSetMapping, origin)
+				idx = len(ctx.originSetMapping) - 1
+			}
+
+			setName := fmt.Sprintf("%s-%d", ctx.SetName, idx)
+
+			log.Infof("Using %s as set for origin %s", setName, origin)
+
+			set, err = ipsetcmd.NewIPSet(setName)
+
+			if err != nil {
+				log.Errorf("error while creating ipset : %s", err)
+				continue
+			}
+
+			family := "inet"
+
+			if ctx.version == "v6" {
+				family = "inet6"
+			}
+
+			err = set.Create(ipsetcmd.CreateOptions{
+				Family:  family,
+				Timeout: "300",
+				MaxElem: strconv.Itoa(ctx.SetSize),
+				Type:    ctx.SetType,
+			})
+
+			if err != nil {
+				log.Errorf("error while creating ipset : %s", err)
+				continue
+			}
+
+			ctx.ipsets[origin] = set
+
+			//Create the rule to use the set
+			ctx.createRule(set.Name())
+		}
+
+		addCmd := fmt.Sprintf("add %s %s timeout %d -exist\n", set.Name(), *decision.Value, int(banDuration.Seconds()))
+
+		log.Debugf("%s", addCmd)
+
+		_, err = tmpFile.WriteString(addCmd)
+
+		if err != nil {
+			log.Errorf("error while writing to temp file : %s", err)
+			continue
+		}
+	}
+
+	return ctx.defaultSet.Restore(tmpFile.Name())
 }
 
 func (ctx *ipTablesContext) add(decision *models.Decision) error {
@@ -168,27 +197,29 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 }
 
 func (ctx *ipTablesContext) shutDown() error {
-	/*clean iptables rules*/
-	var cmd *exec.Cmd
-	// if doesn't exist, create it
-	for _, startCmd := range ctx.ShutdownCmds {
-		cmd = exec.Command(ctx.iptablesBin, startCmd...)
-		log.Infof("iptables clean-up : %s", cmd.String())
 
-		if out, err := cmd.CombinedOutput(); err != nil {
-			if strings.Contains(string(out), "Set "+ctx.SetName+" doesn't exist.") {
-				log.Infof("ipset '%s' doesn't exist, skip", ctx.SetName)
-			} else {
-				log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
-			}
+	//Remove rules
+	if !ctx.ipsetContentOnly {
+		for _, set := range ctx.ipsets {
+			ctx.deleteRule(set.Name())
 		}
 	}
 
-	/*clean ipset set*/
-	if ctx.ipsetContentOnly {
-		ctx.ipset.Flush()
-	} else {
-		ctx.ipset.Destroy()
+	time.Sleep(1 * time.Second)
+
+	//Clean sets
+	for _, set := range ctx.ipsets {
+		if ctx.ipsetContentOnly {
+			err := set.Flush()
+			if err != nil {
+				log.Errorf("error while flushing ipset : %s", err)
+			}
+		} else {
+			err := set.Destroy()
+			if err != nil {
+				log.Errorf("error while destroying set %s : %s", set.Name(), err)
+			}
+		}
 	}
 
 	return nil

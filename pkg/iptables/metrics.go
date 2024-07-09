@@ -25,6 +25,7 @@ type Ipsets struct {
 }
 
 func collectDroppedPackets(binaryPath string, chains []string, setName string) (float64, float64) {
+	//FIXME: do it per origin
 	var droppedPackets, droppedBytes float64
 
 	for _, chain := range chains {
@@ -74,41 +75,21 @@ func (ipt *iptables) CollectMetrics() {
 		}
 
 		if (ipt.v4 != nil && !ipt.v4.ipsetContentOnly) || (ipt.v6 != nil && !ipt.v6.ipsetContentOnly) {
+			//FIXME: origin
 			metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(ip4DroppedPackets + ip6DroppedPackets)
 			metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(ip6DroppedBytes + ip4DroppedBytes)
 		}
 
-		/*out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
-		ipsets := Ipsets{}
-
-		if err := xml.Unmarshal(out, &ipsets); err != nil {
-			log.Error(err)
-			continue
-		}
-
-		newCount := float64(0)
-
-		for _, ipset := range ipsets.Ipset {
-			if ipset.Name == ipt.v4.SetName || (ipt.v6 != nil && ipset.Name == ipt.v6.SetName) {
-				if ipset.Header.Numentries == "" {
-					continue
-				}
-
-				count, err := strconv.ParseFloat(ipset.Header.Numentries, 64)
-				if err != nil {
-					log.Errorf("error while parsing  Numentries from ipsets: %s", err)
-					continue
-				}
-
-				newCount += count
+		if ipt.v4 != nil {
+			for origin, set := range ipt.v4.ipsets {
+				metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
 			}
 		}
 
-		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(newCount)*/
+		if ipt.v6 != nil {
+			for origin, set := range ipt.v6.ipsets {
+				metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
+			}
+		}
 	}
 }

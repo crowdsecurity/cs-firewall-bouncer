@@ -112,32 +112,32 @@ func (n *nft) CollectMetrics() {
 
 		for origin, count := range bannedIP4 {
 			origin = getOriginForList(origin)
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ip4"}).Set(float64(count))
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
 		}
 
 		for origin, count := range bannedIP6 {
 			origin = getOriginForList(origin)
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ip6"}).Set(float64(count))
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
 		}
 
 		for origin, count := range ip4DroppedPackets {
 			origin = getOriginForList(origin)
-			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ip4"}).Set(float64(count))
+			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
 		}
 
 		for origin, count := range ip6DroppedPackets {
 			origin = getOriginForList(origin)
-			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ip6"}).Set(float64(count))
+			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
 		}
 
 		for origin, count := range ip4DroppedBytes {
 			origin = getOriginForList(origin)
-			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ip4"}).Set(float64(count))
+			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
 		}
 
 		for origin, count := range ip6DroppedBytes {
 			origin = getOriginForList(origin)
-			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ip6"}).Set(float64(count))
+			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
 		}
 	}
 }

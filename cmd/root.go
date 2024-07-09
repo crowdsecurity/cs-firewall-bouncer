@@ -180,7 +180,7 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 			case metrics.ActiveBannedIPsMetricName:
 				labels := metric.GetLabel()
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("blocked_ips"),
+					Name:  ptr.Of("active_decisions"),
 					Value: ptr.Of(metric.GetGauge().GetValue()),
 					Labels: map[string]string{
 						"origin":  getLabelValue(labels, "origin"),
@@ -191,7 +191,7 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 			case metrics.DroppedBytesMetricName:
 				labels := metric.GetLabel()
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("dropped_bytes"),
+					Name:  ptr.Of("dropped"),
 					Value: ptr.Of(metric.GetGauge().GetValue()),
 					Labels: map[string]string{
 						"origin":  getLabelValue(labels, "origin"),
@@ -202,7 +202,7 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 			case metrics.DroppedPacketsMetricName:
 				labels := metric.GetLabel()
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("dropped_packets"),
+					Name:  ptr.Of("dropped"),
 					Value: ptr.Of(metric.GetGauge().GetValue()),
 					Labels: map[string]string{
 						"origin":  getLabelValue(labels, "origin"),

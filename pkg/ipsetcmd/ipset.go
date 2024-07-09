@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -225,4 +226,31 @@ func (i *IPSet) Exists() bool {
 	err := cmd.Run()
 
 	return err == nil
+}
+
+func (i *IPSet) Len() int {
+	cmd := exec.Command(i.binaryPath, "list", i.setName)
+
+	log.Debugf("ipset list command: %v", cmd.String())
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return 0
+	}
+
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.Contains(strings.ToLower(line), "number of entries:") {
+			fields := strings.Split(line, ":")
+			if len(fields) != 2 {
+				continue
+			}
+			count, err := strconv.Atoi(strings.TrimSpace(fields[1]))
+			if err != nil {
+				return 0
+			}
+			return count
+		}
+	}
+
+	return 0
 }
