@@ -179,37 +179,55 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 			switch metricFamily.GetName() {
 			case metrics.ActiveBannedIPsMetricName:
 				labels := metric.GetLabel()
+				value := metric.GetGauge().GetValue()
+				origin := getLabelValue(labels, "origin")
+				ipType := getLabelValue(labels, "ip_type")
+				key := origin + ipType
+				log.Debugf("Sending active decisions for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, value-metrics.LastActiveBannedIPsValue[key], value, metrics.LastActiveBannedIPsValue[key])
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("active_decisions"),
-					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Value: ptr.Of(value - metrics.LastActiveBannedIPsValue[key]),
 					Labels: map[string]string{
-						"origin":  getLabelValue(labels, "origin"),
-						"ip_type": getLabelValue(labels, "ip_type"),
+						"origin":  origin,
+						"ip_type": ipType,
 					},
 					Unit: ptr.Of("ip"),
 				})
+				metrics.LastActiveBannedIPsValue[key] = value
 			case metrics.DroppedBytesMetricName:
 				labels := metric.GetLabel()
+				value := metric.GetGauge().GetValue()
+				origin := getLabelValue(labels, "origin")
+				ipType := getLabelValue(labels, "ip_type")
+				key := origin + ipType
+				log.Debugf("Sending dropped bytes for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, value-metrics.LastDroppedBytesValue[key], value, metrics.LastDroppedBytesValue[key])
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("dropped"),
-					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Value: ptr.Of(value - metrics.LastDroppedBytesValue[key]),
 					Labels: map[string]string{
-						"origin":  getLabelValue(labels, "origin"),
-						"ip_type": getLabelValue(labels, "ip_type"),
+						"origin":  origin,
+						"ip_type": ipType,
 					},
 					Unit: ptr.Of("byte"),
 				})
+				metrics.LastDroppedBytesValue[key] = value
 			case metrics.DroppedPacketsMetricName:
 				labels := metric.GetLabel()
+				value := metric.GetGauge().GetValue()
+				origin := getLabelValue(labels, "origin")
+				ipType := getLabelValue(labels, "ip_type")
+				key := origin + ipType
+				log.Debugf("Sending dropped packets for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, value-metrics.LastDroppedPacketsValue[key], value, metrics.LastDroppedPacketsValue[key])
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("dropped"),
-					Value: ptr.Of(metric.GetGauge().GetValue()),
+					Value: ptr.Of(value - metrics.LastDroppedPacketsValue[key]),
 					Labels: map[string]string{
-						"origin":  getLabelValue(labels, "origin"),
-						"ip_type": getLabelValue(labels, "ip_type"),
+						"origin":  origin,
+						"ip_type": ipType,
 					},
 					Unit: ptr.Of("packet"),
 				})
+				metrics.LastDroppedPacketsValue[key] = value
 			}
 		}
 	}

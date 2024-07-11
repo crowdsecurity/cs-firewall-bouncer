@@ -94,7 +94,7 @@ func getOriginForList(origin string) string {
 		return origin
 	}
 
-	return strings.Replace(origin, "-", "", 1)
+	return strings.Replace(origin, "-", ":", 1)
 }
 
 func (n *nft) CollectMetrics() {

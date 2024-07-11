@@ -18,13 +18,16 @@ var TotalDroppedPackets = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: DroppedPacketsMetricName,
 	Help: "Denotes the number of total dropped packets because of rule(s) created by crowdsec",
 }, []string{"origin", "ip_type"})
+var LastDroppedPacketsValue map[string]float64 = make(map[string]float64)
 
 var TotalDroppedBytes = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: DroppedBytesMetricName,
 	Help: "Denotes the number of total dropped bytes because of rule(s) created by crowdsec",
 }, []string{"origin", "ip_type"})
+var LastDroppedBytesValue map[string]float64 = make(map[string]float64)
 
 var TotalActiveBannedIPs = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: ActiveBannedIPsMetricName,
 	Help: "Denotes the number of IPs which are currently banned",
 }, []string{"origin", "ip_type"})
+var LastActiveBannedIPsValue map[string]float64 = make(map[string]float64)
