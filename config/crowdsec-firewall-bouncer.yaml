@@ -9,6 +9,10 @@ log_max_backups: 3
 log_max_age: 30
 api_url: http://127.0.0.1:8080/
 api_key: ${API_KEY}
+## TLS Authentication
+# cert_path: /etc/crowdsec/tls/cert.pem
+# key_path: /etc/crowdsec/tls/key.pem
+# ca_cert_path: /etc/crowdsec/tls/ca.crt
 insecure_skip_verify: false
 disable_ipv6: false
 deny_action: DROP

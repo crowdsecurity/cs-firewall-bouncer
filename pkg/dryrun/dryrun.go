@@ -12,7 +12,7 @@ import (
 type dryRun struct {
 }
 
-func NewDryRun(config *cfg.BouncerConfig) (types.Backend, error) {
+func NewDryRun(_ *cfg.BouncerConfig) (types.Backend, error) {
 	return &dryRun{}, nil
 }
 

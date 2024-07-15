@@ -44,7 +44,125 @@ linters-settings:
       main:
         deny:
           - pkg: "github.com/pkg/errors"
-            desc: "errors.New() is deprecated in favor of fmt.Errorf()"
+            desc: "errors.Wrap() is deprecated in favor of fmt.Errorf()"
+
+  revive:
+    ignore-generated-header: true
+    severity: error
+    enable-all-rules: true
+    rules:
+      - name: add-constant
+        disabled: true
+      - name: argument-limit
+        disabled: false
+      - name: bare-return
+        disabled: false
+      - name: blank-imports
+        disabled: false
+      - name: bool-literal-in-expr
+        disabled: false
+      - name: cognitive-complexity
+        disabled: true
+      - name: comment-spacings
+        disabled: true
+      - name: confusing-naming
+        disabled: false
+      - name: confusing-results
+        disabled: true
+      - name: context-as-argument
+        disabled: false
+      - name: cyclomatic
+        disabled: true
+      - name: deep-exit
+        disabled: false
+      - name: defer
+        disabled: false
+      - name: duplicated-imports
+        disabled: false
+      - name: early-return
+        disabled: false
+      - name: empty-block
+        disabled: false
+      - name: empty-lines
+        disabled: false
+      - name: error-naming
+        disabled: false
+      - name: error-strings
+        disabled: false
+      - name: flag-parameter
+        disabled: true
+      - name: function-result-limit
+        disabled: false
+      - name: function-length
+        disabled: true
+      - name: get-return
+        disabled: false
+      - name: if-return
+        disabled: true
+      - name: increment-decrement
+        disabled: false
+      - name: indent-error-flow
+        disabled: false
+      - name: import-alias-naming
+        disabled: false
+      - name: import-shadowing
+        disabled: true
+      - name: line-length-limit
+        disabled: true
+      - name: max-control-nesting
+        disabled: false
+      - name: max-public-structs
+        disabled: false
+      - name: modifies-parameter
+        disabled: false
+      - name: modifies-value-receiver
+        disabled: false
+      - name: optimize-operands-order
+        disabled: false
+      - name: nested-structs
+        disabled: true
+      - name: package-comments
+        disabled: false
+      - name: range-val-address
+        disabled: false
+      - name: redundant-import-alias
+        disabled: false
+      - name: struct-tag
+        disabled: false
+      - name: superfluous-else
+        disabled: false
+      - name: time-equal
+        disabled: false
+      - name: var-naming
+        disabled: false
+      - name: var-declaration
+        disabled: false
+      - name: unchecked-type-assertion
+        disabled: false
+      - name: exported
+        disabled: true
+      - name: unexported-naming
+        disabled: false
+      - name: unexported-return
+        disabled: true
+      - name: unhandled-error
+        disabled: false
+        arguments:
+          - "fmt.Print"
+          - "fmt.Printf"
+          - "fmt.Println"
+      - name: unnecessary-stmt
+        disabled: false
+      - name: unreachable-code
+        disabled: false
+      - name: unused-parameter
+        disabled: false
+      - name: unused-receiver
+        disabled: true
+      - name: use-any
+        disabled: false
+      - name: useless-break
+        disabled: false
 
 linters:
   enable-all: true
@@ -121,6 +239,7 @@ linters:
     # - predeclared         # find code that shadows one of Go's predeclared identifiers
     # - promlinter          # Check Prometheus metrics naming via promlint
     # - reassign            # Checks that package variables are not reassigned
+    # - revive              # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
     # - rowserrcheck        # checks whether Err of rows is checked successfully
     # - sqlclosecheck       # Checks that sql.Rows and sql.Stmt are closed.
     # - staticcheck         # (megacheck): Staticcheck is a go vet on steroids, applying a ton of static analysis checks
@@ -139,7 +258,6 @@ linters:
     #
     - gocritic              # Provides diagnostics that check for bugs, performance and style issues.
     - gosec                 # (gas): Inspects source code for security problems
-    - revive                # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
     - wrapcheck             # Checks that errors returned from external packages are wrapped
 
     #
