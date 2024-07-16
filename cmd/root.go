@@ -228,6 +228,34 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 					Unit: ptr.Of("packet"),
 				})
 				metrics.LastDroppedPacketsValue[key] = value
+			case metrics.ProcessedBytesMetricName:
+				labels := metric.GetLabel()
+				value := metric.GetGauge().GetValue()
+				ipType := getLabelValue(labels, "ip_type")
+				log.Debugf("Sending processed bytes for %s %f | current value: %f | previous value: %f\n", ipType, value-metrics.LastProcessedBytesValue[ipType], value, metrics.LastProcessedBytesValue[ipType])
+				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
+					Name:  ptr.Of("processed"),
+					Value: ptr.Of(value - metrics.LastProcessedBytesValue[ipType]),
+					Labels: map[string]string{
+						"ip_type": ipType,
+					},
+					Unit: ptr.Of("byte"),
+				})
+				metrics.LastProcessedBytesValue[ipType] = value
+			case metrics.ProcessedPacketsMetricName:
+				labels := metric.GetLabel()
+				value := metric.GetGauge().GetValue()
+				ipType := getLabelValue(labels, "ip_type")
+				log.Debugf("Sending processed packets for %s %f | current value: %f | previous value: %f\n", ipType, value-metrics.LastProcessedPacketsValue[ipType], value, metrics.LastProcessedPacketsValue[ipType])
+				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
+					Name:  ptr.Of("processed"),
+					Value: ptr.Of(value - metrics.LastProcessedPacketsValue[ipType]),
+					Labels: map[string]string{
+						"ip_type": ipType,
+					},
+					Unit: ptr.Of("packet"),
+				})
+				metrics.LastProcessedPacketsValue[ipType] = value
 			}
 		}
 	}
@@ -330,7 +358,7 @@ func Execute() error {
 		if config.Mode == cfg.IpsetMode {
 			prometheus.MustRegister(metrics.TotalActiveBannedIPs)
 		} else {
-			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs)
+			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs, metrics.TotalProcessedBytes, metrics.TotalProcessedPackets)
 		}
 	}
 

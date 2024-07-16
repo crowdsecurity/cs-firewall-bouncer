@@ -188,6 +188,17 @@ func (c *nftContext) initOwnTable(hooks []string) error {
 			Priority: &priority,
 		})
 
+		r := &nftables.Rule{
+			Table: c.table,
+			Chain: chain,
+			Exprs: []expr.Any{
+				&expr.Counter{},
+			},
+			UserData: []byte("processed"),
+		}
+
+		c.conn.AddRule(r)
+
 		c.chains[hook] = chain
 
 		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
@@ -250,9 +261,10 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 	denyLog bool, denyLogPrefix string, denyAction string,
 ) (*nftables.Rule, error) {
 	r := &nftables.Rule{
-		Table: c.table,
-		Chain: chain,
-		Exprs: []expr.Any{},
+		Table:    c.table,
+		Chain:    chain,
+		Exprs:    []expr.Any{},
+		UserData: []byte(set.Name),
 	}
 	// [ payload load 4b @ network header + 16 => reg 1 ]
 	r.Exprs = append(r.Exprs, &expr.Payload{
