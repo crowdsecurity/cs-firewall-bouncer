@@ -89,6 +89,9 @@ linters-settings:
           - "fmt.Println"
       - name: unused-receiver
         disabled: true
+      - name: function-result-limit
+        arguments:
+          - 5
   wsl:
     # Allow blocks to end with comments
     allow-trailing-comment: true

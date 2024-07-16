@@ -29,8 +29,8 @@ func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, in
 		}
 		for _, rule := range rules {
 			for _, xpr := range rule.Exprs {
-				switch obj := xpr.(type) {
-				case *expr.Counter:
+				obj, ok := xpr.(*expr.Counter)
+				if ok {
 					log.Debugf("rule %d (%s): packets %d, bytes %d (%s)", rule.Position, rule.Table.Name, obj.Packets, obj.Bytes, rule.UserData)
 					if string(rule.UserData) == "processed" {
 						processedPackets += int(obj.Packets)
