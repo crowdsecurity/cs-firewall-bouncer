@@ -46,6 +46,8 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		target = "DROP"
 	}
 
+	log.Infof("using '%s' as deny_action", target)
+
 	if !slices.Contains(allowedActions, target) {
 		return nil, fmt.Errorf("invalid deny_action '%s', must be one of %s", config.DenyAction, strings.Join(allowedActions, ", "))
 	}
