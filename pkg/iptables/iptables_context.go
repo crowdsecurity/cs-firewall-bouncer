@@ -204,6 +204,10 @@ func (ctx *ipTablesContext) commit() error {
 		}
 	}
 
+	if len(ctx.toAdd) == 0 && len(ctx.toDel) == 0 {
+		return nil
+	}
+
 	return ctx.defaultSet.Restore(tmpFile.Name())
 }
 
