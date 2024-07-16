@@ -50,13 +50,15 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		return nil, fmt.Errorf("invalid deny_action '%s', must be one of %s", config.DenyAction, strings.Join(allowedActions, ", "))
 	}
 
+	v4Sets := make(map[string]*ipsetcmd.IPSet)
+	v6Sets := make(map[string]*ipsetcmd.IPSet)
+
 	ipv4Ctx := &ipTablesContext{
 		version:    "v4",
 		SetName:    config.BlacklistsIpv4,
 		SetType:    config.SetType,
 		SetSize:    config.SetSize,
 		Chains:     []string{},
-		ipsets:     make(map[string]*ipsetcmd.IPSet),
 		defaultSet: defaultSet,
 		target:     target,
 	}
@@ -66,7 +68,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		SetType:    config.SetType,
 		SetSize:    config.SetSize,
 		Chains:     []string{},
-		ipsets:     make(map[string]*ipsetcmd.IPSet),
 		defaultSet: defaultSet,
 		target:     target,
 	}
@@ -75,6 +76,11 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 
 	if config.Mode == cfg.IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
+		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
+		if err != nil {
+			return nil, err
+		}
+		v4Sets["ipset"] = set
 	} else {
 		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
 		if err != nil {
@@ -83,6 +89,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		ipv4Ctx.Chains = config.IptablesChains
 	}
 
+	ipv4Ctx.ipsets = v4Sets
 	ret.v4 = ipv4Ctx
 	if config.DisableIPV6 {
 		return ret, nil
@@ -90,6 +97,11 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 
 	if config.Mode == cfg.IpsetMode {
 		ipv6Ctx.ipsetContentOnly = true
+		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
+		if err != nil {
+			return nil, err
+		}
+		v6Sets["ipset"] = set
 	} else {
 		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
 		if err != nil {
@@ -98,6 +110,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		ipv6Ctx.Chains = config.IptablesChains
 	}
 
+	ipv6Ctx.ipsets = v6Sets
 	ret.v6 = ipv6Ctx
 
 	return ret, nil

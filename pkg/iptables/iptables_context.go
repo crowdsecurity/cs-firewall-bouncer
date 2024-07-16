@@ -88,16 +88,23 @@ func (ctx *ipTablesContext) commit() error {
 	}()
 
 	for _, decision := range ctx.toDel {
+
+		var set *ipsetcmd.IPSet
+		var ok bool
+
 		origin := *decision.Origin
 		if origin == "lists" {
 			origin = origin + ":" + *decision.Scenario
 		}
 
-		set, ok := ctx.ipsets[origin]
-
-		if !ok {
-			//No set for this origin, skip, as there's nothing to delete
-			continue
+		if ctx.ipsetContentOnly {
+			set = ctx.ipsets["ipset"]
+		} else {
+			set, ok = ctx.ipsets[origin]
+			if !ok {
+				//No set for this origin, skip, as there's nothing to delete
+				continue
+			}
 		}
 
 		delCmd := fmt.Sprintf("del %s %s -exist\n", set.Name(), *decision.Value)
@@ -119,6 +126,9 @@ func (ctx *ipTablesContext) commit() error {
 			continue
 		}
 
+		var set *ipsetcmd.IPSet
+		var ok bool
+
 		if banDuration.Seconds() > 2147483 {
 			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is 2147483, setting duration to 2147482", int(banDuration.Seconds()))
 			banDuration = time.Duration(2147482) * time.Second
@@ -130,50 +140,56 @@ func (ctx *ipTablesContext) commit() error {
 			origin = origin + ":" + *decision.Scenario
 		}
 
-		set, ok := ctx.ipsets[origin]
+		if ctx.ipsetContentOnly {
+			set = ctx.ipsets["ipset"]
+		} else {
+			set, ok = ctx.ipsets[origin]
 
-		if !ok {
+			if !ok {
 
-			idx := slices.Index(ctx.originSetMapping, origin)
+				idx := slices.Index(ctx.originSetMapping, origin)
 
-			if idx == -1 {
-				ctx.originSetMapping = append(ctx.originSetMapping, origin)
-				idx = len(ctx.originSetMapping) - 1
+				if idx == -1 {
+					ctx.originSetMapping = append(ctx.originSetMapping, origin)
+					idx = len(ctx.originSetMapping) - 1
+				}
+
+				setName := fmt.Sprintf("%s-%d", ctx.SetName, idx)
+
+				log.Infof("Using %s as set for origin %s", setName, origin)
+
+				set, err = ipsetcmd.NewIPSet(setName)
+
+				if err != nil {
+					log.Errorf("error while creating ipset : %s", err)
+					continue
+				}
+
+				family := "inet"
+
+				if ctx.version == "v6" {
+					family = "inet6"
+				}
+
+				err = set.Create(ipsetcmd.CreateOptions{
+					Family:  family,
+					Timeout: "300",
+					MaxElem: strconv.Itoa(ctx.SetSize),
+					Type:    ctx.SetType,
+				})
+
+				if err != nil {
+					log.Errorf("error while creating ipset : %s", err)
+					continue
+				}
+
+				ctx.ipsets[origin] = set
+
+				if !ctx.ipsetContentOnly {
+					//Create the rule to use the set
+					ctx.createRule(set.Name())
+				}
 			}
-
-			setName := fmt.Sprintf("%s-%d", ctx.SetName, idx)
-
-			log.Infof("Using %s as set for origin %s", setName, origin)
-
-			set, err = ipsetcmd.NewIPSet(setName)
-
-			if err != nil {
-				log.Errorf("error while creating ipset : %s", err)
-				continue
-			}
-
-			family := "inet"
-
-			if ctx.version == "v6" {
-				family = "inet6"
-			}
-
-			err = set.Create(ipsetcmd.CreateOptions{
-				Family:  family,
-				Timeout: "300",
-				MaxElem: strconv.Itoa(ctx.SetSize),
-				Type:    ctx.SetType,
-			})
-
-			if err != nil {
-				log.Errorf("error while creating ipset : %s", err)
-				continue
-			}
-
-			ctx.ipsets[origin] = set
-
-			//Create the rule to use the set
-			ctx.createRule(set.Name())
 		}
 
 		addCmd := fmt.Sprintf("add %s %s timeout %d -exist\n", set.Name(), *decision.Value, int(banDuration.Seconds()))
