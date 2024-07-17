@@ -55,37 +55,44 @@ func (ctx *ipTablesContext) setupTrackingChain() {
 		return
 	}
 
-	cmd = []string{"-I", "INPUT", "-j", trackingChainName}
+	for _, chain := range ctx.Chains {
 
-	c = exec.Command(ctx.iptablesBin, cmd...)
+		cmd = []string{"-I", chain, "-j", trackingChainName}
 
-	log.Infof("Adding rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+		c = exec.Command(ctx.iptablesBin, cmd...)
 
-	if out, err := c.CombinedOutput(); err != nil {
-		log.Errorf("error while adding rule : %v --> %s", err, string(out))
-		return
+		log.Infof("Adding rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while adding rule : %v --> %s", err, string(out))
+			continue
+		}
 	}
 }
 
 func (ctx *ipTablesContext) deleteTrackingChain() {
-	cmd := []string{"-D", "INPUT", "-j", trackingChainName}
+
+	for _, chain := range ctx.Chains {
+
+		cmd := []string{"-D", chain, "-j", trackingChainName}
+
+		c := exec.Command(ctx.iptablesBin, cmd...)
+
+		log.Infof("Deleting rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while removing rule : %v --> %s", err, string(out))
+		}
+	}
+
+	cmd := []string{"-X", trackingChainName}
 
 	c := exec.Command(ctx.iptablesBin, cmd...)
 
-	log.Infof("Deleting rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+	log.Infof("Deleting chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
 
 	if out, err := c.CombinedOutput(); err != nil {
-		log.Errorf("error while removing rule : %v --> %s", err, string(out))
-	}
-
-	cmd = []string{"-X", trackingChainName}
-
-	c = exec.Command(ctx.iptablesBin, cmd...)
-
-	log.Infof("Flushing chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
-
-	if out, err := c.CombinedOutput(); err != nil {
-		log.Errorf("error while flushing chain : %v --> %s", err, string(out))
+		log.Errorf("error while deleting chain : %v --> %s", err, string(out))
 	}
 }
 
