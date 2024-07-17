@@ -18,6 +18,8 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/ipsetcmd"
 )
 
+const trackingChainName = "CROWDSEC_COUNTER"
+
 type ipTablesContext struct {
 	version          string
 	iptablesBin      string
@@ -41,9 +43,56 @@ type ipTablesContext struct {
 	originSetMapping []string
 }
 
+func (ctx *ipTablesContext) setupTrackingChain() {
+	cmd := []string{"-N", trackingChainName, "-t", "filter"}
+
+	c := exec.Command(ctx.iptablesBin, cmd...)
+
+	log.Infof("Creating chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+	if out, err := c.CombinedOutput(); err != nil {
+		log.Errorf("error while creating chain : %v --> %s", err, string(out))
+		return
+	}
+
+	cmd = []string{"-I", "INPUT", "-j", trackingChainName}
+
+	c = exec.Command(ctx.iptablesBin, cmd...)
+
+	log.Infof("Adding rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+	if out, err := c.CombinedOutput(); err != nil {
+		log.Errorf("error while adding rule : %v --> %s", err, string(out))
+		return
+	}
+}
+
+func (ctx *ipTablesContext) deleteTrackingChain() {
+	cmd := []string{"-D", "INPUT", "-j", trackingChainName}
+
+	c := exec.Command(ctx.iptablesBin, cmd...)
+
+	log.Infof("Deleting rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+	if out, err := c.CombinedOutput(); err != nil {
+		log.Errorf("error while removing rule : %v --> %s", err, string(out))
+	}
+
+	cmd = []string{"-X", trackingChainName}
+
+	c = exec.Command(ctx.iptablesBin, cmd...)
+
+	log.Infof("Flushing chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+	if out, err := c.CombinedOutput(); err != nil {
+		log.Errorf("error while flushing chain : %v --> %s", err, string(out))
+	}
+}
+
 func (ctx *ipTablesContext) createRule(setName string) {
 	for _, chain := range ctx.Chains {
-		cmd := []string{"-I", chain, "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
+		//Rules are inserted in second position, because we create a "fake" rule in the first position to count packets/bytes "seen" by the bouncer
+		cmd := []string{"-I", chain, "2", "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
 
 		c := exec.Command(ctx.iptablesBin, cmd...)
 
@@ -217,6 +266,8 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 }
 
 func (ctx *ipTablesContext) shutDown() error {
+
+	ctx.deleteTrackingChain()
 
 	//Remove rules
 	if !ctx.ipsetContentOnly {
