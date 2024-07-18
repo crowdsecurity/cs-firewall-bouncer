@@ -18,11 +18,12 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/ipsetcmd"
 )
 
-const trackingChainName = "CROWDSEC_COUNTER"
+const chainName = "CROWDSEC_CHAIN"
 
 type ipTablesContext struct {
 	version          string
 	iptablesBin      string
+	iptablesSaveBin  string
 	SetName          string // crowdsec-netfilter
 	SetType          string
 	SetSize          int
@@ -43,8 +44,8 @@ type ipTablesContext struct {
 	originSetMapping []string
 }
 
-func (ctx *ipTablesContext) setupTrackingChain() {
-	cmd := []string{"-N", trackingChainName, "-t", "filter"}
+func (ctx *ipTablesContext) setupChain() {
+	cmd := []string{"-N", chainName, "-t", "filter"}
 
 	c := exec.Command(ctx.iptablesBin, cmd...)
 
@@ -57,7 +58,7 @@ func (ctx *ipTablesContext) setupTrackingChain() {
 
 	for _, chain := range ctx.Chains {
 
-		cmd = []string{"-I", chain, "-j", trackingChainName}
+		cmd = []string{"-I", chain, "-j", chainName}
 
 		c = exec.Command(ctx.iptablesBin, cmd...)
 
@@ -70,11 +71,11 @@ func (ctx *ipTablesContext) setupTrackingChain() {
 	}
 }
 
-func (ctx *ipTablesContext) deleteTrackingChain() {
+func (ctx *ipTablesContext) deleteChain() {
 
 	for _, chain := range ctx.Chains {
 
-		cmd := []string{"-D", chain, "-j", trackingChainName}
+		cmd := []string{"-D", chain, "-j", chainName}
 
 		c := exec.Command(ctx.iptablesBin, cmd...)
 
@@ -85,9 +86,19 @@ func (ctx *ipTablesContext) deleteTrackingChain() {
 		}
 	}
 
-	cmd := []string{"-X", trackingChainName}
+	cmd := []string{"-F", chainName}
 
 	c := exec.Command(ctx.iptablesBin, cmd...)
+
+	log.Infof("Flushing chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+	if out, err := c.CombinedOutput(); err != nil {
+		log.Errorf("error while flushing chain : %v --> %s", err, string(out))
+	}
+
+	cmd = []string{"-X", chainName}
+
+	c = exec.Command(ctx.iptablesBin, cmd...)
 
 	log.Infof("Deleting chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
 
@@ -97,33 +108,14 @@ func (ctx *ipTablesContext) deleteTrackingChain() {
 }
 
 func (ctx *ipTablesContext) createRule(setName string) {
-	for _, chain := range ctx.Chains {
-		//Rules are inserted in second position, because we create a "fake" rule in the first position to count packets/bytes "seen" by the bouncer
-		cmd := []string{"-I", chain, "2", "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
+	cmd := []string{"-I", chainName, "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
 
-		c := exec.Command(ctx.iptablesBin, cmd...)
+	c := exec.Command(ctx.iptablesBin, cmd...)
 
-		log.Infof("Creating rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+	log.Infof("Creating rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
 
-		if out, err := c.CombinedOutput(); err != nil {
-			log.Errorf("error while inserting set entry in iptables : %v --> %s", err, string(out))
-			continue
-		}
-	}
-}
-
-func (ctx *ipTablesContext) deleteRule(setName string) {
-	for _, chain := range ctx.Chains {
-		cmd := []string{"-D", chain, "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
-
-		log.Infof("Deleting rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
-
-		c := exec.Command(ctx.iptablesBin, cmd...)
-
-		if out, err := c.CombinedOutput(); err != nil {
-			log.Errorf("error while removing set entry in iptables : %v --> %s", err, string(out))
-			continue
-		}
+	if out, err := c.CombinedOutput(); err != nil {
+		log.Errorf("error while inserting set entry in iptables : %v --> %s", err, string(out))
 	}
 }
 
@@ -234,6 +226,7 @@ func (ctx *ipTablesContext) commit() error {
 					Type:    ctx.SetType,
 				})
 
+				//Ignore errors if the set already exists
 				if err != nil {
 					log.Errorf("error while creating ipset : %s", err)
 					continue
@@ -274,13 +267,9 @@ func (ctx *ipTablesContext) add(decision *models.Decision) error {
 
 func (ctx *ipTablesContext) shutDown() error {
 
-	ctx.deleteTrackingChain()
-
 	//Remove rules
 	if !ctx.ipsetContentOnly {
-		for _, set := range ctx.ipsets {
-			ctx.deleteRule(set.Name())
-		}
+		ctx.deleteChain()
 	}
 
 	time.Sleep(1 * time.Second)

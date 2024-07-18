@@ -88,6 +88,11 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		if err != nil {
 			return nil, errors.New("unable to find iptables")
 		}
+		ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
+		if err != nil {
+			return nil, errors.New("unable to find iptables-save")
+		}
+
 		ipv4Ctx.Chains = config.IptablesChains
 	}
 
@@ -109,6 +114,11 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		if err != nil {
 			return nil, errors.New("unable to find ip6tables")
 		}
+		ipv6Ctx.iptablesSaveBin, err = exec.LookPath("ip6tables-save")
+		if err != nil {
+			return nil, errors.New("unable to find ip6tables-save")
+		}
+
 		ipv6Ctx.Chains = config.IptablesChains
 	}
 
@@ -128,7 +138,7 @@ func (ipt *iptables) Init() error {
 		return fmt.Errorf("iptables shutdown failed: %w", err)
 	}
 
-	ipt.v4.setupTrackingChain()
+	ipt.v4.setupChain()
 
 	if ipt.v6 != nil {
 		log.Printf("iptables for ipv6 initiated")
@@ -138,7 +148,7 @@ func (ipt *iptables) Init() error {
 			return fmt.Errorf("iptables shutdown failed: %w", err)
 		}
 
-		ipt.v6.setupTrackingChain()
+		ipt.v6.setupChain()
 	}
 
 	return nil
