@@ -1,6 +1,3 @@
-BUILD_REQUIRE_GO_MAJOR ?= 1
-BUILD_REQUIRE_GO_MINOR ?= 20
-
 GO = go
 GOBUILD = $(GO) build
 GOTEST = $(GO) test
@@ -64,7 +61,7 @@ clean: clean-release-dir clean-debian clean-rpm
 #
 
 .PHONY: binary
-binary: goversion
+binary:
 	$(GOBUILD) $(LD_OPTS) -o $(BINARY_NAME)
 
 .PHONY: build
@@ -79,7 +76,7 @@ lint:
 	golangci-lint run
 
 .PHONY: test
-test: goversion
+test:
 	@$(GOTEST) $(LD_OPTS) ./...
 
 .PHONY: func-tests
@@ -133,7 +130,5 @@ release: clean tarball
 #
 
 .PHONY: platform-all
-platform-all: goversion clean
+platform-all: clean
 	python3 .github/release.py run-build $(BINARY_NAME)
-
-include mk/goversion.mk
