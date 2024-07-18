@@ -138,7 +138,9 @@ func (ipt *iptables) Init() error {
 		return fmt.Errorf("iptables shutdown failed: %w", err)
 	}
 
-	ipt.v4.setupChain()
+	if !ipt.v4.ipsetContentOnly {
+		ipt.v4.setupChain()
+	}
 
 	if ipt.v6 != nil {
 		log.Printf("iptables for ipv6 initiated")
@@ -148,7 +150,9 @@ func (ipt *iptables) Init() error {
 			return fmt.Errorf("iptables shutdown failed: %w", err)
 		}
 
-		ipt.v6.setupChain()
+		if !ipt.v6.ipsetContentOnly {
+			ipt.v6.setupChain()
+		}
 	}
 
 	return nil
