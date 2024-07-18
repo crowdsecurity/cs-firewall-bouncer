@@ -18,15 +18,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type Ipsets struct {
-	Ipset []struct {
-		Name   string `xml:"name,attr"`
-		Header struct {
-			Numentries string `xml:"numentries"`
-		} `xml:"header"`
-	} `xml:"ipset"`
-}
-
 var chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
 var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A \w+ -m set --match-set (.*) src -j \w+`)
 
