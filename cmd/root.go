@@ -176,22 +176,21 @@ func metricsUpdater(met *models.RemediationComponentsMetrics, updateInterval tim
 		for _, metric := range metricFamily.GetMetric() {
 			switch metricFamily.GetName() {
 			case metrics.ActiveBannedIPsMetricName:
+				//We send the absolute value, as it makes no sense to try to sum them crowdsec side
 				labels := metric.GetLabel()
 				value := metric.GetGauge().GetValue()
 				origin := getLabelValue(labels, "origin")
 				ipType := getLabelValue(labels, "ip_type")
-				key := origin + ipType
-				log.Debugf("Sending active decisions for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, value-metrics.LastActiveBannedIPsValue[key], value, metrics.LastActiveBannedIPsValue[key])
+				log.Debugf("Sending active decisions for %s %s | current value: %f", origin, ipType, value)
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("active_decisions"),
-					Value: ptr.Of(value - metrics.LastActiveBannedIPsValue[key]),
+					Value: ptr.Of(value),
 					Labels: map[string]string{
 						"origin":  origin,
 						"ip_type": ipType,
 					},
 					Unit: ptr.Of("ip"),
 				})
-				metrics.LastActiveBannedIPsValue[key] = value
 			case metrics.DroppedBytesMetricName:
 				labels := metric.GetLabel()
 				value := metric.GetGauge().GetValue()

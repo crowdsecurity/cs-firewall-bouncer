@@ -32,7 +32,6 @@ var TotalActiveBannedIPs = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: ActiveBannedIPsMetricName,
 	Help: "Denotes the number of IPs which are currently banned",
 }, []string{"origin", "ip_type"})
-var LastActiveBannedIPsValue map[string]float64 = make(map[string]float64)
 
 var TotalProcessedPackets = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: ProcessedPacketsMetricName,
