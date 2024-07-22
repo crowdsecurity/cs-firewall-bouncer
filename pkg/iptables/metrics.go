@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -121,20 +120,16 @@ func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, in
 }
 
 func (ipt *iptables) CollectMetrics() {
-	t := time.NewTicker(metrics.MetricCollectionInterval)
-	for range t.C {
-		if ipt.v4 != nil {
-			for origin, set := range ipt.v4.ipsets {
-				metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
-			}
-			if !ipt.v4.ipsetContentOnly {
-				ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
+	if ipt.v4 != nil {
+		for origin, set := range ipt.v4.ipsets {
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
+		}
+		if !ipt.v4.ipsetContentOnly {
+			ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
 
-				if err != nil {
-					log.Errorf("can't collect dropped packets for ipv4 from iptables: %s", err)
-					continue
-				}
-
+			if err != nil {
+				log.Errorf("can't collect dropped packets for ipv4 from iptables: %s", err)
+			} else {
 				metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedPackets))
 				metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedBytes))
 
@@ -145,22 +140,21 @@ func (ipt *iptables) CollectMetrics() {
 				for origin, count := range ipv4DroppedBytes {
 					metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
 				}
-
 			}
+
 		}
+	}
 
-		if ipt.v6 != nil {
-			for origin, set := range ipt.v6.ipsets {
-				metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
-			}
-			if !ipt.v6.ipsetContentOnly {
-				ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
+	if ipt.v6 != nil {
+		for origin, set := range ipt.v6.ipsets {
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
+		}
+		if !ipt.v6.ipsetContentOnly {
+			ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
 
-				if err != nil {
-					log.Errorf("can't collect dropped packets for ipv6 from iptables: %s", err)
-					continue
-				}
-
+			if err != nil {
+				log.Errorf("can't collect dropped packets for ipv6 from iptables: %s", err)
+			} else {
 				metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedPackets))
 				metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedBytes))
 

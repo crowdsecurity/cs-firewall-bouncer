@@ -99,52 +99,47 @@ func getOriginForList(origin string) string {
 }
 
 func (n *nft) CollectMetrics() {
+	startTime := time.Now()
+	ip4DroppedPackets, ip4DroppedBytes, ip4ProcessedPackets, ip4ProcessedBytes, bannedIP4 := n.v4.collectDropped()
+	ip6DroppedPackets, ip6DroppedBytes, ip6ProcessedPackets, ip6ProcessedBytes, bannedIP6 := n.v6.collectDropped()
 
-	t := time.NewTicker(metrics.MetricCollectionInterval)
+	log.Debugf("metrics collection took %s", time.Since(startTime))
+	log.Debugf("ip4: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v, proccessed packets: %d, processed bytes: %d", ip4DroppedPackets, ip4DroppedBytes, bannedIP4, ip4ProcessedPackets, ip4ProcessedBytes)
+	log.Debugf("ip6: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v, proccessed packets: %d, processed bytes: %d", ip6DroppedPackets, ip6DroppedBytes, bannedIP6, ip6ProcessedPackets, ip6ProcessedBytes)
 
-	for range t.C {
-		startTime := time.Now()
-		ip4DroppedPackets, ip4DroppedBytes, ip4ProcessedPackets, ip4ProcessedBytes, bannedIP4 := n.v4.collectDropped()
-		ip6DroppedPackets, ip6DroppedBytes, ip6ProcessedPackets, ip6ProcessedBytes, bannedIP6 := n.v6.collectDropped()
+	metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ip4ProcessedPackets))
+	metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ip4ProcessedBytes))
 
-		log.Debugf("metrics collection took %s", time.Since(startTime))
-		log.Debugf("ip4: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v, proccessed packets: %d, processed bytes: %d", ip4DroppedPackets, ip4DroppedBytes, bannedIP4, ip4ProcessedPackets, ip4ProcessedBytes)
-		log.Debugf("ip6: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v, proccessed packets: %d, processed bytes: %d", ip6DroppedPackets, ip6DroppedBytes, bannedIP6, ip6ProcessedPackets, ip6ProcessedBytes)
+	metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ip6ProcessedPackets))
+	metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ip6ProcessedBytes))
 
-		metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ip4ProcessedPackets))
-		metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ip4ProcessedBytes))
+	for origin, count := range bannedIP4 {
+		origin = getOriginForList(origin)
+		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
+	}
 
-		metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ip6ProcessedPackets))
-		metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ip6ProcessedBytes))
+	for origin, count := range bannedIP6 {
+		origin = getOriginForList(origin)
+		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
+	}
 
-		for origin, count := range bannedIP4 {
-			origin = getOriginForList(origin)
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
-		}
+	for origin, count := range ip4DroppedPackets {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
+	}
 
-		for origin, count := range bannedIP6 {
-			origin = getOriginForList(origin)
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
-		}
+	for origin, count := range ip6DroppedPackets {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
+	}
 
-		for origin, count := range ip4DroppedPackets {
-			origin = getOriginForList(origin)
-			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
-		}
+	for origin, count := range ip4DroppedBytes {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
+	}
 
-		for origin, count := range ip6DroppedPackets {
-			origin = getOriginForList(origin)
-			metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
-		}
-
-		for origin, count := range ip4DroppedBytes {
-			origin = getOriginForList(origin)
-			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
-		}
-
-		for origin, count := range ip6DroppedBytes {
-			origin = getOriginForList(origin)
-			metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
-		}
+	for origin, count := range ip6DroppedBytes {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
 	}
 }

@@ -35,6 +35,10 @@ import (
 
 const bouncerType = "crowdsec-firewall-bouncer"
 
+type metricsHandler struct {
+	backend *backend.BackendCTX
+}
+
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
 
@@ -151,8 +155,10 @@ func getLabelValue(labels []*io_prometheus_client.LabelPair, key string) string 
 }
 
 // metricsUpdater receives a metrics struct with basic data and populates it with the current metrics.
-func metricsUpdater(met *models.RemediationComponentsMetrics, updateInterval time.Duration) {
+func (m metricsHandler) metricsUpdater(met *models.RemediationComponentsMetrics, updateInterval time.Duration) {
 	log.Debugf("Updating metrics")
+
+	m.backend.CollectMetrics()
 
 	//Most of the common fields are set automatically by the metrics provider
 	//We only need to care about the metrics themselves
@@ -258,6 +264,13 @@ func metricsUpdater(met *models.RemediationComponentsMetrics, updateInterval tim
 	}
 }
 
+func (m metricsHandler) computeMetricsHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.backend.CollectMetrics()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func Execute() error {
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
@@ -339,7 +352,11 @@ func Execute() error {
 		return errors.New("bouncer stream halted")
 	})
 
-	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, metricsUpdater, log.StandardLogger())
+	metricsHandler := metricsHandler{
+		backend: backend,
+	}
+
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, metricsHandler.metricsUpdater, log.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("unable to create metrics provider: %w", err)
 	}
@@ -349,7 +366,6 @@ func Execute() error {
 	})
 
 	if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
-		go backend.CollectMetrics()
 		if config.Mode == cfg.IpsetMode {
 			prometheus.MustRegister(metrics.TotalActiveBannedIPs)
 		} else {
@@ -360,7 +376,7 @@ func Execute() error {
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 	if config.PrometheusConfig.Enabled {
 		go func() {
-			http.Handle("/metrics", promhttp.Handler())
+			http.Handle("/metrics", metricsHandler.computeMetricsHandler(promhttp.Handler()))
 
 			listenOn := net.JoinHostPort(
 				config.PrometheusConfig.ListenAddress,
