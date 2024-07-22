@@ -35,8 +35,6 @@ import (
 
 const bouncerType = "crowdsec-firewall-bouncer"
 
-var metricsInterval time.Duration
-
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
 
@@ -153,7 +151,7 @@ func getLabelValue(labels []*io_prometheus_client.LabelPair, key string) string 
 }
 
 // metricsUpdater receives a metrics struct with basic data and populates it with the current metrics.
-func metricsUpdater(met *models.RemediationComponentsMetrics) {
+func metricsUpdater(met *models.RemediationComponentsMetrics, updateInterval time.Duration) {
 	log.Debugf("Updating metrics")
 
 	//Most of the common fields are set automatically by the metrics provider
@@ -169,7 +167,7 @@ func metricsUpdater(met *models.RemediationComponentsMetrics) {
 	met.Metrics = append(met.Metrics, &models.DetailedMetrics{
 		Meta: &models.MetricsMeta{
 			UtcNowTimestamp:   ptr.Of(time.Now().Unix()),
-			WindowSizeSeconds: ptr.Of(int64(metricsInterval.Seconds())),
+			WindowSizeSeconds: ptr.Of(int64(updateInterval.Seconds())),
 		},
 		Items: make([]*models.MetricsDetailItem, 0),
 	})
@@ -342,9 +340,7 @@ func Execute() error {
 		return errors.New("bouncer stream halted")
 	})
 
-	metricsInterval = *bouncer.MetricsInterval
-
-	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, metricsInterval, metricsUpdater, log.StandardLogger())
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, metricsUpdater, log.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("unable to create metrics provider: %w", err)
 	}
