@@ -162,7 +162,7 @@ func (n *nft) createSetAndRuleForOrigin(ctx *nftContext, origin string) error {
 				return err
 			}
 			ctx.conn.AddRule(rule)
-			log.Infof("Created set and rule for origin %s and type %s", origin, ctx.typeIPAddr.Name)
+			log.Infof("Created set and rule for origin %s and type %s in chain %s", origin, ctx.typeIPAddr.Name, chain.Name)
 		}
 	}
 	return nil
