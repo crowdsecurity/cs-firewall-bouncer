@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/nftables"
+	"github.com/google/nftables/binaryutil"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -49,11 +50,11 @@ func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
 func (n *nft) Init() error {
 	log.Debug("nftables: Init()")
 
-	if err := n.v4.init(n.Hooks, n.DenyLog, n.DenyLogPrefix, n.DenyAction); err != nil {
+	if err := n.v4.init(n.Hooks); err != nil {
 		return err
 	}
 
-	if err := n.v6.init(n.Hooks, n.DenyLog, n.DenyLogPrefix, n.DenyAction); err != nil {
+	if err := n.v6.init(n.Hooks); err != nil {
 		return err
 	}
 
@@ -139,14 +140,42 @@ func (n *nft) commitDeletedDecisions() error {
 	return nil
 }
 
+func (n *nft) createSetAndRuleForOrigin(ctx *nftContext, origin string) error {
+	if _, ok := ctx.sets[origin]; !ok {
+		//First time we see this origin, create the rule/set for all hooks
+		set := &nftables.Set{
+			Name:         fmt.Sprintf("%s-%s", ctx.blacklists, origin),
+			Table:        ctx.table,
+			KeyType:      ctx.typeIPAddr,
+			KeyByteOrder: binaryutil.BigEndian,
+			HasTimeout:   true,
+		}
+
+		ctx.sets[origin] = set
+
+		if err := ctx.conn.AddSet(set, []nftables.SetElement{}); err != nil {
+			return err
+		}
+		for _, chain := range ctx.chains {
+			rule, err := ctx.createRule(chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction)
+			if err != nil {
+				return err
+			}
+			ctx.conn.AddRule(rule)
+			log.Infof("Created set and rule for origin %s and type %s in chain %s", origin, ctx.typeIPAddr.Name, chain.Name)
+		}
+	}
+	return nil
+}
+
 func (n *nft) commitAddedDecisions() error {
 	banned, err := n.getBannedState()
 	if err != nil {
 		return fmt.Errorf("failed to get current state: %w", err)
 	}
 
-	ip4 := []nftables.SetElement{}
-	ip6 := []nftables.SetElement{}
+	ip4 := make(map[string][]nftables.SetElement, 0)
+	ip6 := make(map[string][]nftables.SetElement, 0)
 
 	n.decisionsToAdd = normalizedDecisions(n.decisionsToAdd)
 
@@ -159,20 +188,47 @@ func (n *nft) commitAddedDecisions() error {
 
 		t, _ := time.ParseDuration(*decision.Duration)
 
+		origin := *decision.Origin
+
+		if origin == "lists" {
+			origin = origin + "-" + *decision.Scenario
+		}
+
 		if strings.Contains(ip.String(), ":") {
 			if n.v6.conn != nil {
+				if n.v6.setOnly {
+					origin = n.v6.blacklists
+				}
 				log.Tracef("adding %s to buffer", ip)
-
-				ip6 = append(ip6, nftables.SetElement{Timeout: t, Key: ip.To16()})
+				if _, ok := ip6[origin]; !ok {
+					ip6[origin] = make([]nftables.SetElement, 0)
+				}
+				ip6[origin] = append(ip6[origin], nftables.SetElement{Timeout: t, Key: ip.To16()})
+				if !n.v6.setOnly {
+					err := n.createSetAndRuleForOrigin(n.v6, origin)
+					if err != nil {
+						return err
+					}
+				}
 			}
-
 			continue
 		}
 
 		if n.v4.conn != nil {
+			if n.v4.setOnly {
+				origin = n.v4.blacklists
+			}
 			log.Tracef("adding %s to buffer", ip)
-
-			ip4 = append(ip4, nftables.SetElement{Timeout: t, Key: ip.To4()})
+			if _, ok := ip4[origin]; !ok {
+				ip4[origin] = make([]nftables.SetElement, 0)
+			}
+			ip4[origin] = append(ip4[origin], nftables.SetElement{Timeout: t, Key: ip.To4()})
+			if !n.v4.setOnly {
+				err := n.createSetAndRuleForOrigin(n.v4, origin)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -201,9 +257,15 @@ func (n *nft) Commit() error {
 	return nil
 }
 
+type tmpDecisions struct {
+	duration time.Duration
+	origin   string
+	scenario string
+}
+
 // remove duplicates, normalize decision timeouts, keep the longest decision when dups are present.
 func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
-	vals := make(map[string]time.Duration)
+	vals := make(map[string]tmpDecisions)
 	finalDecisions := make([]*models.Decision, 0)
 
 	for _, d := range decisions {
@@ -213,16 +275,26 @@ func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 		}
 
 		*d.Value = strings.Split(*d.Value, "/")[0]
-		vals[*d.Value] = maxTime(t, vals[*d.Value])
+		if max, ok := vals[*d.Value]; !ok || t > max.duration {
+			vals[*d.Value] = tmpDecisions{
+				duration: t,
+				origin:   *d.Origin,
+				scenario: *d.Scenario,
+			}
+		}
 	}
 
-	for ip, duration := range vals {
-		d := duration.String()
+	for ip, decision := range vals {
+		d := decision.duration.String()
 		i := ip // copy it because we don't same value for all decisions as `ip` is same pointer :)
+		origin := decision.origin
+		scenario := decision.scenario
 
 		finalDecisions = append(finalDecisions, &models.Decision{
 			Duration: &d,
 			Value:    &i,
+			Origin:   &origin,
+			Scenario: &scenario,
 		})
 	}
 
@@ -244,12 +316,4 @@ func (n *nft) ShutDown() error {
 	}
 
 	return nil
-}
-
-func maxTime(a time.Duration, b time.Duration) time.Duration {
-	if a > b {
-		return a
-	}
-
-	return b
 }

@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
@@ -110,35 +110,31 @@ func (pf *pf) CollectMetrics() {
 		tables = append(tables, pf.inet6.table)
 	}
 
-	t := time.NewTicker(metrics.MetricCollectionInterval)
+	cmd := execPfctl("", "-v", "-sr")
 
-	for range t.C {
-		cmd := execPfctl("", "-v", "-sr")
+	out, err := cmd.Output()
+	if err != nil {
+		log.Errorf("failed to run 'pfctl -v -sr': %s", err)
+		return
+	}
 
-		out, err := cmd.Output()
-		if err != nil {
-			log.Errorf("failed to run 'pfctl -v -sr': %s", err)
+	reader := strings.NewReader(string(out))
+	stats := parseMetrics(reader, tables)
+	bannedIPs := 0
+
+	for _, table := range tables {
+		st, ok := stats[table]
+		if !ok {
 			continue
 		}
 
-		reader := strings.NewReader(string(out))
-		stats := parseMetrics(reader, tables)
-		bannedIPs := 0
+		droppedPackets += float64(st.packets)
+		droppedBytes += float64(st.bytes)
 
-		for _, table := range tables {
-			st, ok := stats[table]
-			if !ok {
-				continue
-			}
-
-			droppedPackets += float64(st.packets)
-			droppedBytes += float64(st.bytes)
-
-			bannedIPs += pf.countIPs(table)
-		}
-
-		metrics.TotalDroppedPackets.Set(droppedPackets)
-		metrics.TotalDroppedBytes.Set(droppedBytes)
-		metrics.TotalActiveBannedIPs.Set(float64(bannedIPs))
+		bannedIPs += pf.countIPs(table)
 	}
+
+	metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
+	metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
+	metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
 }
