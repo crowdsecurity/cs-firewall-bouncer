@@ -5,16 +5,16 @@ go 1.22
 toolchain go1.22.5
 
 require (
-	github.com/crowdsecurity/crowdsec v1.6.3-rc1.0.20240722101522-3fe047fc8e37
-	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240722103709-a1be64b22977
+	github.com/crowdsecurity/crowdsec v1.6.3-rc3
+	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240816154333-9b442147b6dc
 	github.com/crowdsecurity/go-cs-lib v0.0.13
 	github.com/google/nftables v0.2.0
-	github.com/prometheus/client_golang v1.19.1
+	github.com/prometheus/client_golang v1.20.0
 	github.com/prometheus/client_model v0.6.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/sync v0.7.0
-	golang.org/x/sys v0.22.0
+	golang.org/x/sys v0.24.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -55,8 +55,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	go.mongodb.org/mongo-driver v1.16.0 // indirect
-	golang.org/x/net v0.27.0 // indirect
+	go.mongodb.org/mongo-driver v1.16.1 // indirect
+	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
