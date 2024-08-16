@@ -6,7 +6,7 @@ toolchain go1.22.5
 
 require (
 	github.com/crowdsecurity/crowdsec v1.6.3-rc3
-	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240816154333-9b442147b6dc
+	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240816155630-dd3bba7d0ffb
 	github.com/crowdsecurity/go-cs-lib v0.0.13
 	github.com/google/nftables v0.2.0
 	github.com/prometheus/client_golang v1.20.0
@@ -44,6 +44,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/josharian/native v1.1.0 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
