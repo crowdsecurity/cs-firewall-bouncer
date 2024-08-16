@@ -352,11 +352,11 @@ func Execute() error {
 		return errors.New("bouncer stream halted")
 	})
 
-	metricsHandler := metricsHandler{
+	mHandler := metricsHandler{
 		backend: backend,
 	}
 
-	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, metricsHandler.metricsUpdater, log.StandardLogger())
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, mHandler.metricsUpdater, log.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("unable to create metrics provider: %w", err)
 	}
@@ -376,7 +376,7 @@ func Execute() error {
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 	if config.PrometheusConfig.Enabled {
 		go func() {
-			http.Handle("/metrics", metricsHandler.computeMetricsHandler(promhttp.Handler()))
+			http.Handle("/metrics", mHandler.computeMetricsHandler(promhttp.Handler()))
 
 			listenOn := net.JoinHostPort(
 				config.PrometheusConfig.ListenAddress,

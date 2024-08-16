@@ -76,24 +76,24 @@ func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, in
 				continue
 			}
 
-			originIdStr, found := strings.CutPrefix(matches[3], ctx.SetName+"-")
+			originIDStr, found := strings.CutPrefix(matches[3], ctx.SetName+"-")
 			if !found {
 				log.Errorf("error while parsing counters : %s | no origin found", line)
 				continue
 			}
-			originId, err := strconv.Atoi(originIdStr)
+			originID, err := strconv.Atoi(originIDStr)
 
 			if err != nil {
 				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
 			}
 
-			if len(ctx.originSetMapping) < originId {
-				log.Errorf("Found unknown origin id : %d", originId)
+			if len(ctx.originSetMapping) < originID {
+				log.Errorf("Found unknown origin id : %d", originID)
 				continue
 			}
 
-			origin := ctx.originSetMapping[originId]
+			origin := ctx.originSetMapping[originID]
 
 			val, err := strconv.Atoi(matches[1])
 			if err != nil {
