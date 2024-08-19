@@ -2,8 +2,6 @@ module github.com/crowdsecurity/cs-firewall-bouncer
 
 go 1.22
 
-toolchain go1.22.5
-
 require (
 	github.com/crowdsecurity/crowdsec v1.6.3-rc3
 	github.com/crowdsecurity/go-cs-bouncer v0.0.14-0.20240816155630-dd3bba7d0ffb
