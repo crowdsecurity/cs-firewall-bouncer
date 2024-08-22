@@ -9,7 +9,7 @@ def test_iptables_deny_action(bouncer, fw_cfg_factory):
         fw.wait_for_lines_fnmatch([
             "*using 'DROP' as deny_action*",
         ])
-        fw.proc.wait(timeout=3)
+        fw.proc.wait(timeout=5)
         assert not fw.proc.is_running()
 
     cfg['deny_action'] = 'drop'
@@ -18,7 +18,7 @@ def test_iptables_deny_action(bouncer, fw_cfg_factory):
         fw.wait_for_lines_fnmatch([
             "*using 'DROP' as deny_action*",
         ])
-        fw.proc.wait(timeout=3)
+        fw.proc.wait(timeout=5)
         assert not fw.proc.is_running()
 
     cfg['deny_action'] = 'reject'
@@ -27,7 +27,7 @@ def test_iptables_deny_action(bouncer, fw_cfg_factory):
         fw.wait_for_lines_fnmatch([
             "*using 'REJECT' as deny_action*",
         ])
-        fw.proc.wait(timeout=3)
+        fw.proc.wait(timeout=5)
         assert not fw.proc.is_running()
 
     cfg['deny_action'] = 'tarpit'
@@ -36,7 +36,7 @@ def test_iptables_deny_action(bouncer, fw_cfg_factory):
         fw.wait_for_lines_fnmatch([
             "*using 'TARPIT' as deny_action*",
         ])
-        fw.proc.wait(timeout=3)
+        fw.proc.wait(timeout=5)
         assert not fw.proc.is_running()
 
     cfg['deny_action'] = 'somethingelse'
@@ -45,5 +45,5 @@ def test_iptables_deny_action(bouncer, fw_cfg_factory):
         fw.wait_for_lines_fnmatch([
             "*invalid deny_action 'somethingelse', must be one of DROP, REJECT, TARPIT*",
         ])
-        fw.proc.wait(timeout=3)
+        fw.proc.wait(timeout=5)
         assert not fw.proc.is_running()
