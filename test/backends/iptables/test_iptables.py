@@ -15,8 +15,8 @@ PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 BINARY_PATH = PROJECT_ROOT.joinpath("crowdsec-firewall-bouncer")
 CONFIG_PATH = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer.yaml")
 
-SET_NAME_IPV4 = "crowdsec-blacklists"
-SET_NAME_IPV6 = "crowdsec6-blacklists"
+SET_NAME_IPV4 = "crowdsec-blacklists-0"
+SET_NAME_IPV6 = "crowdsec6-blacklists-0"
 
 CHAIN_NAME = "INPUT"
 
@@ -32,34 +32,6 @@ class TestIPTables(unittest.TestCase):
         self.fb.kill()
         self.fb.wait()
         self.lapi.stop()
-        run_cmd(
-            "iptables",
-            "-D",
-            CHAIN_NAME,
-            "-m",
-            "set",
-            "--match-set",
-            SET_NAME_IPV4,
-            "src",
-            "-j",
-            "DROP",
-            ignore_error=True,
-        )
-        run_cmd(
-            "ip6tables",
-            "-D",
-            CHAIN_NAME,
-            "-m",
-            "set",
-            "--match-set",
-            SET_NAME_IPV6,
-            "src",
-            "-j",
-            "DROP",
-            ignore_error=True,
-        )
-        run_cmd("ipset", "destroy", SET_NAME_IPV4, ignore_error=True)
-        run_cmd("ipset", "destroy", SET_NAME_IPV6, ignore_error=True)
 
     def test_table_rule_set_are_created(self):
         sleep(3)
