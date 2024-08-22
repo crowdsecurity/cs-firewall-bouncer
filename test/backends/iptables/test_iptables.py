@@ -34,14 +34,12 @@ class TestIPTables(unittest.TestCase):
         self.lapi.stop()
 
     def test_table_rule_set_are_created(self):
-        sleep(3)
+        sleep(5)
 
         # IPV4 Chain
         # Check the rules with the sets
         output = run_cmd("iptables", "-L", RULES_CHAIN_NAME)
         rules = [line for line in output.split("\n") if SET_NAME_IPV4 in line]
-
-        print(output)
 
         self.assertEqual(len(rules), 1)
         assert f"match-set {SET_NAME_IPV4} src" in rules[0]
