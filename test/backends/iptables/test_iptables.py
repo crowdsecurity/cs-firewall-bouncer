@@ -34,8 +34,9 @@ class TestIPTables(unittest.TestCase):
         self.lapi.stop()
 
     def test_table_rule_set_are_created(self):
-        d = generate_n_decisions(1)
-        self.lapi.ds.insert_decisions([d])
+        d1 = generate_n_decisions(3)
+        d2 = generate_n_decisions(1, ipv4=False)
+        self.lapi.ds.insert_decisions(d1 + d2)
         sleep(3)
 
         # IPV4 Chain
