@@ -254,3 +254,34 @@ func (i *IPSet) Len() int {
 
 	return 0
 }
+
+//Helpers
+
+func GetSetsStartingWith(name string) (map[string]*IPSet, error) {
+	cmd := exec.Command(ipsetBinary, "list", "-name")
+
+	log.Debugf("ipset list command: %v", cmd.String())
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return nil, fmt.Errorf("error listing ipset: %s", out)
+	}
+
+	sets := make(map[string]*IPSet, 0)
+
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.HasPrefix(line, name) {
+			fields := strings.Fields(line)
+			if len(fields) != 1 {
+				continue
+			}
+			set, err := NewIPSet(fields[0])
+			if err != nil {
+				return nil, err
+			}
+			sets[fields[0]] = set
+		}
+	}
+
+	return sets, nil
+}

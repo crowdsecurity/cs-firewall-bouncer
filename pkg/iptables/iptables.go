@@ -93,6 +93,11 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			return nil, errors.New("unable to find iptables-save")
 		}
 
+		//Try to "adopt" any leftover sets from a previous run
+		//They will get flushed/deleted just after
+		v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
+		v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
+
 		ipv4Ctx.Chains = config.IptablesChains
 	}
 

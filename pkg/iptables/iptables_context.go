@@ -289,6 +289,11 @@ func (ctx *ipTablesContext) shutDown() error {
 		}
 	}
 
+	if !ctx.ipsetContentOnly {
+		//In case we are starting, just reset the map
+		ctx.ipsets = make(map[string]*ipsetcmd.IPSet)
+	}
+
 	return nil
 }
 
