@@ -18,8 +18,8 @@ CONFIG_PATH = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer.yaml")
 SET_NAME_IPV4 = "crowdsec-blacklists-0"
 SET_NAME_IPV6 = "crowdsec6-blacklists-0"
 
+RULES_CHAIN_NAME = "CROWDSEC_CHAIN"
 CHAIN_NAME = "INPUT"
-
 
 class TestIPTables(unittest.TestCase):
     def setUp(self):
@@ -37,18 +37,33 @@ class TestIPTables(unittest.TestCase):
         sleep(3)
 
         # IPV4 Chain
-        output = run_cmd("iptables", "-L", CHAIN_NAME)
+        # Check the rules with the sets
+        output = run_cmd("iptables", "-L", RULES_CHAIN_NAME)
         rules = [line for line in output.split("\n") if SET_NAME_IPV4 in line]
 
         self.assertEqual(len(rules), 1)
         assert f"match-set {SET_NAME_IPV4} src" in rules[0]
 
+        # Check the JUMP to CROWDSEC_CHAIN
+        output = run_cmd("iptables", "-L", CHAIN_NAME)
+        rules = [line for line in output.split("\n") if RULES_CHAIN_NAME in line]
+
+        self.assertEqual(len(rules), 1)
+        assert f"{RULES_CHAIN_NAME}" in rules[0]
+
         # IPV6 Chain
-        output = run_cmd("ip6tables", "-L", CHAIN_NAME)
+        output = run_cmd("ip6tables", "-L", RULES_CHAIN_NAME)
         rules = [line for line in output.split("\n") if SET_NAME_IPV6 in line]
 
         self.assertEqual(len(rules), 1)
         assert f"match-set {SET_NAME_IPV6} src" in rules[0]
+
+        # Check the JUMP to CROWDSEC_CHAIN
+        output = run_cmd("ip6tables", "-L", CHAIN_NAME)
+        rules = [line for line in output.split("\n") if RULES_CHAIN_NAME in line]
+
+        self.assertEqual(len(rules), 1)
+        assert f"{RULES_CHAIN_NAME}" in rules[0]
 
         output = run_cmd("ipset", "list")
 
