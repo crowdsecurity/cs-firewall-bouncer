@@ -260,9 +260,8 @@ func (ctx *ipTablesContext) commit() error {
 	return ctx.defaultSet.Restore(tmpFile.Name())
 }
 
-func (ctx *ipTablesContext) add(decision *models.Decision) error {
+func (ctx *ipTablesContext) add(decision *models.Decision) {
 	ctx.toAdd = append(ctx.toAdd, decision)
-	return nil
 }
 
 func (ctx *ipTablesContext) shutDown() error {
