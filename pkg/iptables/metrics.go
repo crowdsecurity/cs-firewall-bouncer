@@ -17,10 +17,22 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+//iptables does not provide a "nice" way to get the counters for a rule, so we have to parse the output of iptables-save
+//chainRegexp is just used to get the counters for the chain CROWDSEC_CHAIN (the chain managed by the bouncer that will contains our rules) from the JUMP rule
+//ruleRegexp is used to get the counters for the rules we have added that will actually block the traffic
+//Example output of iptables-save :
+//[2080:13210403] -A INPUT -j CROWDSEC_CHAIN
+//...
+//[0:0] -A CROWDSEC_CHAIN -m set --match-set test-set-ipset-mode-0 src -j DROP
+//First number is the number of packets, second is the number of bytes
+//In case of a jump, the counters represent the number of packets and bytes that have been processed by the chain (ie, whether the packets have been accepted or dropped)
+//In case of a rule, the counters represent the number of packets and bytes that have been matched by the rule (ie, the packets that have been dropped)
+
 var chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
 var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A \w+ -m set --match-set (.*) src -j \w+`)
 
 func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, int, int, error) {
+	//-c is required to get the counters
 	saveCmd := exec.Command(ctx.iptablesSaveBin, "-c", "-t", "filter")
 	out, err := saveCmd.CombinedOutput()
 	if err != nil {
