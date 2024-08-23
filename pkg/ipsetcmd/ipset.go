@@ -69,20 +69,6 @@ func (i *IPSet) Create(opts CreateOptions) error {
 	return nil
 }
 
-func (i *IPSet) Delete() error {
-	cmd := exec.Command(i.binaryPath, "destroy", i.setName)
-
-	log.Debugf("ipset delete command: %v", cmd.String())
-
-	out, err := cmd.CombinedOutput()
-
-	if err != nil {
-		return fmt.Errorf("error creating ipset: %s", out)
-	}
-
-	return nil
-}
-
 func (i *IPSet) Add(entry string) error {
 	cmd := exec.Command(i.binaryPath, "add", i.setName, entry)
 
