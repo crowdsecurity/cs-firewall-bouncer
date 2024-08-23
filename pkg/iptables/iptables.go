@@ -74,8 +74,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		target:     target,
 	}
 
-	log.Tracef("using '%s' as deny_action", target)
-
 	if config.Mode == cfg.IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
 		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
@@ -93,7 +91,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			return nil, errors.New("unable to find iptables-save")
 		}
 
-		//Try to "adopt" any leftover sets from a previous run
+		//Try to "adopt" any leftover sets from a previous run if we crashed
 		//They will get flushed/deleted just after
 		v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
 		v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
