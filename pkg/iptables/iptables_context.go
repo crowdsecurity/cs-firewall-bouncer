@@ -140,6 +140,9 @@ func (ctx *ipTablesContext) commit() error {
 		var set *ipsetcmd.IPSet
 		var ok bool
 
+		//Decisions coming from lists will have "lists" as origin, and the scenario will be the list name
+		//We use those to build a custom origin because we want to track metrics per list
+		//In case of other origin (crowdsec, cscli, ...), we do not really care about the scenario, it would be too noisy
 		origin := *decision.Origin
 		if origin == "lists" {
 			origin = origin + ":" + *decision.Scenario
