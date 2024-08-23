@@ -39,7 +39,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		return nil, err
 	}
 
-	allowedActions := []string{"DROP", "REJECT", "TARPIT"}
+	allowedActions := []string{"DROP", "REJECT", "TARPIT", "LOG"}
 
 	target := strings.ToUpper(config.DenyAction)
 	if target == "" {
