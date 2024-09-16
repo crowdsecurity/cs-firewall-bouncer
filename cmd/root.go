@@ -366,11 +366,7 @@ func Execute() error {
 	})
 
 	if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
-		if config.Mode == cfg.IpsetMode {
-			prometheus.MustRegister(metrics.TotalActiveBannedIPs)
-		} else {
-			prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs, metrics.TotalProcessedBytes, metrics.TotalProcessedPackets)
-		}
+		prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs, metrics.TotalProcessedBytes, metrics.TotalProcessedPackets)
 	}
 
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)

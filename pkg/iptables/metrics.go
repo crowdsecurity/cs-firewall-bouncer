@@ -29,24 +29,19 @@ import (
 //In case of a rule, the counters represent the number of packets and bytes that have been matched by the rule (ie, the packets that have been dropped)
 
 var chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
-var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A \w+ -m set --match-set (.*) src -j \w+`)
+var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A [0-9A-Za-z_-]+ -m set --match-set (.*) src -j \w+`)
 
-func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, int, int, error) {
-	//-c is required to get the counters
-	saveCmd := exec.Command(ctx.iptablesSaveBin, "-c", "-t", "filter")
-	out, err := saveCmd.CombinedOutput()
-	if err != nil {
-		log.Errorf("error while getting iptables rules : %v --> %s", err, string(out))
-		return nil, nil, 0, 0, err
-	}
+// In ipset mode, we have to track the numbers of processed bytes/packets at the chain level
+// This is not really accurate, as a rule *before* the crowdsec rule could impact the numbers, but we don't have any other way
+var ipsetChainDeclaration = regexp.MustCompile(`^:([0-9A-Za-z_-]+) ([0-9A-Za-z_-]+) \[(\d+):(\d+)\]`)
+var ipsetRule = regexp.MustCompile(`^\[(\d+):(\d+)\] -A ([0-9A-Za-z_-]+)`)
 
+func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
 	processedBytes := 0
 	processedPackets := 0
 
 	droppedBytes := make(map[string]int)
 	droppedPackets := make(map[string]int)
-
-	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -124,6 +119,132 @@ func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, in
 		}
 	}
 
+	return droppedPackets, droppedBytes, processedPackets, processedBytes
+
+}
+
+type chainCounters struct {
+	bytes   int
+	packets int
+}
+
+// In ipset mode, we only get dropped packets and bytes by matching on the set name in the rule
+// It's probably not perfect, but good enough for most users
+// At the moment, we do not get processed packets and bytes because we'd need
+func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
+	processedBytes := 0
+	processedPackets := 0
+
+	droppedBytes := make(map[string]int)
+	droppedPackets := make(map[string]int)
+
+	//We need to store the counters for all chains
+	//As we don't know in which chain the user has setup the rules
+	//We'll resolve the value laters
+	chainsCounter := make(map[string]chainCounters)
+
+	//Hardcode the origin to ipset as we cannot know it based on the rule
+	droppedBytes["ipset"] = 0
+	droppedPackets["ipset"] = 0
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		//Chain declaration
+		if line[0] == ':' {
+			matches := ipsetChainDeclaration.FindStringSubmatch(line)
+			if len(matches) != 5 {
+				log.Errorf("error while parsing counters : %s | not enough matches", line)
+				continue
+			}
+
+			log.Debugf("Found chain %s with matches %+v", matches[1], matches)
+
+			c, ok := chainsCounter[matches[1]]
+			if !ok {
+				c = chainCounters{}
+			}
+
+			val, err := strconv.Atoi(matches[3])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			c.packets += val
+
+			val, err = strconv.Atoi(matches[4])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			c.bytes += val
+
+			chainsCounter[matches[1]] = c
+			continue
+		}
+
+		//Assume that if a line contains the set name, it's a rule we are interested in
+		if strings.Contains(line, ctx.SetName) {
+			matches := ipsetRule.FindStringSubmatch(line)
+			if len(matches) != 4 {
+				log.Errorf("error while parsing counters : %s | not enough matches", line)
+				continue
+			}
+
+			val, err := strconv.Atoi(matches[1])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			droppedPackets["ipset"] += val
+
+			val, err = strconv.Atoi(matches[2])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+
+			droppedBytes["ipset"] += val
+
+			//Resolve the chain counters
+			c, ok := chainsCounter[matches[3]]
+			if !ok {
+				log.Errorf("error while parsing counters : %s | chain not found", line)
+				continue
+			}
+
+			processedPackets += c.packets
+			processedBytes += c.bytes
+		}
+	}
+
+	return droppedPackets, droppedBytes, processedPackets, processedBytes
+}
+
+func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, int, int, error) {
+	//-c is required to get the counters
+	cmd := []string{ctx.iptablesSaveBin, "-c", "-t", "filter"}
+	saveCmd := exec.Command(cmd[0], cmd[1:]...)
+	out, err := saveCmd.CombinedOutput()
+	if err != nil {
+		log.Errorf("error while getting iptables rules with cmd %+v : %v --> %s", cmd, err, string(out))
+		return nil, nil, 0, 0, err
+	}
+
+	processedBytes := 0
+	processedPackets := 0
+
+	var droppedBytes map[string]int
+	var droppedPackets map[string]int
+
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+
+	if !ctx.ipsetContentOnly {
+		droppedPackets, droppedBytes, processedPackets, processedBytes = ctx.collectMetricsIptables(scanner)
+	} else {
+		droppedPackets, droppedBytes, processedPackets, processedBytes = ctx.collectMetricsIpset(scanner)
+	}
+
 	log.Debugf("Processed %d packets and %d bytes", processedPackets, processedBytes)
 	log.Debugf("Dropped packets : %v", droppedPackets)
 	log.Debugf("Dropped bytes : %v", droppedBytes)
@@ -136,24 +257,21 @@ func (ipt *iptables) CollectMetrics() {
 		for origin, set := range ipt.v4.ipsets {
 			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
 		}
-		if !ipt.v4.ipsetContentOnly {
-			ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
+		ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
 
-			if err != nil {
-				log.Errorf("can't collect dropped packets for ipv4 from iptables: %s", err)
-			} else {
-				metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedPackets))
-				metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedBytes))
+		if err != nil {
+			log.Errorf("can't collect dropped packets for ipv4 from iptables: %s", err)
+		} else {
+			metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedPackets))
+			metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedBytes))
 
-				for origin, count := range ipv4DroppedPackets {
-					metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
-				}
-
-				for origin, count := range ipv4DroppedBytes {
-					metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
-				}
+			for origin, count := range ipv4DroppedPackets {
+				metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
 			}
 
+			for origin, count := range ipv4DroppedBytes {
+				metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
+			}
 		}
 	}
 
@@ -161,22 +279,20 @@ func (ipt *iptables) CollectMetrics() {
 		for origin, set := range ipt.v6.ipsets {
 			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
 		}
-		if !ipt.v6.ipsetContentOnly {
-			ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
+		ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
 
-			if err != nil {
-				log.Errorf("can't collect dropped packets for ipv6 from iptables: %s", err)
-			} else {
-				metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedPackets))
-				metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedBytes))
+		if err != nil {
+			log.Errorf("can't collect dropped packets for ipv6 from iptables: %s", err)
+		} else {
+			metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedPackets))
+			metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedBytes))
 
-				for origin, count := range ipv6DroppedPackets {
-					metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
-				}
+			for origin, count := range ipv6DroppedPackets {
+				metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
+			}
 
-				for origin, count := range ipv6DroppedBytes {
-					metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
-				}
+			for origin, count := range ipv6DroppedBytes {
+				metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
 			}
 		}
 	}

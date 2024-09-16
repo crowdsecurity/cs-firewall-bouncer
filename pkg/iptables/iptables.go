@@ -74,6 +74,11 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		target:     target,
 	}
 
+	ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
+	if err != nil {
+		return nil, errors.New("unable to find iptables-save")
+	}
+
 	if config.Mode == cfg.IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
 		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
@@ -85,10 +90,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
 		if err != nil {
 			return nil, errors.New("unable to find iptables")
-		}
-		ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
-		if err != nil {
-			return nil, errors.New("unable to find iptables-save")
 		}
 
 		//Try to "adopt" any leftover sets from a previous run if we crashed
@@ -105,6 +106,11 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		return ret, nil
 	}
 
+	ipv6Ctx.iptablesSaveBin, err = exec.LookPath("ip6tables-save")
+	if err != nil {
+		return nil, errors.New("unable to find ip6tables-save")
+	}
+
 	if config.Mode == cfg.IpsetMode {
 		ipv6Ctx.ipsetContentOnly = true
 		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
@@ -116,10 +122,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
 		if err != nil {
 			return nil, errors.New("unable to find ip6tables")
-		}
-		ipv6Ctx.iptablesSaveBin, err = exec.LookPath("ip6tables-save")
-		if err != nil {
-			return nil, errors.New("unable to find ip6tables-save")
 		}
 
 		ipv6Ctx.Chains = config.IptablesChains
