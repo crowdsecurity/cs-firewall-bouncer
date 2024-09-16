@@ -17,22 +17,23 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-//iptables does not provide a "nice" way to get the counters for a rule, so we have to parse the output of iptables-save
-//chainRegexp is just used to get the counters for the chain CROWDSEC_CHAIN (the chain managed by the bouncer that will contains our rules) from the JUMP rule
-//ruleRegexp is used to get the counters for the rules we have added that will actually block the traffic
-//Example output of iptables-save :
-//[2080:13210403] -A INPUT -j CROWDSEC_CHAIN
-//...
-//[0:0] -A CROWDSEC_CHAIN -m set --match-set test-set-ipset-mode-0 src -j DROP
-//First number is the number of packets, second is the number of bytes
-//In case of a jump, the counters represent the number of packets and bytes that have been processed by the chain (ie, whether the packets have been accepted or dropped)
-//In case of a rule, the counters represent the number of packets and bytes that have been matched by the rule (ie, the packets that have been dropped)
+// iptables does not provide a "nice" way to get the counters for a rule, so we have to parse the output of iptables-save
+// chainRegexp is just used to get the counters for the chain CROWDSEC_CHAIN (the chain managed by the bouncer that will contains our rules) from the JUMP rule
+// ruleRegexp is used to get the counters for the rules we have added that will actually block the traffic
+// Example output of iptables-save :
+// [2080:13210403] -A INPUT -j CROWDSEC_CHAIN
+// ...
+// [0:0] -A CROWDSEC_CHAIN -m set --match-set test-set-ipset-mode-0 src -j DROP
+// First number is the number of packets, second is the number of bytes
+// In case of a jump, the counters represent the number of packets and bytes that have been processed by the chain (ie, whether the packets have been accepted or dropped)
+// In case of a rule, the counters represent the number of packets and bytes that have been matched by the rule (ie, the packets that have been dropped).
 
 var chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
 var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A [0-9A-Za-z_-]+ -m set --match-set (.*) src -j \w+`)
 
 // In ipset mode, we have to track the numbers of processed bytes/packets at the chain level
-// This is not really accurate, as a rule *before* the crowdsec rule could impact the numbers, but we don't have any other way
+// This is not really accurate, as a rule *before* the crowdsec rule could impact the numbers, but we don't have any other way.
+
 var ipsetChainDeclaration = regexp.MustCompile(`^:([0-9A-Za-z_-]+) ([0-9A-Za-z_-]+) \[(\d+):(\d+)\]`)
 var ipsetRule = regexp.MustCompile(`^\[(\d+):(\d+)\] -A ([0-9A-Za-z_-]+)`)
 
@@ -129,8 +130,7 @@ type chainCounters struct {
 }
 
 // In ipset mode, we only get dropped packets and bytes by matching on the set name in the rule
-// It's probably not perfect, but good enough for most users
-// At the moment, we do not get processed packets and bytes because we'd need
+// It's probably not perfect, but good enough for most users.
 func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
 	processedBytes := 0
 	processedPackets := 0
@@ -138,12 +138,12 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 	droppedBytes := make(map[string]int)
 	droppedPackets := make(map[string]int)
 
-	//We need to store the counters for all chains
-	//As we don't know in which chain the user has setup the rules
-	//We'll resolve the value laters
+	// We need to store the counters for all chains
+	// As we don't know in which chain the user has setup the rules
+	// We'll resolve the value laters.
 	chainsCounter := make(map[string]chainCounters)
 
-	//Hardcode the origin to ipset as we cannot know it based on the rule
+	// Hardcode the origin to ipset as we cannot know it based on the rule.
 	droppedBytes["ipset"] = 0
 	droppedPackets["ipset"] = 0
 
@@ -183,7 +183,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 			continue
 		}
 
-		//Assume that if a line contains the set name, it's a rule we are interested in
+		// Assume that if a line contains the set name, it's a rule we are interested in.
 		if strings.Contains(line, ctx.SetName) {
 			matches := ipsetRule.FindStringSubmatch(line)
 			if len(matches) != 4 {
@@ -231,9 +231,8 @@ func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, in
 		return nil, nil, 0, 0, err
 	}
 
-	processedBytes := 0
-	processedPackets := 0
-
+	var processedBytes int
+	var processedPackets int
 	var droppedBytes map[string]int
 	var droppedPackets map[string]int
 
