@@ -4,150 +4,142 @@
 package nftables
 
 import (
-	"encoding/json"
 	"fmt"
-	"os/exec"
+	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
+	"github.com/google/nftables/expr"
+	"github.com/prometheus/client_golang/prometheus"
+
+	log "github.com/sirupsen/logrus"
 )
 
-type Counter struct {
-	Nftables []struct {
-		Rule struct {
-			Expr []struct {
-				Counter *struct {
-					Packets int `json:"packets"`
-					Bytes   int `json:"bytes"`
-				} `json:"counter,omitempty"`
-			} `json:"expr"`
-		} `json:"rule,omitempty"`
-	} `json:"nftables"`
-}
-
-type Set struct {
-	Nftables []struct {
-		Set struct {
-			Elem []struct {
-				Elem struct{} `json:"elem"`
-			} `json:"elem"`
-		} `json:"set,omitempty"`
-	} `json:"nftables"`
-}
-
-func (c *nftContext) collectDroppedPackets(path string, chain string) (int, int, error) {
-	cmd := exec.Command(path, "-j", "list", "chain", c.ipFamily(), c.tableName, chain)
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return 0, 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
-	}
-
-	parsedOut := Counter{}
-	if err := json.Unmarshal(out, &parsedOut); err != nil {
-		return 0, 0, err
-	}
-
-	for _, r := range parsedOut.Nftables {
-		for _, expr := range r.Rule.Expr {
-			if expr.Counter != nil {
-				return expr.Counter.Packets, expr.Counter.Bytes, nil
+func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, int, int, error) {
+	droppedPackets := make(map[string]int)
+	droppedBytes := make(map[string]int)
+	processedPackets := 0
+	processedBytes := 0
+	//setName := ""
+	for chainName, chain := range c.chains {
+		rules, err := c.conn.GetRules(c.table, chain)
+		if err != nil {
+			log.Errorf("can't get rules for chain %s: %s", chainName, err)
+			continue
+		}
+		for _, rule := range rules {
+			for _, xpr := range rule.Exprs {
+				obj, ok := xpr.(*expr.Counter)
+				if ok {
+					log.Debugf("rule %d (%s): packets %d, bytes %d (%s)", rule.Position, rule.Table.Name, obj.Packets, obj.Bytes, rule.UserData)
+					if string(rule.UserData) == "processed" {
+						processedPackets += int(obj.Packets)
+						processedBytes += int(obj.Bytes)
+						continue
+					}
+					origin, _ := strings.CutPrefix(string(rule.UserData), c.blacklists+"-")
+					if origin == "" {
+						continue
+					}
+					droppedPackets[origin] += int(obj.Packets)
+					droppedBytes[origin] += int(obj.Bytes)
+				}
 			}
 		}
 	}
 
-	return 0, 0, nil
+	return droppedPackets, droppedBytes, processedPackets, processedBytes, nil
 }
 
-func (c *nftContext) ipFamily() string {
-	if c.version == "v4" {
-		return "ip"
-	}
+func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
+	//Find the size of the set we have created
+	ret := make(map[string]int)
 
-	return "ip6"
-}
-
-func (c *nftContext) collectActiveBannedIPs(path string) (int, error) {
-	cmd := exec.Command(path, "-j", "list", "set", c.ipFamily(), c.tableName, c.blacklists)
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return 0, fmt.Errorf("while running %s: %w", cmd.String(), err)
-	}
-
-	set := Set{}
-	if err := json.Unmarshal(out, &set); err != nil {
-		return 0, err
-	}
-
-	ret := 0
-	for _, r := range set.Nftables {
-		ret += len(r.Set.Elem)
+	for origin, set := range c.sets {
+		setContent, err := c.conn.GetSetElements(set)
+		if err != nil {
+			return nil, fmt.Errorf("can't get set elements for %s: %w", set.Name, err)
+		}
+		if c.setOnly {
+			ret[c.blacklists] = len(setContent)
+		} else {
+			ret[origin] = len(setContent)
+		}
+		return ret, nil
 	}
 
 	return ret, nil
 }
 
-func (c *nftContext) collectDropped(path string, hooks []string) (int, int, int) {
+func (c *nftContext) collectDropped() (map[string]int, map[string]int, int, int, map[string]int) {
 	if c.conn == nil {
-		return 0, 0, 0
+		return nil, nil, 0, 0, nil
 	}
 
-	var droppedPackets, droppedBytes, banned int
+	droppedPackets, droppedBytes, processedPackets, processedBytes, err := c.collectDroppedPackets()
 
-	if c.setOnly {
-		pkt, byt, err := c.collectDroppedPackets(path, c.chainName)
-		if err != nil {
-			log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
-		}
-
-		droppedPackets += pkt
-		droppedBytes += byt
-	} else {
-		for _, hook := range hooks {
-			pkt, byt, err := c.collectDroppedPackets(path, c.chainName+"-"+hook)
-			if err != nil {
-				log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
-			}
-
-			droppedPackets += pkt
-			droppedBytes += byt
-		}
+	if err != nil {
+		log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
 	}
 
-	banned, err := c.collectActiveBannedIPs(path)
+	banned, err := c.collectActiveBannedIPs()
 	if err != nil {
 		log.Errorf("can't collect total banned IPs for ip%s from nft: %s", c.version, err)
 	}
 
-	return droppedPackets, droppedBytes, banned
+	return droppedPackets, droppedBytes, processedPackets, processedBytes, banned
+}
+
+func getOriginForList(origin string) string {
+	if !strings.HasPrefix(origin, "lists-") {
+		return origin
+	}
+
+	return strings.Replace(origin, "-", ":", 1)
 }
 
 func (n *nft) CollectMetrics() {
-	path, err := exec.LookPath("nft")
-	if err != nil {
-		log.Error("can't monitor dropped packets: ", err)
-		return
+	startTime := time.Now()
+	ip4DroppedPackets, ip4DroppedBytes, ip4ProcessedPackets, ip4ProcessedBytes, bannedIP4 := n.v4.collectDropped()
+	ip6DroppedPackets, ip6DroppedBytes, ip6ProcessedPackets, ip6ProcessedBytes, bannedIP6 := n.v6.collectDropped()
+
+	log.Debugf("metrics collection took %s", time.Since(startTime))
+	log.Debugf("ip4: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v, proccessed packets: %d, processed bytes: %d", ip4DroppedPackets, ip4DroppedBytes, bannedIP4, ip4ProcessedPackets, ip4ProcessedBytes)
+	log.Debugf("ip6: dropped packets: %+v, dropped bytes: %+v, banned IPs: %+v, proccessed packets: %d, processed bytes: %d", ip6DroppedPackets, ip6DroppedBytes, bannedIP6, ip6ProcessedPackets, ip6ProcessedBytes)
+
+	metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ip4ProcessedPackets))
+	metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ip4ProcessedBytes))
+
+	metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ip6ProcessedPackets))
+	metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ip6ProcessedBytes))
+
+	for origin, count := range bannedIP4 {
+		origin = getOriginForList(origin)
+		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
 	}
 
-	cmd := exec.Command(path, "-j", "list", "tables")
-
-	_, err = cmd.CombinedOutput()
-	if err != nil {
-		log.Warningf("nft -j is not supported (requires 0.9.7), nftables metrics are disabled")
-		return
+	for origin, count := range bannedIP6 {
+		origin = getOriginForList(origin)
+		metrics.TotalActiveBannedIPs.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
 	}
 
-	t := time.NewTicker(metrics.MetricCollectionInterval)
+	for origin, count := range ip4DroppedPackets {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
+	}
 
-	for range t.C {
-		ip4DroppedPackets, ip4DroppedBytes, bannedIP4 := n.v4.collectDropped(path, n.Hooks)
-		ip6DroppedPackets, ip6DroppedBytes, bannedIP6 := n.v6.collectDropped(path, n.Hooks)
+	for origin, count := range ip6DroppedPackets {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedPackets.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
+	}
 
-		metrics.TotalDroppedPackets.Set(float64(ip4DroppedPackets + ip6DroppedPackets))
-		metrics.TotalDroppedBytes.Set(float64(ip6DroppedBytes + ip4DroppedBytes))
-		metrics.TotalActiveBannedIPs.Set(float64(bannedIP4 + bannedIP6))
+	for origin, count := range ip4DroppedBytes {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv4"}).Set(float64(count))
+	}
+
+	for origin, count := range ip6DroppedBytes {
+		origin = getOriginForList(origin)
+		metrics.TotalDroppedBytes.With(prometheus.Labels{"origin": origin, "ip_type": "ipv6"}).Set(float64(count))
 	}
 }

@@ -4,111 +4,295 @@
 package iptables
 
 import (
-	"encoding/xml"
+	"bufio"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-type Ipsets struct {
-	Ipset []struct {
-		Name   string `xml:"name,attr"`
-		Header struct {
-			Numentries string `xml:"numentries"`
-		} `xml:"header"`
-	} `xml:"ipset"`
-}
+// iptables does not provide a "nice" way to get the counters for a rule, so we have to parse the output of iptables-save
+// chainRegexp is just used to get the counters for the chain CROWDSEC_CHAIN (the chain managed by the bouncer that will contains our rules) from the JUMP rule
+// ruleRegexp is used to get the counters for the rules we have added that will actually block the traffic
+// Example output of iptables-save :
+// [2080:13210403] -A INPUT -j CROWDSEC_CHAIN
+// ...
+// [0:0] -A CROWDSEC_CHAIN -m set --match-set test-set-ipset-mode-0 src -j DROP
+// First number is the number of packets, second is the number of bytes
+// In case of a jump, the counters represent the number of packets and bytes that have been processed by the chain (ie, whether the packets have been accepted or dropped)
+// In case of a rule, the counters represent the number of packets and bytes that have been matched by the rule (ie, the packets that have been dropped).
 
-func collectDroppedPackets(binaryPath string, chains []string, setName string) (float64, float64) {
-	var droppedPackets, droppedBytes float64
+var chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
+var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A [0-9A-Za-z_-]+ -m set --match-set (.*) src -j \w+`)
 
-	for _, chain := range chains {
-		out, err := exec.Command(binaryPath, "-L", chain, "-v", "-x").CombinedOutput()
-		if err != nil {
-			log.Error(string(out), err)
+// In ipset mode, we have to track the numbers of processed bytes/packets at the chain level
+// This is not really accurate, as a rule *before* the crowdsec rule could impact the numbers, but we don't have any other way.
+
+var ipsetChainDeclaration = regexp.MustCompile(`^:([0-9A-Za-z_-]+) ([0-9A-Za-z_-]+) \[(\d+):(\d+)\]`)
+var ipsetRule = regexp.MustCompile(`^\[(\d+):(\d+)\] -A ([0-9A-Za-z_-]+)`)
+
+func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
+	processedBytes := 0
+	processedPackets := 0
+
+	droppedBytes := make(map[string]int)
+	droppedPackets := make(map[string]int)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		//Ignore chain declaration
+		if line[0] == ':' {
 			continue
 		}
 
-		for _, line := range strings.Split(string(out), "\n") {
-			if !strings.Contains(line, setName) || strings.Contains(line, "LOG") {
+		//Jump to our chain, we can get the processed packets and bytes
+		if strings.Contains(line, "-j "+chainName) {
+			matches := chainRegexp.FindStringSubmatch(line)
+			if len(matches) != 3 {
+				log.Errorf("error while parsing counters : %s | not enough matches", line)
+				continue
+			}
+			val, err := strconv.Atoi(matches[1])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			processedPackets += val
+
+			val, err = strconv.Atoi(matches[2])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			processedBytes += val
+
+			continue
+		}
+
+		//This is a rule
+		if strings.Contains(line, "-A "+chainName) {
+			matches := ruleRegexp.FindStringSubmatch(line)
+			if len(matches) != 4 {
+				log.Errorf("error while parsing counters : %s | not enough matches", line)
 				continue
 			}
 
-			parts := strings.Fields(line)
+			originIDStr, found := strings.CutPrefix(matches[3], ctx.SetName+"-")
+			if !found {
+				log.Errorf("error while parsing counters : %s | no origin found", line)
+				continue
+			}
+			originID, err := strconv.Atoi(originIDStr)
 
-			tdp, err := strconv.ParseFloat(parts[IPTablesDroppedPacketIdx], 64)
 			if err != nil {
-				log.Error(err.Error())
+				log.Errorf("error while parsing counters : %s | %s", line, err)
+				continue
 			}
 
-			droppedPackets += tdp
-
-			tdb, err := strconv.ParseFloat(parts[IPTablesDroppedByteIdx], 64)
-			if err != nil {
-				log.Error(err.Error())
+			if len(ctx.originSetMapping) < originID {
+				log.Errorf("Found unknown origin id : %d", originID)
+				continue
 			}
 
-			droppedBytes += tdb
+			origin := ctx.originSetMapping[originID]
+
+			val, err := strconv.Atoi(matches[1])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s | %s", line, err)
+				continue
+			}
+			droppedPackets[origin] += val
+
+			val, err = strconv.Atoi(matches[2])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s | %s", line, err)
+				continue
+			}
+
+			droppedBytes[origin] += val
 		}
 	}
 
-	return droppedPackets, droppedBytes
+	return droppedPackets, droppedBytes, processedPackets, processedBytes
+
+}
+
+type chainCounters struct {
+	bytes   int
+	packets int
+}
+
+// In ipset mode, we only get dropped packets and bytes by matching on the set name in the rule
+// It's probably not perfect, but good enough for most users.
+func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
+	processedBytes := 0
+	processedPackets := 0
+
+	droppedBytes := make(map[string]int)
+	droppedPackets := make(map[string]int)
+
+	// We need to store the counters for all chains
+	// As we don't know in which chain the user has setup the rules
+	// We'll resolve the value laters.
+	chainsCounter := make(map[string]chainCounters)
+
+	// Hardcode the origin to ipset as we cannot know it based on the rule.
+	droppedBytes["ipset"] = 0
+	droppedPackets["ipset"] = 0
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		//Chain declaration
+		if line[0] == ':' {
+			matches := ipsetChainDeclaration.FindStringSubmatch(line)
+			if len(matches) != 5 {
+				log.Errorf("error while parsing counters : %s | not enough matches", line)
+				continue
+			}
+
+			log.Debugf("Found chain %s with matches %+v", matches[1], matches)
+
+			c, ok := chainsCounter[matches[1]]
+			if !ok {
+				c = chainCounters{}
+			}
+
+			val, err := strconv.Atoi(matches[3])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			c.packets += val
+
+			val, err = strconv.Atoi(matches[4])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			c.bytes += val
+
+			chainsCounter[matches[1]] = c
+			continue
+		}
+
+		// Assume that if a line contains the set name, it's a rule we are interested in.
+		if strings.Contains(line, ctx.SetName) {
+			matches := ipsetRule.FindStringSubmatch(line)
+			if len(matches) != 4 {
+				log.Errorf("error while parsing counters : %s | not enough matches", line)
+				continue
+			}
+
+			val, err := strconv.Atoi(matches[1])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+			droppedPackets["ipset"] += val
+
+			val, err = strconv.Atoi(matches[2])
+			if err != nil {
+				log.Errorf("error while parsing counters : %s", line)
+				continue
+			}
+
+			droppedBytes["ipset"] += val
+
+			//Resolve the chain counters
+			c, ok := chainsCounter[matches[3]]
+			if !ok {
+				log.Errorf("error while parsing counters : %s | chain not found", line)
+				continue
+			}
+
+			processedPackets += c.packets
+			processedBytes += c.bytes
+		}
+	}
+
+	return droppedPackets, droppedBytes, processedPackets, processedBytes
+}
+
+func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, int, int, error) {
+	//-c is required to get the counters
+	cmd := []string{ctx.iptablesSaveBin, "-c", "-t", "filter"}
+	saveCmd := exec.Command(cmd[0], cmd[1:]...)
+	out, err := saveCmd.CombinedOutput()
+	if err != nil {
+		log.Errorf("error while getting iptables rules with cmd %+v : %v --> %s", cmd, err, string(out))
+		return nil, nil, 0, 0, err
+	}
+
+	var processedBytes int
+	var processedPackets int
+	var droppedBytes map[string]int
+	var droppedPackets map[string]int
+
+	scanner := bufio.NewScanner(strings.NewReader(string(out)))
+
+	if !ctx.ipsetContentOnly {
+		droppedPackets, droppedBytes, processedPackets, processedBytes = ctx.collectMetricsIptables(scanner)
+	} else {
+		droppedPackets, droppedBytes, processedPackets, processedBytes = ctx.collectMetricsIpset(scanner)
+	}
+
+	log.Debugf("Processed %d packets and %d bytes", processedPackets, processedBytes)
+	log.Debugf("Dropped packets : %v", droppedPackets)
+	log.Debugf("Dropped bytes : %v", droppedBytes)
+
+	return droppedPackets, droppedBytes, processedPackets, processedBytes, nil
 }
 
 func (ipt *iptables) CollectMetrics() {
-	var ip4DroppedPackets, ip4DroppedBytes, ip6DroppedPackets, ip6DroppedBytes float64
-
-	t := time.NewTicker(metrics.MetricCollectionInterval)
-	for range t.C {
-		if ipt.v4 != nil && !ipt.v4.ipsetContentOnly {
-			ip4DroppedPackets, ip4DroppedBytes = collectDroppedPackets(ipt.v4.iptablesBin, ipt.v4.Chains, ipt.v4.SetName)
+	if ipt.v4 != nil {
+		for origin, set := range ipt.v4.ipsets {
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
 		}
+		ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
 
-		if ipt.v6 != nil && !ipt.v6.ipsetContentOnly {
-			ip6DroppedPackets, ip6DroppedBytes = collectDroppedPackets(ipt.v6.iptablesBin, ipt.v6.Chains, ipt.v6.SetName)
-		}
-
-		if (ipt.v4 != nil && !ipt.v4.ipsetContentOnly) || (ipt.v6 != nil && !ipt.v6.ipsetContentOnly) {
-			metrics.TotalDroppedPackets.Set(ip4DroppedPackets + ip6DroppedPackets)
-			metrics.TotalDroppedBytes.Set(ip6DroppedBytes + ip4DroppedBytes)
-		}
-
-		out, err := exec.Command(ipt.v4.ipsetBin, "list", "-o", "xml").CombinedOutput()
 		if err != nil {
-			log.Error(err)
-			continue
-		}
+			log.Errorf("can't collect dropped packets for ipv4 from iptables: %s", err)
+		} else {
+			metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedPackets))
+			metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedBytes))
 
-		ipsets := Ipsets{}
+			for origin, count := range ipv4DroppedPackets {
+				metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
+			}
 
-		if err := xml.Unmarshal(out, &ipsets); err != nil {
-			log.Error(err)
-			continue
-		}
-
-		newCount := float64(0)
-
-		for _, ipset := range ipsets.Ipset {
-			if ipset.Name == ipt.v4.SetName || (ipt.v6 != nil && ipset.Name == ipt.v6.SetName) {
-				if ipset.Header.Numentries == "" {
-					continue
-				}
-
-				count, err := strconv.ParseFloat(ipset.Header.Numentries, 64)
-				if err != nil {
-					log.Errorf("error while parsing  Numentries from ipsets: %s", err)
-					continue
-				}
-
-				newCount += count
+			for origin, count := range ipv4DroppedBytes {
+				metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
 			}
 		}
+	}
 
-		metrics.TotalActiveBannedIPs.Set(newCount)
+	if ipt.v6 != nil {
+		for origin, set := range ipt.v6.ipsets {
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
+		}
+		ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
+
+		if err != nil {
+			log.Errorf("can't collect dropped packets for ipv6 from iptables: %s", err)
+		} else {
+			metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedPackets))
+			metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedBytes))
+
+			for origin, count := range ipv6DroppedPackets {
+				metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
+			}
+
+			for origin, count := range ipv6DroppedBytes {
+				metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
+			}
+		}
 	}
 }
