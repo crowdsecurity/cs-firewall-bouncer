@@ -24,7 +24,7 @@ LD_OPTS_VARS += -X 'github.com/crowdsecurity/go-cs-lib/version.System=docker'
 endif
 
 export CGO_ENABLED=0
-export LD_OPTS=-ldflags "-a -s -w -extldflags '-static' $(LD_OPTS_VARS)" \
+export LD_OPTS=-ldflags "-s -extldflags '-static' $(LD_OPTS_VARS)" \
 	-trimpath -tags netgo
 
 .PHONY: all
