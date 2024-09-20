@@ -191,7 +191,7 @@ func nftablesConfig(config *BouncerConfig) error {
 		return errors.New("both IPv4 and IPv6 disabled, doing nothing")
 	}
 
-	if config.NftablesHooks == nil || len(config.NftablesHooks) == 0 {
+	if len(config.NftablesHooks) == 0 {
 		config.NftablesHooks = []string{"input"}
 	}
 
