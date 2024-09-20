@@ -275,7 +275,7 @@ func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 		}
 
 		*d.Value = strings.Split(*d.Value, "/")[0]
-		if max, ok := vals[*d.Value]; !ok || t > max.duration {
+		if longest, ok := vals[*d.Value]; !ok || t > longest.duration {
 			vals[*d.Value] = tmpDecisions{
 				duration: t,
 				origin:   *d.Origin,
