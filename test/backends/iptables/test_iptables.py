@@ -7,18 +7,20 @@ from pathlib import Path
 from time import sleep
 
 from test.backends.mock_lapi import MockLAPI
-from test.backends.utils import generate_n_decisions, run_cmd
+from test.backends.utils import generate_n_decisions, run_cmd, new_decision
 
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 BINARY_PATH = PROJECT_ROOT.joinpath("crowdsec-firewall-bouncer")
 CONFIG_PATH = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer.yaml")
+CONFIG_PATH_LOGGING = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer-logging.yaml")
 
 SET_NAME_IPV4 = "crowdsec-blacklists-0"
 SET_NAME_IPV6 = "crowdsec6-blacklists-0"
 
 RULES_CHAIN_NAME = "CROWDSEC_CHAIN"
+LOGGING_CHAIN_NAME = "CROWDSEC_LOG"
 CHAIN_NAME = "INPUT"
 
 class TestIPTables(unittest.TestCase):
@@ -175,3 +177,55 @@ def get_set_elements(set_name, with_timeout=False):
             to_add = member.find("elem").text
         elements.add(to_add)
     return elements
+
+
+class TestIPTablesLogging(unittest.TestCase):
+    def setUp(self):
+        self.fb = subprocess.Popen([BINARY_PATH, "-c", CONFIG_PATH_LOGGING])
+        self.lapi = MockLAPI()
+        self.lapi.start()
+        return super().setUp()
+
+    def tearDown(self):
+        self.fb.kill()
+        self.fb.wait()
+        self.lapi.stop()
+
+    def testLogging(self):
+        #We use 1.1.1.1 because we want to see some dropped packets in the logs
+        #We know this IP responds to ping, and the response will be dropped by the firewall
+        d = new_decision("1.1.1.1")
+        self.lapi.ds.insert_decisions([d])
+        sleep(3)
+        
+        #Check if our logging chain is in place
+
+        output = run_cmd("iptables", "-L", LOGGING_CHAIN_NAME)
+        rules = [line for line in output.split("\n") if 'anywhere' in line]
+
+        #2 rules: one logging, one generic drop
+        self.assertEqual(len(rules), 2)
+
+        #Check if the logging chain is called from the main chain
+        output = run_cmd("iptables", "-L", CHAIN_NAME)
+
+        rules = [line for line in output.split("\n") if RULES_CHAIN_NAME in line]
+
+        self.assertEqual(len(rules), 1)
+
+        #Check if logging/drop chain is called from the rules chain
+        output = run_cmd("iptables", "-L", RULES_CHAIN_NAME)
+
+        rules = [line for line in output.split("\n") if LOGGING_CHAIN_NAME in line]
+
+        self.assertEqual(len(rules), 1)
+
+        #Now, try to ping the IP
+
+        output = run_cmd("curl", "--connect-timeout", "1", "1.1.1.1", ignore_error=True) #We don't care about the output, we just want to trigger the rule
+
+        #Check if the firewall has logged the dropped response
+
+        output = run_cmd("dmesg | tail -n 10", shell=True)
+
+        assert 'blocked by crowdsec' in output

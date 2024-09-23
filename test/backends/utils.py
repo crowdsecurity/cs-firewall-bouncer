@@ -2,8 +2,8 @@ import subprocess
 from ipaddress import ip_address
 
 
-def run_cmd(*cmd, ignore_error=False):
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+def run_cmd(*cmd, ignore_error=False, shell=False):
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=shell)
     if not ignore_error and p.returncode:
         raise SystemExit(f"{cmd} exited with non-zero code with following logs:\n {p.stdout}")
 
@@ -34,3 +34,13 @@ def generate_n_decisions(n: int, action="ban", dup_count=0, ipv4=True, duration=
     decisions += decisions[: n % unique_decision_count]
     decisions *= n // unique_decision_count
     return decisions
+
+def new_decision(ip: str):
+    return {
+        "value": ip,
+        "scope": "ip",
+        "type": "ban",
+        "origin": "script",
+        "duration": "4h",
+        "reason": "for testing",
+    }

@@ -19,6 +19,7 @@ import (
 )
 
 const chainName = "CROWDSEC_CHAIN"
+const loggingChainName = "CROWDSEC_LOG"
 
 type ipTablesContext struct {
 	version          string
@@ -42,6 +43,9 @@ type ipTablesContext struct {
 	//Store the origin of the decisions, and use the index in the slice as the name
 	//This is not stable (ie, between two runs, the index of a set can change), but it's (probably) not an issue
 	originSetMapping []string
+
+	loggingEnabled bool
+	loggingPrefix  string
 }
 
 func (ctx *ipTablesContext) setupChain() {
@@ -67,6 +71,43 @@ func (ctx *ipTablesContext) setupChain() {
 		if out, err := c.CombinedOutput(); err != nil {
 			log.Errorf("error while adding rule : %v --> %s", err, string(out))
 			continue
+		}
+	}
+
+	if ctx.loggingEnabled {
+		// Create the logging chain
+		cmd = []string{"-N", loggingChainName, "-t", "filter"}
+
+		c = exec.Command(ctx.iptablesBin, cmd...)
+
+		log.Infof("Creating logging chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while creating logging chain : %v --> %s", err, string(out))
+			return
+		}
+
+		// Insert the logging rule
+		cmd = []string{"-I", loggingChainName, "-j", "LOG", "--log-prefix", ctx.loggingPrefix}
+
+		c = exec.Command(ctx.iptablesBin, cmd...)
+
+		log.Infof("Adding logging rule : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while adding logging rule : %v --> %s", err, string(out))
+		}
+
+		// Add the desired target to the logging chain
+
+		cmd = []string{"-A", loggingChainName, "-j", ctx.target}
+
+		c = exec.Command(ctx.iptablesBin, cmd...)
+
+		log.Infof("Adding target rule to logging chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while setting logging chain policy : %v --> %s", err, string(out))
 		}
 	}
 }
@@ -105,10 +146,38 @@ func (ctx *ipTablesContext) deleteChain() {
 	if out, err := c.CombinedOutput(); err != nil {
 		log.Errorf("error while deleting chain : %v --> %s", err, string(out))
 	}
+
+	if ctx.loggingEnabled {
+		cmd = []string{"-F", loggingChainName}
+
+		c = exec.Command(ctx.iptablesBin, cmd...)
+
+		log.Infof("Flushing logging chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while flushing logging chain : %v --> %s", err, string(out))
+		}
+
+		cmd = []string{"-X", loggingChainName}
+
+		c = exec.Command(ctx.iptablesBin, cmd...)
+
+		log.Infof("Deleting logging chain : %s %s", ctx.iptablesBin, strings.Join(cmd, " "))
+
+		if out, err := c.CombinedOutput(); err != nil {
+			log.Errorf("error while deleting logging chain : %v --> %s", err, string(out))
+		}
+	}
 }
 
 func (ctx *ipTablesContext) createRule(setName string) {
-	cmd := []string{"-I", chainName, "-m", "set", "--match-set", setName, "src", "-j", ctx.target}
+	target := ctx.target
+
+	if ctx.loggingEnabled {
+		target = loggingChainName
+	}
+
+	cmd := []string{"-I", chainName, "-m", "set", "--match-set", setName, "src", "-j", target}
 
 	c := exec.Command(ctx.iptablesBin, cmd...)
 
