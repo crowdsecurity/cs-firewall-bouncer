@@ -194,7 +194,7 @@ class TestIPTablesLogging(unittest.TestCase):
     def testLogging(self):
         #We use 1.1.1.1 because we want to see some dropped packets in the logs
         #We know this IP responds to ping, and the response will be dropped by the firewall
-        d = new_decision("1.1.1.42")
+        d = new_decision("1.1.1.1")
         self.lapi.ds.insert_decisions([d])
         sleep(3)
         
@@ -222,8 +222,7 @@ class TestIPTablesLogging(unittest.TestCase):
 
         #Now, try to ping the IP
 
-        output = run_cmd("curl", "1.1.1.1", ignore_error=True) #We don't care about the output, we just want to trigger the rule
-        print(output)
+        output = run_cmd("curl", "--connect-timeout", "1", "1.1.1.1", ignore_error=True) #We don't care about the output, we just want to trigger the rule
 
         #Check if the firewall has logged the dropped response
 
