@@ -207,9 +207,15 @@ class TestIPTablesLogging(unittest.TestCase):
         self.assertEqual(len(rules), 2)
 
         #Check if the logging chain is called from the main chain
-
         output = run_cmd("iptables", "-L", CHAIN_NAME)
-        print(output)
+
+        rules = [line for line in output.split("\n") if RULES_CHAIN_NAME in line]
+
+        self.assertEqual(len(rules), 1)
+
+        #Check if logging/drop chain is called from the rules chain
+        output = run_cmd("iptables", "-L", RULES_CHAIN_NAME)
+
         rules = [line for line in output.split("\n") if LOGGING_CHAIN_NAME in line]
 
         self.assertEqual(len(rules), 1)
