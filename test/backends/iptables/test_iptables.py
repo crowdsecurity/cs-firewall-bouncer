@@ -222,7 +222,7 @@ class TestIPTablesLogging(unittest.TestCase):
 
         #Now, try to ping the IP
 
-        output = run_cmd("ping", "-c", "3", "1.1.1.1", ignore_error=True) #We don't care about the output, we just want to trigger the rule
+        output = run_cmd("curl", "1.1.1.1", ignore_error=True) #We don't care about the output, we just want to trigger the rule
         print(output)
 
         #Check if the firewall has logged the dropped response
