@@ -1,0 +1,15 @@
+mode: iptables
+update_frequency: 0.1s
+log_mode: stdout
+log_dir: ./
+log_level: info
+api_url: http://127.0.0.1:8081/
+api_key: 1237adaf7a1724ac68a3288828820a67
+disable_ipv6: false
+deny_action: DROP
+deny_log: true
+deny_log_prefix: "blocked by crowdsec"
+supported_decisions_types:
+  - ban
+iptables_chains:
+  - INPUT

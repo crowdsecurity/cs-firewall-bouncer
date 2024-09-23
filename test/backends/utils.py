@@ -34,3 +34,13 @@ def generate_n_decisions(n: int, action="ban", dup_count=0, ipv4=True, duration=
     decisions += decisions[: n % unique_decision_count]
     decisions *= n // unique_decision_count
     return decisions
+
+def new_decision(ip: str):
+    return {
+        "value": ip,
+        "scope": "ip",
+        "type": "ban",
+        "origin": "script",
+        "duration": "4h",
+        "reason": "for testing",
+    }
