@@ -226,6 +226,6 @@ class TestIPTablesLogging(unittest.TestCase):
 
         #Check if the firewall has logged the dropped response
 
-        output = run_cmd("dmesg")
+        output = run_cmd("dmesg | tail -n 10", shell=True)
 
         assert 'blocked by crowdsec' in output
