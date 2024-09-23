@@ -201,7 +201,7 @@ class TestIPTablesLogging(unittest.TestCase):
         #Check if our logging chain is in place
 
         output = run_cmd("iptables", "-L", LOGGING_CHAIN_NAME)
-        rules = [line for line in output.split("\n") if LOGGING_CHAIN_NAME in line]
+        rules = [line for line in output.split("\n")]
 
         #2 rules: one logging, one generic drop
         self.assertEqual(len(rules), 2)
