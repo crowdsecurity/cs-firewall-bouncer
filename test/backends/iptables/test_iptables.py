@@ -181,7 +181,7 @@ def get_set_elements(set_name, with_timeout=False):
 
 class TestIPTablesLogging(unittest.TestCase):
     def setUp(self):
-        self.fb = subprocess.Popen([BINARY_PATH, "-c", CONFIG_PATH])
+        self.fb = subprocess.Popen([BINARY_PATH, "-c", CONFIG_PATH_LOGGING])
         self.lapi = MockLAPI()
         self.lapi.start()
         return super().setUp()
