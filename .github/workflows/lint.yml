@@ -37,15 +37,11 @@ jobs:
         make build
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v4
+      uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.59
+        version: v1.61
         args: --issues-exit-code=1 --timeout 10m
         only-new-issues: false
-        # the cache is already managed above, enabling it here
-        # gives errors when extracting
-        skip-pkg-cache: true
-        skip-build-cache: true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
