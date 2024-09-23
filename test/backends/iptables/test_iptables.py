@@ -201,7 +201,6 @@ class TestIPTablesLogging(unittest.TestCase):
         #Check if our logging chain is in place
 
         output = run_cmd("iptables", "-L", LOGGING_CHAIN_NAME)
-        print(output)
         rules = [line for line in output.split("\n") if 'anywhere' in line]
 
         #2 rules: one logging, one generic drop
@@ -210,7 +209,7 @@ class TestIPTablesLogging(unittest.TestCase):
         #Check if the logging chain is called from the main chain
 
         output = run_cmd("iptables", "-L", CHAIN_NAME)
-
+        print(output)
         rules = [line for line in output.split("\n") if LOGGING_CHAIN_NAME in line]
 
         self.assertEqual(len(rules), 1)
