@@ -56,22 +56,26 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	v6Sets := make(map[string]*ipsetcmd.IPSet)
 
 	ipv4Ctx := &ipTablesContext{
-		version:    "v4",
-		SetName:    config.BlacklistsIpv4,
-		SetType:    config.SetType,
-		SetSize:    config.SetSize,
-		Chains:     []string{},
-		defaultSet: defaultSet,
-		target:     target,
+		version:        "v4",
+		SetName:        config.BlacklistsIpv4,
+		SetType:        config.SetType,
+		SetSize:        config.SetSize,
+		Chains:         []string{},
+		defaultSet:     defaultSet,
+		target:         target,
+		loggingEnabled: config.DenyLog,
+		loggingPrefix:  config.DenyLogPrefix,
 	}
 	ipv6Ctx := &ipTablesContext{
-		version:    "v6",
-		SetName:    config.BlacklistsIpv6,
-		SetType:    config.SetType,
-		SetSize:    config.SetSize,
-		Chains:     []string{},
-		defaultSet: defaultSet,
-		target:     target,
+		version:        "v6",
+		SetName:        config.BlacklistsIpv6,
+		SetType:        config.SetType,
+		SetSize:        config.SetSize,
+		Chains:         []string{},
+		defaultSet:     defaultSet,
+		target:         target,
+		loggingEnabled: config.DenyLog,
+		loggingPrefix:  config.DenyLogPrefix,
 	}
 
 	ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
