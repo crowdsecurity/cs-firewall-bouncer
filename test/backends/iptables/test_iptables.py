@@ -201,6 +201,7 @@ class TestIPTablesLogging(unittest.TestCase):
         #Check if our logging chain is in place
 
         output = run_cmd("iptables", "-L", LOGGING_CHAIN_NAME)
+        print(output)
         rules = [line for line in output.split("\n") if 'anywhere' in line]
 
         #2 rules: one logging, one generic drop
