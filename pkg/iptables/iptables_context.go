@@ -46,6 +46,8 @@ type ipTablesContext struct {
 
 	loggingEnabled bool
 	loggingPrefix  string
+
+	addRuleComments bool
 }
 
 func (ctx *ipTablesContext) setupChain() {
@@ -178,6 +180,10 @@ func (ctx *ipTablesContext) createRule(setName string) {
 	}
 
 	cmd := []string{"-I", chainName, "-m", "set", "--match-set", setName, "src", "-j", target}
+
+	if ctx.addRuleComments {
+		cmd = append(cmd, "-m", "comment", "--comment", "CrowdSec: "+setName)
+	}
 
 	c := exec.Command(ctx.iptablesBin, cmd...)
 
