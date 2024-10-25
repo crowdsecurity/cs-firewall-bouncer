@@ -56,26 +56,28 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	v6Sets := make(map[string]*ipsetcmd.IPSet)
 
 	ipv4Ctx := &ipTablesContext{
-		version:        "v4",
-		SetName:        config.BlacklistsIpv4,
-		SetType:        config.SetType,
-		SetSize:        config.SetSize,
-		Chains:         []string{},
-		defaultSet:     defaultSet,
-		target:         target,
-		loggingEnabled: config.DenyLog,
-		loggingPrefix:  config.DenyLogPrefix,
+		version:         "v4",
+		SetName:         config.BlacklistsIpv4,
+		SetType:         config.SetType,
+		SetSize:         config.SetSize,
+		Chains:          []string{},
+		defaultSet:      defaultSet,
+		target:          target,
+		loggingEnabled:  config.DenyLog,
+		loggingPrefix:   config.DenyLogPrefix,
+		addRuleComments: config.IptablesAddRuleComments,
 	}
 	ipv6Ctx := &ipTablesContext{
-		version:        "v6",
-		SetName:        config.BlacklistsIpv6,
-		SetType:        config.SetType,
-		SetSize:        config.SetSize,
-		Chains:         []string{},
-		defaultSet:     defaultSet,
-		target:         target,
-		loggingEnabled: config.DenyLog,
-		loggingPrefix:  config.DenyLogPrefix,
+		version:         "v6",
+		SetName:         config.BlacklistsIpv6,
+		SetType:         config.SetType,
+		SetSize:         config.SetSize,
+		Chains:          []string{},
+		defaultSet:      defaultSet,
+		target:          target,
+		loggingEnabled:  config.DenyLog,
+		loggingPrefix:   config.DenyLogPrefix,
+		addRuleComments: config.IptablesAddRuleComments,
 	}
 
 	ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
