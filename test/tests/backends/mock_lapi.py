@@ -47,7 +47,10 @@ class DataStore:
 
         for decision in self.decisions:
             # decision["deleted_at"] > datetime.datetime.now()  means that decision hasn't yet expired
-            if decision["deleted_at"] > since and decision["deleted_at"] < datetime.datetime.now():
+            if (
+                decision["deleted_at"] > since
+                and decision["deleted_at"] < datetime.datetime.now()
+            ):
                 expired_decisions.append(decision)
 
             elif decision["created_at"] > since:
@@ -66,7 +69,9 @@ class DataStore:
 
     @staticmethod
     def get_decision_expiry_time(decision):
-        return decision["created_at"] + timedelta(seconds=timeparse(decision["duration"]))
+        return decision["created_at"] + timedelta(
+            seconds=timeparse(decision["duration"])
+        )
 
 
 class MockLAPI:
@@ -84,7 +89,9 @@ class MockLAPI:
         if not api_key:
             abort(404)
         startup = True if request.args.get("startup") == "true" else False
-        active_decisions, expired_decisions = self.ds.get_decisions_for_bouncer(api_key, startup)
+        active_decisions, expired_decisions = self.ds.get_decisions_for_bouncer(
+            api_key, startup
+        )
         return {
             "new": formatted_decisions(active_decisions),
             "deleted": formatted_decisions(expired_decisions),
@@ -101,7 +108,9 @@ class MockLAPI:
 def formatted_decisions(decisions):
     formatted_decisions = []
     for decision in decisions:
-        expiry_time = decision["created_at"] + timedelta(seconds=timeparse(decision["duration"]))
+        expiry_time = decision["created_at"] + timedelta(
+            seconds=timeparse(decision["duration"])
+        )
         duration = expiry_time - datetime.datetime.now()
         formatted_decisions.append(
             {

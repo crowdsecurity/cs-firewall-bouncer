@@ -23,6 +23,7 @@ RULES_CHAIN_NAME = "CROWDSEC_CHAIN"
 LOGGING_CHAIN_NAME = "CROWDSEC_LOG"
 CHAIN_NAME = "INPUT"
 
+
 class TestIPTables(unittest.TestCase):
     def setUp(self):
         self.fb = subprocess.Popen([BINARY_PATH, "-c", CONFIG_PATH])
@@ -113,13 +114,17 @@ class TestIPTables(unittest.TestCase):
         sleep(3)
 
         set_elements = get_set_elements(SET_NAME_IPV4)
-        self.assertEqual({i["value"] for i in decisions if i["value"] != "0.0.0.0"}, set_elements)
+        self.assertEqual(
+            {i["value"] for i in decisions if i["value"] != "0.0.0.0"}, set_elements
+        )
         self.assertEqual(len(set_elements), total_decisions - duplicate_decisions - 1)
         self.assertNotIn("0.0.0.0", set_elements)
 
     def test_decision_insertion_deletion_ipv6(self):
         total_decisions, duplicate_decisions = 100, 23
-        decisions = generate_n_decisions(total_decisions, dup_count=duplicate_decisions, ipv4=False)
+        decisions = generate_n_decisions(
+            total_decisions, dup_count=duplicate_decisions, ipv4=False
+        )
         self.lapi.ds.insert_decisions(decisions)
         sleep(3)
 
@@ -192,40 +197,42 @@ class TestIPTablesLogging(unittest.TestCase):
         self.lapi.stop()
 
     def testLogging(self):
-        #We use 1.1.1.1 because we want to see some dropped packets in the logs
-        #We know this IP responds to ping, and the response will be dropped by the firewall
+        # We use 1.1.1.1 because we want to see some dropped packets in the logs
+        # We know this IP responds to ping, and the response will be dropped by the firewall
         d = new_decision("1.1.1.1")
         self.lapi.ds.insert_decisions([d])
         sleep(3)
-        
-        #Check if our logging chain is in place
+
+        # Check if our logging chain is in place
 
         output = run_cmd("iptables", "-L", LOGGING_CHAIN_NAME)
-        rules = [line for line in output.split("\n") if 'anywhere' in line]
+        rules = [line for line in output.split("\n") if "anywhere" in line]
 
-        #2 rules: one logging, one generic drop
+        # 2 rules: one logging, one generic drop
         self.assertEqual(len(rules), 2)
 
-        #Check if the logging chain is called from the main chain
+        # Check if the logging chain is called from the main chain
         output = run_cmd("iptables", "-L", CHAIN_NAME)
 
         rules = [line for line in output.split("\n") if RULES_CHAIN_NAME in line]
 
         self.assertEqual(len(rules), 1)
 
-        #Check if logging/drop chain is called from the rules chain
+        # Check if logging/drop chain is called from the rules chain
         output = run_cmd("iptables", "-L", RULES_CHAIN_NAME)
 
         rules = [line for line in output.split("\n") if LOGGING_CHAIN_NAME in line]
 
         self.assertEqual(len(rules), 1)
 
-        #Now, try to ping the IP
+        # Now, try to ping the IP
 
-        output = run_cmd("curl", "--connect-timeout", "1", "1.1.1.1", ignore_error=True) #We don't care about the output, we just want to trigger the rule
+        output = run_cmd(
+            "curl", "--connect-timeout", "1", "1.1.1.1", ignore_error=True
+        )  # We don't care about the output, we just want to trigger the rule
 
-        #Check if the firewall has logged the dropped response
+        # Check if the firewall has logged the dropped response
 
         output = run_cmd("dmesg | tail -n 10", shell=True)
 
-        assert 'blocked by crowdsec' in output
+        assert "blocked by crowdsec" in output
