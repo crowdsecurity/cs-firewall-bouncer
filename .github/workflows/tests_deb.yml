@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     name: "Test .deb packages"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
 
@@ -24,26 +24,28 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version-file: go.mod
 
-    - name: "Setup Python"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: 0.5.24
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: "Set up Python"
       uses: actions/setup-python@v5
       with:
-        python-version: "3.12"
-        cache: 'pipenv'
+        python-version-file: "test/.python-version"
 
-    - name: "Install python dependencies"
-      run: |
-        python -m pip install --upgrade pipenv wheel
-        pipenv install --deploy
-        # some tests need root, so we have to install pytest twice
-        sudo python3 -m pip install --upgrade pipenv wheel
-        sudo pipenv install --deploy
+    - name: Install the project
+      run: uv sync --all-extras --dev
+      working-directory: ./test
 
     - name: Install functional test dependencies
       run: |
         sudo apt update
-        sudo apt install -y build-essential debhelper devscripts fakeroot lintian
+        sudo apt install -y nftables iptables ipset build-essential debhelper devscripts fakeroot lintian
         docker network create net-test
 
     - name: Run functional tests
@@ -53,7 +55,7 @@ jobs:
         CROWDSEC_TEST_NETWORK: net-test
         CROWDSEC_TEST_TIMEOUT: 60
         PYTEST_ADDOPTS: --durations=0 -vv --color=yes
+      working-directory: ./test
       run: |
-        sudo apt install -y nftables iptables ipset
-        pipenv run pytest test/pkg/test_build_deb.py
-        sudo -E pipenv run pytest -m deb ./test/install/no_crowdsec
+        uv run pytest test/pkg/test_build_deb.py
+        sudo -E uv run pytest -m deb ./test/install/no_crowdsec

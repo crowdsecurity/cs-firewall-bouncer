@@ -1,0 +1,30 @@
+[project]
+name = "cs-firewall-bouncer-tests"
+version = "0.1.0"
+description = "Tests for cs-firewall-bouncer"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.0",
+    "pexpect>=4.9.0",
+    "psutil>=6.1.1",
+    "pytest>=8.3.4",
+    "pytest-cs",
+    "pytest-dependency>=0.6.0",
+    "pytest-dotenv>=0.5.2",
+    "pytimeparse>=1.1.8",
+    "zxcvbn>=4.4.28",
+]
+
+[tool.uv.sources]
+pytest-cs = { git = "https://github.com/crowdsecurity/pytest-cs" }
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.25.0",
+    "ipdb>=0.13.13",
+    "ruff>=0.9.3",
+]
+
+#[tool.uv.sources]
+#pytest-cs = { path = "../../../pytest-cs", editable = true }
