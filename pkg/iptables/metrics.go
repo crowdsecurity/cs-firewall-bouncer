@@ -29,7 +29,7 @@ import (
 // In case of a rule, the counters represent the number of packets and bytes that have been matched by the rule (ie, the packets that have been dropped).
 
 var chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
-var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A [0-9A-Za-z_-]+ -m set --match-set (.*) src -j \w+`)
+var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A [0-9A-Za-z_-]+ -m set --match-set (.*) src .*-j \w+`)
 
 // In ipset mode, we have to track the numbers of processed bytes/packets at the chain level
 // This is not really accurate, as a rule *before* the crowdsec rule could impact the numbers, but we don't have any other way.
