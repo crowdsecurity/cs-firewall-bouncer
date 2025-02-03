@@ -43,7 +43,7 @@ jobs:
       with:
         version: 0.5.24
         enable-cache: true
-        cache-dependency-glob: "uv.lock"
+        cache-dependency-glob: "test/uv.lock"
 
     - name: "Set up Python"
       uses: actions/setup-python@v5
@@ -75,8 +75,8 @@ jobs:
         # - deb/rpm (on their own workflows)
         uv run pytest
         # these need root
-        uv run sudo -E pytest ./backends
-        uv run sudo -E pytest ./install/no_crowdsec
+        sudo -E $(which uv) run pytest ./tests/backends
+        sudo -E $(which uv) run pytest ./tests/install/no_crowdsec
         # these need a running crowdsec
         docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API=true -ti crowdsecurity/crowdsec
         install -m 0755 /dev/stdin /usr/local/bin/cscli <<'EOT'
@@ -84,7 +84,7 @@ jobs:
         docker exec crowdsec cscli "$@"
         EOT
         sleep 5
-        uv run sudo -E pytest ./install/with_crowdsec
+        sudo -E $(which uv) run pytest ./tests/install/with_crowdsec
 
     - name: Lint
       working-directory: ./test

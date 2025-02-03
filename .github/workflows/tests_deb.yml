@@ -31,7 +31,7 @@ jobs:
       with:
         version: 0.5.24
         enable-cache: true
-        cache-dependency-glob: "uv.lock"
+        cache-dependency-glob: "test/uv.lock"
 
     - name: "Set up Python"
       uses: actions/setup-python@v5
@@ -57,5 +57,5 @@ jobs:
         PYTEST_ADDOPTS: --durations=0 -vv --color=yes
       working-directory: ./test
       run: |
-        uv run pytest ./pkg/test_build_deb.py
-        uv run sudo -E pytest -m deb ./install/no_crowdsec
+        uv run pytest ./tests/pkg/test_build_deb.py
+        sudo -E $(which uv) run pytest -m deb ./tests/install/no_crowdsec

@@ -6,8 +6,8 @@ from ipaddress import ip_address
 from pathlib import Path
 from time import sleep
 
-from tests.backends.mock_lapi import MockLAPI
-from tests.backends.utils import generate_n_decisions, run_cmd, new_decision
+from ..mock_lapi import MockLAPI
+from ..utils import generate_n_decisions, run_cmd, new_decision
 
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
