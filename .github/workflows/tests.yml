@@ -75,8 +75,8 @@ jobs:
         # - deb/rpm (on their own workflows)
         uv run pytest
         # these need root
-        sudo -E uv run pytest ./backends
-        sudo -E uv run pytest ./install/no_crowdsec
+        uv run sudo -E pytest ./backends
+        uv run sudo -E pytest ./install/no_crowdsec
         # these need a running crowdsec
         docker run -d --name crowdsec -e CI_TESTING=true -e DISABLE_ONLINE_API=true -ti crowdsecurity/crowdsec
         install -m 0755 /dev/stdin /usr/local/bin/cscli <<'EOT'
@@ -84,7 +84,7 @@ jobs:
         docker exec crowdsec cscli "$@"
         EOT
         sleep 5
-        sudo -E uv run pytest ./install/with_crowdsec
+        uv run sudo -E pytest ./install/with_crowdsec
 
     - name: Lint
       working-directory: ./test

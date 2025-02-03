@@ -58,4 +58,4 @@ jobs:
       working-directory: ./test
       run: |
         uv run pytest ./pkg/test_build_deb.py
-        sudo -E uv run pytest -m deb ./install/no_crowdsec
+        uv run sudo -E pytest -m deb ./install/no_crowdsec
