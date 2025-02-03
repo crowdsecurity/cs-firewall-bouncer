@@ -49,7 +49,7 @@ jobs:
         python -m pip install --upgrade pipenv wheel
         pipenv install --deploy
         # some tests need root, so we have to install pytest twice
-        sudo python3 -m pip install --upgrade pipenv
+        sudo python3 -m pip install --upgrade pipenv wheel
         sudo pipenv install --deploy
 
     - name: Install functional test dependencies
