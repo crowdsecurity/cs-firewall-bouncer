@@ -57,5 +57,5 @@ jobs:
         PYTEST_ADDOPTS: --durations=0 -vv --color=yes
       working-directory: ./test
       run: |
-        uv run pytest test/pkg/test_build_deb.py
-        sudo -E uv run pytest -m deb ./test/install/no_crowdsec
+        uv run pytest ./pkg/test_build_deb.py
+        sudo -E uv run pytest -m deb ./install/no_crowdsec
