@@ -11,7 +11,7 @@ from ..utils import generate_n_decisions, run_cmd, new_decision
 
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
-PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
+PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent.parent
 BINARY_PATH = PROJECT_ROOT.joinpath("crowdsec-firewall-bouncer")
 CONFIG_PATH = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer.yaml")
 CONFIG_PATH_LOGGING = SCRIPT_DIR.joinpath("crowdsec-firewall-bouncer-logging.yaml")
