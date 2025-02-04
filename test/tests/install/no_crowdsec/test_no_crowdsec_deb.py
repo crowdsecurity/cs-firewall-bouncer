@@ -36,9 +36,7 @@ def test_deb_install_purge(deb_package_path, bouncer_under_test, must_be_root):
     assert os.path.exists(config)
     assert os.stat(config).st_mode & 0o777 == 0o600
 
-    p = subprocess.check_output(
-        ["dpkg-deb", "-f", deb_package_path.as_posix(), "Package"], encoding="utf-8"
-    )
+    p = subprocess.check_output(["dpkg-deb", "-f", deb_package_path.as_posix(), "Package"], encoding="utf-8")
     package_name = p.strip()
 
     p = subprocess.run(

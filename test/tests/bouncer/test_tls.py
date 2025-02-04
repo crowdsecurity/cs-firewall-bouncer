@@ -3,7 +3,6 @@ import json
 
 def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factory):
     """TLS with server-only certificate"""
-
     api_key = api_key_factory()
 
     lapi_env = {
@@ -54,11 +53,8 @@ def test_tls_server(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factor
             )
 
 
-def test_tls_mutual(
-    crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factory, bouncer_under_test
-):
+def test_tls_mutual(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factory, bouncer_under_test):
     """TLS with two-way bouncer/lapi authentication"""
-
     lapi_env = {
         "CACERT_FILE": "/etc/ssl/crowdsec/ca.crt",
         "LAPI_CERT_FILE": "/etc/ssl/crowdsec/lapi.crt",
@@ -96,9 +92,7 @@ def test_tls_mutual(
                 ]
             )
 
-        cs.wait_for_log(
-            "*client certificate OU ?agent-ou? doesn't match expected OU ?bouncer-ou?*"
-        )
+        cs.wait_for_log("*client certificate OU ?agent-ou? doesn't match expected OU ?bouncer-ou?*")
 
         cfg["cert_path"] = (certs / "bouncer.crt").as_posix()
         cfg["key_path"] = (certs / "bouncer.key").as_posix()
@@ -123,11 +117,8 @@ def test_tls_mutual(
             assert bouncers[0]["type"] == bouncer_under_test
 
 
-def test_api_key_and_cert(
-    crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factory
-):
+def test_api_key_and_cert(crowdsec, certs_dir, api_key_factory, bouncer, fw_cfg_factory):
     """Attempt to send an api key and a certificate too"""
-
     api_key = api_key_factory()
 
     lapi_env = {

@@ -65,9 +65,7 @@ def test_api_url(crowdsec, bouncer, fw_cfg_factory):
         assert not fw.proc.is_running()
 
 
-def test_api_key(
-    crowdsec, bouncer, fw_cfg_factory, api_key_factory, bouncer_under_test
-):
+def test_api_key(crowdsec, bouncer, fw_cfg_factory, api_key_factory, bouncer_under_test):
     api_key = api_key_factory()
     env = {"BOUNCER_KEY_bouncer": api_key}
 

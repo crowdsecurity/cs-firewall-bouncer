@@ -1,9 +1,9 @@
 import os
 import subprocess
-import yaml
 from pathlib import Path
 
 import pytest
+import yaml
 from zxcvbn import zxcvbn
 
 pytestmark = pytest.mark.deb
@@ -21,9 +21,7 @@ def test_deb_install_purge(deb_package_path, bouncer_under_test, must_be_root):
     # use the package built as non-root by test_deb_build()
     assert deb_package_path.exists(), f"This test requires {deb_package_path}"
 
-    p = subprocess.check_output(
-        ["dpkg-deb", "-f", deb_package_path.as_posix(), "Package"], encoding="utf-8"
-    )
+    p = subprocess.check_output(["dpkg-deb", "-f", deb_package_path.as_posix(), "Package"], encoding="utf-8")
     package_name = p.strip()
 
     subprocess.check_call(["dpkg", "--purge", package_name])
@@ -74,9 +72,7 @@ def test_deb_install_purge(deb_package_path, bouncer_under_test, must_be_root):
     assert not os.path.exists(config)
 
 
-def test_deb_install_purge_yaml_local(
-    deb_package_path, bouncer_under_test, must_be_root
-):
+def test_deb_install_purge_yaml_local(deb_package_path, bouncer_under_test, must_be_root):
     """
     Check .deb package installation with:
 
@@ -85,12 +81,9 @@ def test_deb_install_purge_yaml_local(
 
     => the configuration files are not touched (no new api key)
     """
-
     assert deb_package_path.exists(), f"This test requires {deb_package_path}"
 
-    p = subprocess.check_output(
-        ["dpkg-deb", "-f", deb_package_path.as_posix(), "Package"], encoding="utf-8"
-    )
+    p = subprocess.check_output(["dpkg-deb", "-f", deb_package_path.as_posix(), "Package"], encoding="utf-8")
     package_name = p.strip()
 
     subprocess.check_call(["dpkg", "--purge", package_name])

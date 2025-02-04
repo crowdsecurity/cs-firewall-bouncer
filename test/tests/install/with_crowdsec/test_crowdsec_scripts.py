@@ -1,9 +1,9 @@
 import os
-import pexpect
 import re
-import yaml
 
+import pexpect
 import pytest
+import yaml
 from pytest_cs.lib import cscli, text
 
 BOUNCER = "crowdsec-firewall-bouncer"
@@ -13,19 +13,12 @@ CONFIG = f"/etc/crowdsec/bouncers/{BOUNCER}.yaml"
 @pytest.mark.systemd_debug(BOUNCER)
 @pytest.mark.dependency
 def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
-    c = pexpect.spawn(
-        "/usr/bin/sh", ["scripts/install.sh"], encoding="utf-8", cwd=project_repo
-    )
+    c = pexpect.spawn("/usr/bin/sh", ["scripts/install.sh"], encoding="utf-8", cwd=project_repo)
 
     c.expect(f"Installing {BOUNCER}")
     c.expect("iptables found")
     c.expect("nftables found")
-    c.expect(
-        re.escape(
-            "Found nftables (default) and iptables, which firewall "
-            "do you want to use (nftables/iptables)"
-        )
-    )
+    c.expect(re.escape("Found nftables (default) and iptables, which firewall do you want to use (nftables/iptables)"))
     c.sendline("fntables")
     c.expect("cscli found, generating bouncer api key.")
     c.expect("API Key: (.*)")
@@ -53,9 +46,7 @@ def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
 
     assert len(list(cscli.get_bouncers(name=bouncer_name))) == 1
 
-    c = pexpect.spawn(
-        "/usr/bin/sh", ["scripts/install.sh"], encoding="utf-8", cwd=project_repo
-    )
+    c = pexpect.spawn("/usr/bin/sh", ["scripts/install.sh"], encoding="utf-8", cwd=project_repo)
 
     c.expect(f"ERR:.* /usr/local/bin/{BOUNCER} is already installed. Exiting")
 
@@ -64,9 +55,7 @@ def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
 def test_upgrade_crowdsec(project_repo, must_be_root):
     os.remove(f"/usr/local/bin/{BOUNCER}")
 
-    c = pexpect.spawn(
-        "/usr/bin/sh", ["scripts/upgrade.sh"], encoding="utf-8", cwd=project_repo
-    )
+    c = pexpect.spawn("/usr/bin/sh", ["scripts/upgrade.sh"], encoding="utf-8", cwd=project_repo)
 
     c.expect(f"{BOUNCER} upgraded successfully")
     c.wait()
@@ -83,9 +72,7 @@ def test_uninstall_crowdsec(project_repo, must_be_root):
     with open(f"{CONFIG}.id") as f:
         bouncer_name = f.read().strip()
 
-    c = pexpect.spawn(
-        "/usr/bin/sh", ["scripts/uninstall.sh"], encoding="utf-8", cwd=project_repo
-    )
+    c = pexpect.spawn("/usr/bin/sh", ["scripts/uninstall.sh"], encoding="utf-8", cwd=project_repo)
 
     c.expect(f"{BOUNCER} has been successfully uninstalled")
     c.wait()

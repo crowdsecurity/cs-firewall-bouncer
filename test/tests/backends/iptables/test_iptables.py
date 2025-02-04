@@ -7,8 +7,7 @@ from pathlib import Path
 from time import sleep
 
 from ..mock_lapi import MockLAPI
-from ..utils import generate_n_decisions, run_cmd, new_decision
-
+from ..utils import generate_n_decisions, new_decision, run_cmd
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent.parent
@@ -114,17 +113,13 @@ class TestIPTables(unittest.TestCase):
         sleep(3)
 
         set_elements = get_set_elements(SET_NAME_IPV4)
-        self.assertEqual(
-            {i["value"] for i in decisions if i["value"] != "0.0.0.0"}, set_elements
-        )
+        self.assertEqual({i["value"] for i in decisions if i["value"] != "0.0.0.0"}, set_elements)
         self.assertEqual(len(set_elements), total_decisions - duplicate_decisions - 1)
         self.assertNotIn("0.0.0.0", set_elements)
 
     def test_decision_insertion_deletion_ipv6(self):
         total_decisions, duplicate_decisions = 100, 23
-        decisions = generate_n_decisions(
-            total_decisions, dup_count=duplicate_decisions, ipv4=False
-        )
+        decisions = generate_n_decisions(total_decisions, dup_count=duplicate_decisions, ipv4=False)
         self.lapi.ds.insert_decisions(decisions)
         sleep(3)
 
@@ -141,11 +136,7 @@ class TestIPTables(unittest.TestCase):
         set_elements = set(map(ip_address, set_elements))
         self.assertEqual(len(set_elements), total_decisions - duplicate_decisions - 1)
         self.assertEqual(
-            {
-                ip_address(i["value"])
-                for i in decisions
-                if ip_address(i["value"]) != ip_address("::1:0:3")
-            },
+            {ip_address(i["value"]) for i in decisions if ip_address(i["value"]) != ip_address("::1:0:3")},
             set_elements,
         )
         self.assertNotIn(ip_address("::1:0:3"), set_elements)

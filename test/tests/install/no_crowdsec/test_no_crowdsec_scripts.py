@@ -1,32 +1,25 @@
 import os
-import pexpect
 import re
-import yaml
 
+import pexpect
 import pytest
+import yaml
 
 BOUNCER = "crowdsec-firewall-bouncer"
 CONFIG = f"/etc/crowdsec/bouncers/{BOUNCER}.yaml"
 
 
-@pytest.mark.dependency()
+@pytest.mark.dependency
 def test_install_no_crowdsec(project_repo, bouncer_binary, must_be_root):
     c = pexpect.spawn("/usr/bin/sh", ["scripts/install.sh"], cwd=project_repo)
 
     c.expect(f"Installing {BOUNCER}")
     c.expect("iptables found")
     c.expect("nftables found")
-    c.expect(
-        re.escape(
-            "Found nftables (default) and iptables, which firewall "
-            "do you want to use (nftables/iptables)"
-        )
-    )
+    c.expect(re.escape("Found nftables (default) and iptables, which firewall do you want to use (nftables/iptables)"))
     c.sendline("nftables")
     c.expect("WARN.* cscli not found, you will need to generate an api key.")
-    c.expect(
-        f"WARN.* service not started. You need to get an API key and configure it in {CONFIG}"
-    )
+    c.expect(f"WARN.* service not started. You need to get an API key and configure it in {CONFIG}")
     c.expect(f"The {BOUNCER} service has been installed.")
     c.wait()
     assert c.terminated

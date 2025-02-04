@@ -3,13 +3,9 @@ from ipaddress import ip_address
 
 
 def run_cmd(*cmd, ignore_error=False, shell=False):
-    p = subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=shell
-    )
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, shell=shell)
     if not ignore_error and p.returncode:
-        raise SystemExit(
-            f"{cmd} exited with non-zero code with following logs:\n {p.stdout}"
-        )
+        raise SystemExit(f"{cmd} exited with non-zero code with following logs:\n {p.stdout}")
 
     return p.stdout
 

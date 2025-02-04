@@ -1,7 +1,6 @@
 import contextlib
 
 import pytest
-
 from pytest_cs import plugin
 
 # pytest_exception_interact = plugin.pytest_exception_interact
@@ -16,9 +15,7 @@ def bouncer_under_test():
 # Create a lapi container, register a bouncer and run it with the updated config.
 # - Return context manager that yields a tuple of (bouncer, lapi)
 @pytest.fixture(scope="session")
-def bouncer_with_lapi(
-    bouncer, crowdsec, fw_cfg_factory, api_key_factory: plugin.ApiKeyFactoryType
-):
+def bouncer_with_lapi(bouncer, crowdsec, fw_cfg_factory, api_key_factory: plugin.ApiKeyFactoryType):
     @contextlib.contextmanager
     def closure(config_lapi=None, config_bouncer=None, api_key=None):
         if config_bouncer is None:
