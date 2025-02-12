@@ -1,0 +1,107 @@
+[project]
+name = "cs-firewall-bouncer-tests"
+version = "0.1.0"
+description = "Tests for cs-firewall-bouncer"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask>=3.1.0",
+    "pexpect>=4.9.0",
+    "psutil>=6.1.1",
+    "pytest>=8.3.4",
+    "pytest-cs",
+    "pytest-dependency>=0.6.0",
+    "pytest-dotenv>=0.5.2",
+    "pytimeparse>=1.1.8",
+    "zxcvbn>=4.4.28",
+]
+
+[tool.uv.sources]
+pytest-cs = { git = "https://github.com/crowdsecurity/pytest-cs" }
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.26.0",
+    "ipdb>=0.13.13",
+    "ruff>=0.9.4",
+]
+
+#[tool.uv.sources]
+#pytest-cs = { path = "../../../pytest-cs", editable = true }
+
+
+[tool.ruff]
+
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+  "ALL"
+]
+
+ignore = [
+    "ANN",      # Missing type annotations
+    "A002",     # Function argument `id` is shadowing a Python builtin
+    "ARG001",   # Unused function argument: `...`
+    "COM812",   # Trailing comma missing
+    "D100",     # Missing docstring in public module
+    "D101",     # Missing docstring in public class
+    "D102",     # Missing docstring in public method
+    "D103",     # Missing docstring in public function
+    "D104",     # Missing docstring in public package
+    "D107",     # Missing docstring in __init__
+    "D203",     # incorrect-blank-line-before-class
+    "D212",     # Multi-line docstring summary should start at the first line
+    "D212",     # Multi-line docstring summary should start at the first line
+    "D400",     # First line should end with a period
+    "D415",     # First line should end with a period, question mark, or exclamation point
+    "DTZ005",   # `datetime.datetime.now()` called without a `tz` argument
+    "EM102",    # Exception must not use an f-string literal, assign to variable first
+    "ERA001",   # Found commented-out code
+    "FBT002",   # Boolean default positional argument in function definition
+    "FIX002",   # Line contains TODO, consider resolving the issue
+    "FIX003",   # Line contains XXX, consider resolving the issue
+    "N802",     # Function name `testLogging` should be lowercase
+    "PLW1510",  # `subprocess.run` without explicit `check` argument
+    "S101",     # Use of 'assert' detected
+    "S104",     # Possible binding to all interfaces
+    "S314",     # Using `xml` to parse untrusted data is known to be vulnerable to XML attacks; use `defusedxml` equivalents
+    "S603",     # `subprocess` call: check for execution of untrusted input
+    "S604",     # Function call with `shell=True` parameter identified, security issue
+    "S607",     # Starting a process with a partial executable path
+    "SIM108",   # Use ternary operator `...` instead of `if`-`else`-block
+    "TD001",    # Invalid TODO tag: `XXX`
+    "TD002",    # Missing author in TODO
+    "TD003",    # Missing issue link for this TODO
+    "TRY003",   # Avoid specifying long messages outside the exception class
+    "PLR2004",  # Magic value used in comparison, consider replacing `...` with a constant variable
+    "PLR0913",  # Too many arguments in function definition (6 > 5)
+    "PTH107",   # `os.remove()` should be replaced by `Path.unlink()`
+    "PTH108",   # `os.unlink()` should be replaced by `Path.unlink()`
+    "PTH110",   # `os.path.exists()` should be replaced by `Path.exists()`
+    "PTH116",   # `os.stat()` should be replaced by `Path.stat()`, `Path.owner()`, or `Path.group()`
+    "PTH120",   # `os.path.dirname()` should be replaced by `Path.parent`
+    "PTH123",   # `open()` should be replaced by `Path.open()`
+    "PT009",    # Use a regular `assert` instead of unittest-style `assertEqual`
+    "PT022",    # No teardown in fixture `fw_cfg_factory`, use `return` instead of `yield`
+    "TID252",   # Prefer absolute imports over relative imports from parent modules
+    "UP022",    # Prefer `capture_output` over sending `stdout` and `stderr` to `PIPE`
+]
+
+[tool.basedpyright]
+reportAny = "none"
+reportArgumentType = "none"
+reportAttributeAccessIssue = "none"
+reportImplicitOverride = "none"
+reportImplicitStringConcatenation = "none"
+reportMissingParameterType = "none"
+reportMissingTypeStubs = "none"
+reportOptionalMemberAccess = "none"
+reportUnannotatedClassAttribute = "none"
+reportUninitializedInstanceVariable = "none"
+reportUnknownArgumentType = "none"
+reportUnknownMemberType = "none"
+reportUnknownParameterType = "none"
+reportUnknownVariableType = "none"
+reportUnusedCallResult = "none"
+reportUnusedParameter = "none"
