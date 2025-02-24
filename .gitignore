@@ -34,3 +34,7 @@ venv/
 /rpm/RPMS
 /rpm/SOURCES/*.tar.gz
 /rpm/SRPMS
+
+# nix generated dirs
+.direnv
+.devenv
