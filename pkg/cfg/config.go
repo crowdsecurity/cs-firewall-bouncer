@@ -35,19 +35,20 @@ const (
 )
 
 type BouncerConfig struct {
-	Mode            string        `yaml:"mode"`    // ipset,iptables,tc
-	PidDir          string        `yaml:"pid_dir"` // unused
-	UpdateFrequency string        `yaml:"update_frequency"`
-	Daemon          *bool         `yaml:"daemonize"` // unused
-	Logging         LoggingConfig `yaml:",inline"`
-	DisableIPV6     bool          `yaml:"disable_ipv6"`
-	DenyAction      string        `yaml:"deny_action"`
-	DenyLog         bool          `yaml:"deny_log"`
-	DenyLogPrefix   string        `yaml:"deny_log_prefix"`
-	BlacklistsIpv4  string        `yaml:"blacklists_ipv4"`
-	BlacklistsIpv6  string        `yaml:"blacklists_ipv6"`
-	SetType         string        `yaml:"ipset_type"`
-	SetSize         int           `yaml:"ipset_size"`
+	Mode               string        `yaml:"mode"`    // ipset,iptables,tc
+	PidDir             string        `yaml:"pid_dir"` // unused
+	UpdateFrequency    string        `yaml:"update_frequency"`
+	Daemon             *bool         `yaml:"daemonize"` // unused
+	Logging            LoggingConfig `yaml:",inline"`
+	DisableIPV6        bool          `yaml:"disable_ipv6"`
+	DenyAction         string        `yaml:"deny_action"`
+	DenyLog            bool          `yaml:"deny_log"`
+	DenyLogPrefix      string        `yaml:"deny_log_prefix"`
+	BlacklistsIpv4     string        `yaml:"blacklists_ipv4"`
+	BlacklistsIpv6     string        `yaml:"blacklists_ipv6"`
+	SetType            string        `yaml:"ipset_type"`
+	SetSize            int           `yaml:"ipset_size"`
+	SetDisableTimeouts bool          `yaml:"ipset_disable_timeouts"`
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
