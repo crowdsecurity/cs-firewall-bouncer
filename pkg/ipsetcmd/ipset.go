@@ -36,7 +36,7 @@ func NewIPSet(setName string) (*IPSet, error) {
 	}, nil
 }
 
-// Wraps all the ipset commands
+// Wraps all the ipset commands.
 func (i *IPSet) Create(opts CreateOptions) error {
 	cmdArgs := []string{"create", i.setName}
 
@@ -229,7 +229,7 @@ func (i *IPSet) Len() int {
 	return 0
 }
 
-// Helpers
+// Helpers.
 func GetSetsStartingWith(name string) (map[string]*IPSet, error) {
 	cmd := exec.Command(ipsetBinary, "list", "-name")
 

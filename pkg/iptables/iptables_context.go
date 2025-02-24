@@ -313,7 +313,7 @@ func (ctx *ipTablesContext) commit() error {
 			}
 		}
 
-		addCmd := ""
+		var addCmd string
 		if ctx.ipsetDisableTimeouts {
 			addCmd = fmt.Sprintf("add %s %s -exist\n", set.Name(), *decision.Value)
 		} else {
