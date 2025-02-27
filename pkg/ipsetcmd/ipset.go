@@ -16,10 +16,11 @@ type IPSet struct {
 }
 
 type CreateOptions struct {
-	Timeout string
-	MaxElem string
-	Family  string
-	Type    string
+	Timeout         string
+	MaxElem         string
+	Family          string
+	Type            string
+	DisableTimeouts bool
 }
 
 const ipsetBinary = "ipset"
@@ -35,8 +36,7 @@ func NewIPSet(setName string) (*IPSet, error) {
 	}, nil
 }
 
-//Wraps all the ipset commands
-
+// Wraps all the ipset commands.
 func (i *IPSet) Create(opts CreateOptions) error {
 	cmdArgs := []string{"create", i.setName}
 
@@ -44,7 +44,7 @@ func (i *IPSet) Create(opts CreateOptions) error {
 		cmdArgs = append(cmdArgs, opts.Type)
 	}
 
-	if opts.Timeout != "" {
+	if opts.Timeout != "" && !opts.DisableTimeouts {
 		cmdArgs = append(cmdArgs, "timeout", opts.Timeout)
 	}
 
@@ -61,7 +61,6 @@ func (i *IPSet) Create(opts CreateOptions) error {
 	log.Debugf("ipset create command: %v", cmd.String())
 
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error creating ipset: %s", out)
 	}
@@ -74,7 +73,6 @@ func (i *IPSet) Add(entry string) error {
 
 	log.Debugf("ipset add command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error creating ipset: %s", out)
 	}
@@ -87,7 +85,6 @@ func (i *IPSet) DeleteEntry(entry string) error {
 
 	log.Debugf("ipset delete entry command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error creating ipset: %s", out)
 	}
@@ -100,7 +97,6 @@ func (i *IPSet) List() ([]string, error) {
 
 	log.Debugf("ipset list command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return nil, fmt.Errorf("error listing ipset: %s", out)
 	}
@@ -113,7 +109,6 @@ func (i *IPSet) Flush() error {
 
 	log.Debugf("ipset flush command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error flushing ipset: %s", out)
 	}
@@ -126,7 +121,6 @@ func (i *IPSet) Destroy() error {
 
 	log.Debugf("ipset destroy command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error destroying ipset: %s", out)
 	}
@@ -139,7 +133,6 @@ func (i *IPSet) Rename(toSetName string) error {
 
 	log.Debugf("ipset rename command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error renaming ipset: %s", out)
 	}
@@ -154,7 +147,6 @@ func (i *IPSet) Test(entry string) error {
 
 	log.Debugf("ipset test command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error testing ipset: %s", out)
 	}
@@ -167,7 +159,6 @@ func (i *IPSet) Save() ([]string, error) {
 
 	log.Debugf("ipset save command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return nil, fmt.Errorf("error saving ipset: %s", out)
 	}
@@ -179,7 +170,6 @@ func (i *IPSet) Restore(filename string) error {
 
 	log.Debugf("ipset restore command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error restoring ipset: %s", out)
 	}
@@ -192,7 +182,6 @@ func (i *IPSet) Swap(toSetName string) error {
 
 	log.Debugf("ipset swap command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return fmt.Errorf("error swapping ipset: %s", out)
 	}
@@ -219,7 +208,6 @@ func (i *IPSet) Len() int {
 
 	log.Debugf("ipset list command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return 0
 	}
@@ -241,14 +229,12 @@ func (i *IPSet) Len() int {
 	return 0
 }
 
-//Helpers
-
+// Helpers.
 func GetSetsStartingWith(name string) (map[string]*IPSet, error) {
 	cmd := exec.Command(ipsetBinary, "list", "-name")
 
 	log.Debugf("ipset list command: %v", cmd.String())
 	out, err := cmd.CombinedOutput()
-
 	if err != nil {
 		return nil, fmt.Errorf("error listing ipset: %s", out)
 	}

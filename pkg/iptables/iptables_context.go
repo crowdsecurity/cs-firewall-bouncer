@@ -18,30 +18,35 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/ipsetcmd"
 )
 
-const chainName = "CROWDSEC_CHAIN"
-const loggingChainName = "CROWDSEC_LOG"
+const (
+	chainName        = "CROWDSEC_CHAIN"
+	loggingChainName = "CROWDSEC_LOG"
+	maxBanSeconds    = 2147483
+	defaultTimeout   = "300"
+)
 
 type ipTablesContext struct {
-	version          string
-	iptablesBin      string
-	iptablesSaveBin  string
-	SetName          string // crowdsec-netfilter
-	SetType          string
-	SetSize          int
-	ipsetContentOnly bool
-	Chains           []string
+	version              string
+	iptablesBin          string
+	iptablesSaveBin      string
+	SetName              string // crowdsec-netfilter
+	SetType              string
+	SetSize              int
+	ipsetContentOnly     bool
+	ipsetDisableTimeouts bool
+	Chains               []string
 
 	target string
 
 	ipsets     map[string]*ipsetcmd.IPSet
-	defaultSet *ipsetcmd.IPSet //This one is only used to restore the content, as the file will contain the name of the set for each decision
+	defaultSet *ipsetcmd.IPSet // This one is only used to restore the content, as the file will contain the name of the set for each decision
 
 	toAdd []*models.Decision
 	toDel []*models.Decision
 
-	//To avoid issues with set name length (ipsest name length is limited to 31 characters)
-	//Store the origin of the decisions, and use the index in the slice as the name
-	//This is not stable (ie, between two runs, the index of a set can change), but it's (probably) not an issue
+	// To avoid issues with set name length (ipsest name length is limited to 31 characters)
+	// Store the origin of the decisions, and use the index in the slice as the name
+	// This is not stable (ie, between two runs, the index of a set can change), but it's (probably) not an issue
 	originSetMapping []string
 
 	loggingEnabled bool
@@ -113,7 +118,6 @@ func (ctx *ipTablesContext) setupChain() {
 }
 
 func (ctx *ipTablesContext) deleteChain() {
-
 	for _, chain := range ctx.Chains {
 
 		cmd := []string{"-D", chain, "-j", chainName}
@@ -189,9 +193,7 @@ func (ctx *ipTablesContext) createRule(setName string) {
 }
 
 func (ctx *ipTablesContext) commit() error {
-
 	tmpFile, err := os.CreateTemp("", "cs-firewall-bouncer-ipset-")
-
 	if err != nil {
 		return err
 	}
@@ -209,9 +211,9 @@ func (ctx *ipTablesContext) commit() error {
 		var set *ipsetcmd.IPSet
 		var ok bool
 
-		//Decisions coming from lists will have "lists" as origin, and the scenario will be the list name
-		//We use those to build a custom origin because we want to track metrics per list
-		//In case of other origin (crowdsec, cscli, ...), we do not really care about the scenario, it would be too noisy
+		// Decisions coming from lists will have "lists" as origin, and the scenario will be the list name
+		// We use those to build a custom origin because we want to track metrics per list
+		// In case of other origin (crowdsec, cscli, ...), we do not really care about the scenario, it would be too noisy
 		origin := *decision.Origin
 		if origin == "lists" {
 			origin = origin + ":" + *decision.Scenario
@@ -222,7 +224,7 @@ func (ctx *ipTablesContext) commit() error {
 		} else {
 			set, ok = ctx.ipsets[origin]
 			if !ok {
-				//No set for this origin, skip, as there's nothing to delete
+				// No set for this origin, skip, as there's nothing to delete
 				continue
 			}
 		}
@@ -232,7 +234,6 @@ func (ctx *ipTablesContext) commit() error {
 		log.Debugf("%s", delCmd)
 
 		_, err = tmpFile.WriteString(delCmd)
-
 		if err != nil {
 			log.Errorf("error while writing to temp file : %s", err)
 			continue
@@ -249,9 +250,9 @@ func (ctx *ipTablesContext) commit() error {
 		var set *ipsetcmd.IPSet
 		var ok bool
 
-		if banDuration.Seconds() > 2147483 {
-			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is 2147483, setting duration to 2147482", int(banDuration.Seconds()))
-			banDuration = time.Duration(2147482) * time.Second
+		if banDuration.Seconds() > maxBanSeconds {
+			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is %d, setting duration to %d", int(banDuration.Seconds()), maxBanSeconds, maxBanSeconds-1)
+			banDuration = time.Duration(maxBanSeconds-1) * time.Second
 		}
 
 		origin := *decision.Origin
@@ -279,7 +280,6 @@ func (ctx *ipTablesContext) commit() error {
 				log.Infof("Using %s as set for origin %s", setName, origin)
 
 				set, err = ipsetcmd.NewIPSet(setName)
-
 				if err != nil {
 					log.Errorf("error while creating ipset : %s", err)
 					continue
@@ -292,13 +292,13 @@ func (ctx *ipTablesContext) commit() error {
 				}
 
 				err = set.Create(ipsetcmd.CreateOptions{
-					Family:  family,
-					Timeout: "300",
-					MaxElem: strconv.Itoa(ctx.SetSize),
-					Type:    ctx.SetType,
+					Family:          family,
+					Timeout:         defaultTimeout,
+					MaxElem:         strconv.Itoa(ctx.SetSize),
+					Type:            ctx.SetType,
+					DisableTimeouts: ctx.ipsetDisableTimeouts,
 				})
-
-				//Ignore errors if the set already exists
+				// Ignore errors if the set already exists
 				if err != nil {
 					log.Errorf("error while creating ipset : %s", err)
 					continue
@@ -307,18 +307,22 @@ func (ctx *ipTablesContext) commit() error {
 				ctx.ipsets[origin] = set
 
 				if !ctx.ipsetContentOnly {
-					//Create the rule to use the set
+					// Create the rule to use the set
 					ctx.createRule(set.Name())
 				}
 			}
 		}
 
-		addCmd := fmt.Sprintf("add %s %s timeout %d -exist\n", set.Name(), *decision.Value, int(banDuration.Seconds()))
+		var addCmd string
+		if ctx.ipsetDisableTimeouts {
+			addCmd = fmt.Sprintf("add %s %s -exist\n", set.Name(), *decision.Value)
+		} else {
+			addCmd = fmt.Sprintf("add %s %s timeout %d -exist\n", set.Name(), *decision.Value, int(banDuration.Seconds()))
+		}
 
 		log.Debugf("%s", addCmd)
 
 		_, err = tmpFile.WriteString(addCmd)
-
 		if err != nil {
 			log.Errorf("error while writing to temp file : %s", err)
 			continue
@@ -337,15 +341,14 @@ func (ctx *ipTablesContext) add(decision *models.Decision) {
 }
 
 func (ctx *ipTablesContext) shutDown() error {
-
-	//Remove rules
+	// Remove rules
 	if !ctx.ipsetContentOnly {
 		ctx.deleteChain()
 	}
 
 	time.Sleep(1 * time.Second)
 
-	//Clean sets
+	// Clean sets
 	for _, set := range ctx.ipsets {
 		if ctx.ipsetContentOnly {
 			err := set.Flush()
@@ -361,7 +364,7 @@ func (ctx *ipTablesContext) shutDown() error {
 	}
 
 	if !ctx.ipsetContentOnly {
-		//In case we are starting, just reset the map
+		// In case we are starting, just reset the map
 		ctx.ipsets = make(map[string]*ipsetcmd.IPSet)
 	}
 
