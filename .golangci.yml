@@ -102,7 +102,6 @@ linters:
     #
     # DEPRECATED by golangi-lint
     #
-    - execinquery
     - exportloopref
 
     #
@@ -131,7 +130,6 @@ linters:
     # Recommended? (requires some work)
     #
 
-    - gomnd                 # An analyzer to detect magic numbers.
     - ireturn               # Accept Interfaces, Return Concrete Types
     - mnd                   # An analyzer to detect magic numbers.
     - unparam               # Reports unused function parameters

@@ -34,7 +34,6 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret := &iptables{}
 
 	defaultSet, err := ipsetcmd.NewIPSet("")
-
 	if err != nil {
 		return nil, err
 	}
@@ -56,28 +55,30 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	v6Sets := make(map[string]*ipsetcmd.IPSet)
 
 	ipv4Ctx := &ipTablesContext{
-		version:         "v4",
-		SetName:         config.BlacklistsIpv4,
-		SetType:         config.SetType,
-		SetSize:         config.SetSize,
-		Chains:          []string{},
-		defaultSet:      defaultSet,
-		target:          target,
-		loggingEnabled:  config.DenyLog,
-		loggingPrefix:   config.DenyLogPrefix,
-		addRuleComments: config.IptablesAddRuleComments,
+		version:              "v4",
+		SetName:              config.BlacklistsIpv4,
+		SetType:              config.SetType,
+		SetSize:              config.SetSize,
+		ipsetDisableTimeouts: config.SetDisableTimeouts,
+		Chains:               []string{},
+		defaultSet:           defaultSet,
+		target:               target,
+		loggingEnabled:       config.DenyLog,
+		loggingPrefix:        config.DenyLogPrefix,
+		addRuleComments:      config.IptablesAddRuleComments,
 	}
 	ipv6Ctx := &ipTablesContext{
-		version:         "v6",
-		SetName:         config.BlacklistsIpv6,
-		SetType:         config.SetType,
-		SetSize:         config.SetSize,
-		Chains:          []string{},
-		defaultSet:      defaultSet,
-		target:          target,
-		loggingEnabled:  config.DenyLog,
-		loggingPrefix:   config.DenyLogPrefix,
-		addRuleComments: config.IptablesAddRuleComments,
+		version:              "v6",
+		SetName:              config.BlacklistsIpv6,
+		SetType:              config.SetType,
+		SetSize:              config.SetSize,
+		ipsetDisableTimeouts: config.SetDisableTimeouts,
+		Chains:               []string{},
+		defaultSet:           defaultSet,
+		target:               target,
+		loggingEnabled:       config.DenyLog,
+		loggingPrefix:        config.DenyLogPrefix,
+		addRuleComments:      config.IptablesAddRuleComments,
 	}
 
 	ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
@@ -98,8 +99,8 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			return nil, errors.New("unable to find iptables")
 		}
 
-		//Try to "adopt" any leftover sets from a previous run if we crashed
-		//They will get flushed/deleted just after
+		// Try to "adopt" any leftover sets from a previous run if we crashed
+		// They will get flushed/deleted just after
 		v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
 		v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
 

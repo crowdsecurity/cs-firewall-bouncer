@@ -73,6 +73,8 @@ func getStateIPs() (map[string]bool, error) {
 			continue
 		}
 
+		// don't bother to parse the direction, we'll block both anyway
+
 		// right side
 		ip := fields[4]
 		if strings.Contains(ip, ":") {
@@ -120,11 +122,18 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 		return fmt.Errorf("error while getting state IPs: %w", err)
 	}
 
-	// Reset the states of connections coming from an IP if it's both in stateIPs and bannedIPs
+	// Reset the states of connections coming from or going to an IP if it's both in stateIPs and bannedIPs
 
 	for ip := range bannedIPs {
 		if stateIPs[ip] {
+			// incoming
 			cmd := execPfctl("", "-k", ip)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				log.Errorf("Error while flushing state (%s): %v --> %s", cmd, err, out)
+			}
+
+			// outgoing
+			cmd = execPfctl("", "-k", "0.0.0.0/0", "-k", ip)
 			if out, err := cmd.CombinedOutput(); err != nil {
 				log.Errorf("Error while flushing state (%s): %v --> %s", cmd, err, out)
 			}

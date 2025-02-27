@@ -25,7 +25,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version-file: go.mod
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
@@ -39,7 +39,7 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.61
+        version: v1.62
         args: --issues-exit-code=1 --timeout 10m
         only-new-issues: false
 
