@@ -81,7 +81,9 @@ func MergedConfig(configPath string) ([]byte, error) {
 }
 
 func NewConfig(reader io.Reader) (*BouncerConfig, error) {
-	config := &BouncerConfig{}
+	config := &BouncerConfig{
+		IptablesAddRuleComments: true,
+	}
 
 	fcontent, err := io.ReadAll(reader)
 	if err != nil {
