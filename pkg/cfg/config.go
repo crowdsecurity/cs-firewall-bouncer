@@ -52,6 +52,8 @@ type BouncerConfig struct {
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
+	IptablesAddRuleComments bool     `yaml:"iptables_add_rule_comments"`
+
 	SupportedDecisionsTypes []string `yaml:"supported_decisions_types"`
 	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
 	Nftables struct {
@@ -79,7 +81,9 @@ func MergedConfig(configPath string) ([]byte, error) {
 }
 
 func NewConfig(reader io.Reader) (*BouncerConfig, error) {
-	config := &BouncerConfig{}
+	config := &BouncerConfig{
+		IptablesAddRuleComments: true,
+	}
 
 	fcontent, err := io.ReadAll(reader)
 	if err != nil {
