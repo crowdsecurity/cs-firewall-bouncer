@@ -16,32 +16,31 @@ jobs:
       security-events: write
 
     steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: go.mod
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go, python
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: go, python
+      - name: Build
+        run: |
+          make build
 
-    - name: Build
-      run: |
-        make build
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.0
+          args: --issues-exit-code=1 --timeout 10m
+          only-new-issues: false
 
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: v1.62
-        args: --issues-exit-code=1 --timeout 10m
-        only-new-issues: false
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
