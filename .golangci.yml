@@ -98,8 +98,6 @@ linters:
           disabled: true
         - name: exported
           disabled: true
-        - name: unexported-naming
-          disabled: true
         - name: unexported-return
           disabled: true
         - name: unhandled-error
@@ -107,8 +105,6 @@ linters:
             - fmt.Print
             - fmt.Printf
             - fmt.Println
-          disabled: true
-        - name: unused-receiver
           disabled: true
         - name: function-result-limit
           arguments:
