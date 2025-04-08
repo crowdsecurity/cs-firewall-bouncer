@@ -42,7 +42,7 @@ type metricConfig struct {
 	KeyFunc      func(labels []*io_prometheus_client.LabelPair) string
 }
 
-type metricMap map[metricName]metricConfig
+type metricMap map[metricName]*metricConfig
 
 func (m metricMap) MustRegisterAll() {
 	for _, met := range m {
@@ -174,7 +174,11 @@ func (m Handler) MetricsUpdater(met *models.RemediationComponentsMetrics, update
 				// the final value to send must be relative, and never negative
 				// because the firewall counter may have been reset since last collection.
 				key := cfg.KeyFunc(labels)
+
+				// no need to guard access to LastValueMap, as we are in the main thread -- it's
+				// the gauge that is updated by the requests
 				finalValue = value - cfg.LastValueMap[key]
+
 				if finalValue < 0 {
 					finalValue = -finalValue
 					log.Warningf("metric value for %s %+v is negative, assuming external counter was reset", cfg.Name, labelMap)
