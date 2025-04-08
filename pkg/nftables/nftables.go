@@ -236,11 +236,7 @@ func (n *nft) commitAddedDecisions() error {
 		return err
 	}
 
-	if err := n.v6.addElements(ip6); err != nil {
-		return err
-	}
-
-	return nil
+	return n.v6.addElements(ip6)
 }
 
 func (n *nft) Commit() error {
@@ -250,11 +246,7 @@ func (n *nft) Commit() error {
 		return err
 	}
 
-	if err := n.commitAddedDecisions(); err != nil {
-		return err
-	}
-
-	return nil
+	return n.commitAddedDecisions()
 }
 
 type tmpDecisions struct {
@@ -311,9 +303,5 @@ func (n *nft) ShutDown() error {
 		return err
 	}
 
-	if err := n.v6.shutDown(); err != nil {
-		return err
-	}
-
-	return nil
+	return n.v6.shutDown()
 }

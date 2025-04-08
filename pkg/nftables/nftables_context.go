@@ -397,9 +397,5 @@ func (c *nftContext) shutDown() error {
 		c.conn.DelTable(c.table)
 	}
 
-	if err := c.conn.Flush(); err != nil {
-		return err
-	}
-
-	return nil
+	return c.conn.Flush()
 }

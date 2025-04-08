@@ -86,8 +86,6 @@ linters:
           disabled: true
         - name: function-length
           disabled: true
-        - name: if-return
-          disabled: true
         - name: import-alias-naming
           disabled: true
         - name: import-shadowing
