@@ -203,10 +203,13 @@ func (m metricsHandler) metricsUpdater(met *models.RemediationComponentsMetrics,
 				origin := getLabelValue(labels, "origin")
 				ipType := getLabelValue(labels, "ip_type")
 				key := origin + ipType
-				log.Debugf("Sending dropped bytes for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, value-metrics.LastDroppedBytesValue[key], value, metrics.LastDroppedBytesValue[key])
+				// The firewall counter may have been reset since laste collection.
+				// In this case, don't register a negative value.
+				newValue := max(0, value-metrics.LastDroppedBytesValue[key])
+				log.Debugf("Sending dropped bytes for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, newValue, value, metrics.LastDroppedBytesValue[key])
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("dropped"),
-					Value: ptr.Of(value - metrics.LastDroppedBytesValue[key]),
+					Value: &newValue,
 					Labels: map[string]string{
 						"origin":  origin,
 						"ip_type": ipType,
@@ -220,10 +223,11 @@ func (m metricsHandler) metricsUpdater(met *models.RemediationComponentsMetrics,
 				origin := getLabelValue(labels, "origin")
 				ipType := getLabelValue(labels, "ip_type")
 				key := origin + ipType
-				log.Debugf("Sending dropped packets for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, value-metrics.LastDroppedPacketsValue[key], value, metrics.LastDroppedPacketsValue[key])
+				newValue := max(0, value-metrics.LastDroppedPacketsValue[key])
+				log.Debugf("Sending dropped packets for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, newValue, value, metrics.LastDroppedPacketsValue[key])
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("dropped"),
-					Value: ptr.Of(value - metrics.LastDroppedPacketsValue[key]),
+					Value: &newValue,
 					Labels: map[string]string{
 						"origin":  origin,
 						"ip_type": ipType,
@@ -235,10 +239,11 @@ func (m metricsHandler) metricsUpdater(met *models.RemediationComponentsMetrics,
 				labels := metric.GetLabel()
 				value := metric.GetGauge().GetValue()
 				ipType := getLabelValue(labels, "ip_type")
-				log.Debugf("Sending processed bytes for %s %f | current value: %f | previous value: %f\n", ipType, value-metrics.LastProcessedBytesValue[ipType], value, metrics.LastProcessedBytesValue[ipType])
+				newValue := max(0, value-metrics.LastProcessedBytesValue[ipType])
+				log.Debugf("Sending processed bytes for %s %f | current value: %f | previous value: %f\n", ipType, newValue, value, metrics.LastProcessedBytesValue[ipType])
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("processed"),
-					Value: ptr.Of(value - metrics.LastProcessedBytesValue[ipType]),
+					Value: &newValue,
 					Labels: map[string]string{
 						"ip_type": ipType,
 					},
@@ -249,10 +254,11 @@ func (m metricsHandler) metricsUpdater(met *models.RemediationComponentsMetrics,
 				labels := metric.GetLabel()
 				value := metric.GetGauge().GetValue()
 				ipType := getLabelValue(labels, "ip_type")
-				log.Debugf("Sending processed packets for %s %f | current value: %f | previous value: %f\n", ipType, value-metrics.LastProcessedPacketsValue[ipType], value, metrics.LastProcessedPacketsValue[ipType])
+				newValue := max(0, value-metrics.LastProcessedPacketsValue[ipType])
+				log.Debugf("Sending processed packets for %s %f | current value: %f | previous value: %f\n", ipType, newValue, value, metrics.LastProcessedPacketsValue[ipType])
 				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
 					Name:  ptr.Of("processed"),
-					Value: ptr.Of(value - metrics.LastProcessedPacketsValue[ipType]),
+					Value: &newValue,
 					Labels: map[string]string{
 						"ip_type": ipType,
 					},
