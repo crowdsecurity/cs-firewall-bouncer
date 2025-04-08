@@ -105,7 +105,6 @@ linters:
             - fmt.Print
             - fmt.Printf
             - fmt.Println
-          disabled: true
         - name: function-result-limit
           arguments:
             - 5
@@ -121,9 +120,6 @@ linters:
       - legacy
       - std-error-handling
     rules:
-      - linters:
-          - errcheck
-        text: Error return value of `.*` is not checked
       - linters:
           - perfsprint
         text: fmt.Sprintf can be replaced .*
