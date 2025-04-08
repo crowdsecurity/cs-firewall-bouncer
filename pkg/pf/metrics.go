@@ -97,9 +97,6 @@ func (pf *pf) countIPs(table string) int {
 // In pf mode the firewall rules are not controlled by the bouncer, so we can only
 // trust they are set up correctly, and retrieve stats from the pfctl tables.
 func (pf *pf) CollectMetrics() {
-	droppedPackets := float64(0)
-	droppedBytes := float64(0)
-
 	tables := []string{}
 
 	if pf.inet != nil {
@@ -120,7 +117,6 @@ func (pf *pf) CollectMetrics() {
 
 	reader := strings.NewReader(string(out))
 	stats := parseMetrics(reader, tables)
-	bannedIPs := 0
 
 	for _, table := range tables {
 		st, ok := stats[table]
@@ -128,13 +124,20 @@ func (pf *pf) CollectMetrics() {
 			continue
 		}
 
-		droppedPackets += float64(st.packets)
-		droppedBytes += float64(st.bytes)
+		droppedPackets := float64(st.packets)
+		droppedBytes := float64(st.bytes)
+		bannedIPs := pf.countIPs(table)
 
-		bannedIPs += pf.countIPs(table)
+		if pf.inet != nil && table == pf.inet.table {
+			metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
+			metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
+		}
+
+		if pf.inet6 != nil && table == pf.inet6.table {
+			metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
+			metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
+			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
+		}
 	}
-
-	metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
-	metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
-	metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
 }

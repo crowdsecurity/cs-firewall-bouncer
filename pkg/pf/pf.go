@@ -66,7 +66,7 @@ func execPfctl(anchor string, arg ...string) *exec.Cmd {
 		arg = append([]string{"-a", anchor}, arg...)
 	}
 
-	log.Tracef("Running: %s %s", pfctlCmd, arg)
+	log.Debugf("Running: %s %s", pfctlCmd, arg)
 
 	return exec.Command(pfctlCmd, arg...)
 }
