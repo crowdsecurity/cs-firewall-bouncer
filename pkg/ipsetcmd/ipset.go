@@ -213,17 +213,21 @@ func (i *IPSet) Len() int {
 	}
 
 	for _, line := range strings.Split(string(out), "\n") {
-		if strings.Contains(strings.ToLower(line), "number of entries:") {
-			fields := strings.Split(line, ":")
-			if len(fields) != 2 {
-				continue
-			}
-			count, err := strconv.Atoi(strings.TrimSpace(fields[1]))
-			if err != nil {
-				return 0
-			}
-			return count
+		if !strings.Contains(strings.ToLower(line), "number of entries:") {
+			continue
 		}
+
+		fields := strings.Split(line, ":")
+		if len(fields) != 2 {
+			continue
+		}
+
+		count, err := strconv.Atoi(strings.TrimSpace(fields[1]))
+		if err != nil {
+			return 0
+		}
+
+		return count
 	}
 
 	return 0
@@ -242,17 +246,21 @@ func GetSetsStartingWith(name string) (map[string]*IPSet, error) {
 	sets := make(map[string]*IPSet, 0)
 
 	for _, line := range strings.Split(string(out), "\n") {
-		if strings.HasPrefix(line, name) {
-			fields := strings.Fields(line)
-			if len(fields) != 1 {
-				continue
-			}
-			set, err := NewIPSet(fields[0])
-			if err != nil {
-				return nil, err
-			}
-			sets[fields[0]] = set
+		if !strings.HasPrefix(line, name) {
+			continue
 		}
+
+		fields := strings.Fields(line)
+		if len(fields) != 1 {
+			continue
+		}
+
+		set, err := NewIPSet(fields[0])
+		if err != nil {
+			return nil, err
+		}
+
+		sets[fields[0]] = set
 	}
 
 	return sets, nil

@@ -45,7 +45,6 @@ linters:
       disabled-checks:
         - appendCombine
         - commentFormatting
-        - nestingReduce
         - paramTypeCombine
         - sloppyReassign
         - unnamedResult
