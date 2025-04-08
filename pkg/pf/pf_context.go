@@ -92,7 +92,7 @@ func getStateIPs() (map[string]bool, error) {
 		ret[ip] = true
 	}
 
-	log.Tracef("Found IPs in state table: %v", len(ret))
+	log.Debugf("Found IPs in state table: %v", len(ret))
 
 	return ret, nil
 }
@@ -111,11 +111,11 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 	}
 
 	if len(bannedIPs) == 0 {
-		log.Tracef("No new banned IPs")
+		log.Debugf("No new banned IPs")
 		return nil
 	}
 
-	log.Tracef("New banned IPs: %v", bannedIPs)
+	log.Debugf("New banned IPs: %v", bannedIPs)
 
 	stateIPs, err := getStateIPs()
 	if err != nil {
