@@ -217,11 +217,11 @@ func Execute() error {
 		return errors.New("bouncer stream halted")
 	})
 
-	mHandler := metricsHandler{
-		backend: backend,
+	mHandler := metrics.Handler{
+		Backend: backend,
 	}
 
-	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, mHandler.metricsUpdater, log.StandardLogger())
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, mHandler.MetricsUpdater, log.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("unable to create metrics provider: %w", err)
 	}
@@ -231,13 +231,13 @@ func Execute() error {
 	})
 
 	if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
-		prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs, metrics.TotalProcessedBytes, metrics.TotalProcessedPackets)
+		metrics.Map.MustRegisterAll()
 	}
 
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 	if config.PrometheusConfig.Enabled {
 		go func() {
-			http.Handle("/metrics", mHandler.computeMetricsHandler(promhttp.Handler()))
+			http.Handle("/metrics", mHandler.ComputeMetricsHandler(promhttp.Handler()))
 
 			listenOn := net.JoinHostPort(
 				config.PrometheusConfig.ListenAddress,
