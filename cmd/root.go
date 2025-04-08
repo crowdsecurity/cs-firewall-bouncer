@@ -288,7 +288,7 @@ func Execute() error {
 	flag.Parse()
 
 	if *bouncerVersion {
-		fmt.Print(version.FullString())
+		fmt.Fprint(os.Stdout, version.FullString())
 		return nil
 	}
 
@@ -302,7 +302,7 @@ func Execute() error {
 	}
 
 	if *showConfig {
-		fmt.Println(string(configMerged))
+		fmt.Fprintln(os.Stdout, string(configMerged))
 		return nil
 	}
 

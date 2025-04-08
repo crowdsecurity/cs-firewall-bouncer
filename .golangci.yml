@@ -7,12 +7,10 @@ linters:
     - dupl
     - err113
     - exhaustruct
-    - forbidigo
     - funlen
     - gochecknoglobals
     - gocognit
     - goconst
-    - gocritic
     - gocyclo
     - godox
     - gosec
@@ -38,6 +36,20 @@ linters:
           deny:
             - pkg: github.com/pkg/errors
               desc: errors.Wrap() is deprecated in favor of fmt.Errorf()
+
+    errcheck:
+      check-type-assertions: false
+
+    gocritic:
+      enable-all: true
+      disabled-checks:
+        - appendCombine
+        - commentFormatting
+        - nestingReduce
+        - paramTypeCombine
+        - sloppyReassign
+        - unnamedResult
+
     govet:
       disable:
         - fieldalignment
@@ -108,11 +120,6 @@ linters:
             - 5
     staticcheck:
       checks:
-        - -ST1003
-        - -ST1005
-        - -ST1012
-        - -ST1016
-        - -ST1022
         - all
     wsl:
       allow-trailing-comment: true
