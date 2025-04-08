@@ -313,7 +313,7 @@ func Execute() error {
 		return fmt.Errorf("unable to load configuration: %w", err)
 	}
 
-	if *verbose && log.GetLevel() < log.DebugLevel {
+	if *verbose && !log.IsLevelEnabled(log.DebugLevel) {
 		log.SetLevel(log.DebugLevel)
 	}
 
