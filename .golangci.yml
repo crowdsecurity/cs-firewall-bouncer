@@ -94,8 +94,6 @@ linters:
           disabled: true
         - name: nested-structs
           disabled: true
-        - name: redundant-build-tag
-          disabled: true
         - name: var-declaration
           disabled: true
         - name: exported
