@@ -1,185 +1,157 @@
-# see https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
-
-linters-settings:
-  gci:
-    sections:
-     - standard
-     - default
-     - prefix(github.com/crowdsecurity)
-     - prefix(github.com/crowdsecurity/crowdsec)
-     - prefix(github.com/crowdsecurity/cs-firewall-bouncer)
-
-  govet:
-    enable-all: true
-    disable:
-     - reflectvaluecompare
-     - fieldalignment
-
-  misspell:
-    locale: US
-
-  nlreturn:
-    block-size: 4
-
-  nolintlint:
-    allow-unused: false # report any unused nolint directives
-    require-explanation: false # don't require an explanation for nolint directives
-    require-specific: false # don't require nolint directives to be specific about which linter is being skipped
-
-  depguard:
-    rules:
-      main:
-        deny:
-          - pkg: "github.com/pkg/errors"
-            desc: "errors.Wrap() is deprecated in favor of fmt.Errorf()"
-
-  stylecheck:
-    checks:
-    - all
-    - -ST1003   # should not use underscores in Go names; ...
-    - -ST1005   # error strings should not be capitalized
-    - -ST1012   # error var ... should have name of the form ErrFoo
-    - -ST1016   # methods on the same type should have the same receiver name
-    - -ST1022   # comment on exported var ... should be of the form ...
-
-  revive:
-    ignore-generated-header: true
-    severity: error
-    enable-all-rules: true
-    rules:
-      - name: add-constant
-        disabled: true
-      - name: cognitive-complexity
-        disabled: true
-      - name: comment-spacings
-        disabled: true
-      - name: confusing-results
-        disabled: true
-      - name: cyclomatic
-        disabled: true
-      - name: empty-lines
-        disabled: true
-      - name: flag-parameter
-        disabled: true
-      - name: function-length
-        disabled: true
-      - name: if-return
-        disabled: true
-      - name: import-alias-naming
-        disabled: true
-      - name: import-shadowing
-        disabled: true
-      - name: line-length-limit
-        disabled: true
-      - name: nested-structs
-        disabled: true
-      - name: var-declaration
-        disabled: true
-      - name: exported
-        disabled: true
-      - name: unexported-naming
-        disabled: true
-      - name: unexported-return
-        disabled: true
-      - name: unhandled-error
-        disabled: true
-        arguments:
-          - "fmt.Print"
-          - "fmt.Printf"
-          - "fmt.Println"
-      - name: unused-receiver
-        disabled: true
-      - name: function-result-limit
-        arguments:
-          - 5
-  wsl:
-    # Allow blocks to end with comments
-    allow-trailing-comment: true
+version: "2"
 
 linters:
-  enable-all: true
+  default: all
   disable:
-    #
-    # DEPRECATED by golangi-lint
-    #
-    - exportloopref
+    - cyclop
+    - dupl
+    - err113
+    - exhaustruct
+    - forbidigo
+    - funlen
+    - gochecknoglobals
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - gosec
+    - ireturn
+    - lll
+    - maintidx
+    - mnd
+    - nestif
+    - nlreturn
+    - paralleltest
+    - tagliatelle
+    - testpackage
+    - unparam
+    - varnamelen
+    - whitespace
+    - wrapcheck
+    - wsl
+  settings:
 
-    #
-    # Redundant
-    #
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: github.com/pkg/errors
+              desc: errors.Wrap() is deprecated in favor of fmt.Errorf()
+    govet:
+      disable:
+        - fieldalignment
+        - shadow
+      enable-all: true
 
-    - gocyclo  # revive
-    - cyclop   # revive
-    - lll      # revive
-    - funlen   # revive
-    - gocognit # revive
+    misspell:
+      locale: US
 
-    #
-    # Disabled
-    #
-    - gci               # Gci control golang package import order and make it always deterministic.
+    nlreturn:
+      block-size: 4
 
-    #
-    # Recommended? (easy)
-    #
-    - gocritic              # Provides diagnostics that check for bugs, performance and style issues.
-    - gosec                 # (gas): Inspects source code for security problems
-    - wrapcheck             # Checks that errors returned from external packages are wrapped
+    nolintlint:
+      require-explanation: false
+      require-specific: false
+      allow-unused: false
 
-    #
-    # Recommended? (requires some work)
-    #
-
-    - ireturn               # Accept Interfaces, Return Concrete Types
-    - mnd                   # An analyzer to detect magic numbers.
-    - unparam               # Reports unused function parameters
-
-    #
-    # Formatting only, useful in IDE but should not be forced on CI?
-    #
-
-    - gofumpt               # Gofumpt checks whether code was gofumpt-ed.
-    - nlreturn              # nlreturn checks for a new line before return and branch statements to increase code clarity
-    - whitespace            # Whitespace is a linter that checks for unnecessary newlines at the start and end of functions, if, for, etc.
-    - wsl                   # add or remove empty lines
-
-    #
-    # Well intended, but not ready for this
-    #
-    - dupl                  # Tool for code clone detection
-    - godox                 # Tool for detection of FIXME, TODO and other comment keywords
-    - err113              # Golang linter to check the errors handling expressions
-    - maintidx              # maintidx measures the maintainability index of each function.
-    - nestif                # Reports deeply nested if statements
-    - paralleltest          # paralleltest detects missing usage of t.Parallel() method in your Go test
-    - testpackage           # linter that makes you use a separate _test package
-
-    #
-    # Too strict / too many false positives (for now?)
-    #
-    - exhaustruct           # Checks if all structure fields are initialized
-    - forbidigo             # Forbids identifiers
-    - gochecknoglobals      # Check that no global variables exist.
-    - goconst               # Finds repeated strings that could be replaced by a constant
-    - tagliatelle           # Checks the struct tags.
-    - varnamelen            # checks that the length of a variable's name matches its scope
+    revive:
+      severity: error
+      enable-all-rules: true
+      rules:
+        - name: add-constant
+          disabled: true
+        - name: cognitive-complexity
+          disabled: true
+        - name: comment-spacings
+          disabled: true
+        - name: confusing-results
+          disabled: true
+        - name: cyclomatic
+          disabled: true
+        - name: empty-lines
+          disabled: true
+        - name: flag-parameter
+          disabled: true
+        - name: function-length
+          disabled: true
+        - name: if-return
+          disabled: true
+        - name: import-alias-naming
+          disabled: true
+        - name: import-shadowing
+          disabled: true
+        - name: line-length-limit
+          disabled: true
+        - name: nested-structs
+          disabled: true
+        - name: redundant-build-tag
+          disabled: true
+        - name: var-declaration
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: unexported-naming
+          disabled: true
+        - name: unexported-return
+          disabled: true
+        - name: unhandled-error
+          arguments:
+            - fmt.Print
+            - fmt.Printf
+            - fmt.Println
+          disabled: true
+        - name: unused-receiver
+          disabled: true
+        - name: function-result-limit
+          arguments:
+            - 5
+    staticcheck:
+      checks:
+        - -ST1003
+        - -ST1005
+        - -ST1012
+        - -ST1016
+        - -ST1022
+        - all
+    wsl:
+      allow-trailing-comment: true
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - errcheck
+        text: Error return value of `.*` is not checked
+      - linters:
+          - perfsprint
+        text: fmt.Sprintf can be replaced .*
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 
 issues:
-  exclude-generated: strict
-
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    # `err` is often shadowed, we may continue to do it
-    - linters:
-        - govet
-      text: "shadow: declaration of \"err\" shadows declaration"
 
-    - linters:
-        - errcheck
-      text: "Error return value of `.*` is not checked"
-
-    - linters:
-        - perfsprint
-      text: "fmt.Sprintf can be replaced .*"
-
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/crowdsecurity)
+        - prefix(github.com/crowdsecurity/crowdsec)
+        - prefix(github.com/crowdsecurity/cs-firewall-bouncer)
+  exclusions:
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
