@@ -254,44 +254,44 @@ func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, in
 func (ipt *iptables) CollectMetrics() {
 	if ipt.v4 != nil {
 		for origin, set := range ipt.v4.ipsets {
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
+			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
 		}
 		ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
 
 		if err != nil {
 			log.Errorf("can't collect dropped packets for ipv4 from iptables: %s", err)
 		} else {
-			metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedPackets))
-			metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedBytes))
+			metrics.Map[metrics.ProcessedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedPackets))
+			metrics.Map[metrics.ProcessedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv4"}).Set(float64(ipv4ProcessedBytes))
 
 			for origin, count := range ipv4DroppedPackets {
-				metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
+				metrics.Map[metrics.DroppedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
 			}
 
 			for origin, count := range ipv4DroppedBytes {
-				metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
+				metrics.Map[metrics.DroppedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(count))
 			}
 		}
 	}
 
 	if ipt.v6 != nil {
 		for origin, set := range ipt.v6.ipsets {
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
+			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
 		}
 		ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
 
 		if err != nil {
 			log.Errorf("can't collect dropped packets for ipv6 from iptables: %s", err)
 		} else {
-			metrics.TotalProcessedPackets.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedPackets))
-			metrics.TotalProcessedBytes.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedBytes))
+			metrics.Map[metrics.ProcessedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedPackets))
+			metrics.Map[metrics.ProcessedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv6"}).Set(float64(ipv6ProcessedBytes))
 
 			for origin, count := range ipv6DroppedPackets {
-				metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
+				metrics.Map[metrics.DroppedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
 			}
 
 			for origin, count := range ipv6DroppedBytes {
-				metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
+				metrics.Map[metrics.DroppedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(count))
 			}
 		}
 	}
