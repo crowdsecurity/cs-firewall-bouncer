@@ -100,11 +100,7 @@ func (pf *pf) Commit() error {
 		return err
 	}
 
-	if err := pf.commitAddedDecisions(); err != nil {
-		return err
-	}
-
-	return nil
+	return pf.commitAddedDecisions()
 }
 
 func (pf *pf) Add(decision *models.Decision) error {

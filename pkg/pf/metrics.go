@@ -80,7 +80,7 @@ func parseMetrics(reader *strings.Reader, tables []string) map[string]counter {
 }
 
 // countIPs returns the number of IPs in a table.
-func (pf *pf) countIPs(table string) int {
+func countIPs(table string) int {
 	cmd := execPfctl("", "-T", "show", "-t", table)
 
 	out, err := cmd.Output()
@@ -126,7 +126,7 @@ func (pf *pf) CollectMetrics() {
 
 		droppedPackets := float64(st.packets)
 		droppedBytes := float64(st.bytes)
-		bannedIPs := pf.countIPs(table)
+		bannedIPs := countIPs(table)
 
 		if pf.inet != nil && table == pf.inet.table {
 			metrics.Map[metrics.DroppedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
