@@ -129,15 +129,13 @@ func (pf *pf) CollectMetrics() {
 		bannedIPs := countIPs(table)
 
 		if pf.inet != nil && table == pf.inet.table {
-			metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
-			metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
-		}
-
-		if pf.inet6 != nil && table == pf.inet6.table {
-			metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
-			metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
-			metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
+			metrics.Map[metrics.DroppedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
+			metrics.Map[metrics.DroppedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
+			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
+		} else if pf.inet6 != nil && table == pf.inet6.table {
+			metrics.Map[metrics.DroppedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": ""}).Set(droppedPackets)
+			metrics.Map[metrics.DroppedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": ""}).Set(droppedBytes)
+			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": ""}).Set(float64(bannedIPs))
 		}
 	}
 }

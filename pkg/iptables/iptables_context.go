@@ -50,6 +50,8 @@ type ipTablesContext struct {
 
 	loggingEnabled bool
 	loggingPrefix  string
+
+	addRuleComments bool
 }
 
 func (ctx *ipTablesContext) setupChain() {
@@ -173,7 +175,7 @@ func (ctx *ipTablesContext) deleteChain() {
 	}
 }
 
-func (ctx *ipTablesContext) createRule(setName string) {
+func (ctx *ipTablesContext) createRule(setName string, origin string) {
 	target := ctx.target
 
 	if ctx.loggingEnabled {
@@ -181,6 +183,10 @@ func (ctx *ipTablesContext) createRule(setName string) {
 	}
 
 	cmd := []string{"-I", chainName, "-m", "set", "--match-set", setName, "src", "-j", target}
+
+	if ctx.addRuleComments {
+		cmd = append(cmd, "-m", "comment", "--comment", "CrowdSec: "+origin)
+	}
 
 	c := exec.Command(ctx.iptablesBin, cmd...)
 
@@ -307,7 +313,7 @@ func (ctx *ipTablesContext) commit() error {
 
 				if !ctx.ipsetContentOnly {
 					// Create the rule to use the set
-					ctx.createRule(set.Name())
+					ctx.createRule(set.Name(), origin)
 				}
 			}
 		}

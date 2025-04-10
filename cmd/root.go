@@ -12,18 +12,15 @@ import (
 	"slices"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	io_prometheus_client "github.com/prometheus/client_model/go"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
 	csbouncer "github.com/crowdsecurity/go-cs-bouncer"
 	"github.com/crowdsecurity/go-cs-lib/csdaemon"
 	"github.com/crowdsecurity/go-cs-lib/csstring"
-	"github.com/crowdsecurity/go-cs-lib/ptr"
 	"github.com/crowdsecurity/go-cs-lib/version"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -34,10 +31,6 @@ import (
 )
 
 const bouncerType = "crowdsec-firewall-bouncer"
-
-type metricsHandler struct {
-	backend *backend.BackendCTX
-}
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -143,140 +136,6 @@ func addDecisions(backend *backend.BackendCTX, decisions []*models.Decision, con
 	}
 }
 
-func getLabelValue(labels []*io_prometheus_client.LabelPair, key string) string {
-
-	for _, label := range labels {
-		if label.GetName() == key {
-			return label.GetValue()
-		}
-	}
-
-	return ""
-}
-
-// metricsUpdater receives a metrics struct with basic data and populates it with the current metrics.
-func (m metricsHandler) metricsUpdater(met *models.RemediationComponentsMetrics, updateInterval time.Duration) {
-	log.Debugf("Updating metrics")
-
-	m.backend.CollectMetrics()
-
-	//Most of the common fields are set automatically by the metrics provider
-	//We only need to care about the metrics themselves
-
-	promMetrics, err := prometheus.DefaultGatherer.Gather()
-
-	if err != nil {
-		log.Errorf("unable to gather prometheus metrics: %s", err)
-		return
-	}
-
-	met.Metrics = append(met.Metrics, &models.DetailedMetrics{
-		Meta: &models.MetricsMeta{
-			UtcNowTimestamp:   ptr.Of(time.Now().Unix()),
-			WindowSizeSeconds: ptr.Of(int64(updateInterval.Seconds())),
-		},
-		Items: make([]*models.MetricsDetailItem, 0),
-	})
-
-	for _, metricFamily := range promMetrics {
-		for _, metric := range metricFamily.GetMetric() {
-			switch metricFamily.GetName() {
-			case metrics.ActiveBannedIPsMetricName:
-				//We send the absolute value, as it makes no sense to try to sum them crowdsec side
-				labels := metric.GetLabel()
-				value := metric.GetGauge().GetValue()
-				origin := getLabelValue(labels, "origin")
-				ipType := getLabelValue(labels, "ip_type")
-				log.Debugf("Sending active decisions for %s %s | current value: %f", origin, ipType, value)
-				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("active_decisions"),
-					Value: ptr.Of(value),
-					Labels: map[string]string{
-						"origin":  origin,
-						"ip_type": ipType,
-					},
-					Unit: ptr.Of("ip"),
-				})
-			case metrics.DroppedBytesMetricName:
-				labels := metric.GetLabel()
-				value := metric.GetGauge().GetValue()
-				origin := getLabelValue(labels, "origin")
-				ipType := getLabelValue(labels, "ip_type")
-				key := origin + ipType
-				// The firewall counter may have been reset since laste collection.
-				// In this case, don't register a negative value.
-				newValue := max(0, value-metrics.LastDroppedBytesValue[key])
-				log.Debugf("Sending dropped bytes for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, newValue, value, metrics.LastDroppedBytesValue[key])
-				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("dropped"),
-					Value: &newValue,
-					Labels: map[string]string{
-						"origin":  origin,
-						"ip_type": ipType,
-					},
-					Unit: ptr.Of("byte"),
-				})
-				metrics.LastDroppedBytesValue[key] = value
-			case metrics.DroppedPacketsMetricName:
-				labels := metric.GetLabel()
-				value := metric.GetGauge().GetValue()
-				origin := getLabelValue(labels, "origin")
-				ipType := getLabelValue(labels, "ip_type")
-				key := origin + ipType
-				newValue := max(0, value-metrics.LastDroppedPacketsValue[key])
-				log.Debugf("Sending dropped packets for %s %s %f | current value: %f | previous value: %f\n", origin, ipType, newValue, value, metrics.LastDroppedPacketsValue[key])
-				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("dropped"),
-					Value: &newValue,
-					Labels: map[string]string{
-						"origin":  origin,
-						"ip_type": ipType,
-					},
-					Unit: ptr.Of("packet"),
-				})
-				metrics.LastDroppedPacketsValue[key] = value
-			case metrics.ProcessedBytesMetricName:
-				labels := metric.GetLabel()
-				value := metric.GetGauge().GetValue()
-				ipType := getLabelValue(labels, "ip_type")
-				newValue := max(0, value-metrics.LastProcessedBytesValue[ipType])
-				log.Debugf("Sending processed bytes for %s %f | current value: %f | previous value: %f\n", ipType, newValue, value, metrics.LastProcessedBytesValue[ipType])
-				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("processed"),
-					Value: &newValue,
-					Labels: map[string]string{
-						"ip_type": ipType,
-					},
-					Unit: ptr.Of("byte"),
-				})
-				metrics.LastProcessedBytesValue[ipType] = value
-			case metrics.ProcessedPacketsMetricName:
-				labels := metric.GetLabel()
-				value := metric.GetGauge().GetValue()
-				ipType := getLabelValue(labels, "ip_type")
-				newValue := max(0, value-metrics.LastProcessedPacketsValue[ipType])
-				log.Debugf("Sending processed packets for %s %f | current value: %f | previous value: %f\n", ipType, newValue, value, metrics.LastProcessedPacketsValue[ipType])
-				met.Metrics[0].Items = append(met.Metrics[0].Items, &models.MetricsDetailItem{
-					Name:  ptr.Of("processed"),
-					Value: &newValue,
-					Labels: map[string]string{
-						"ip_type": ipType,
-					},
-					Unit: ptr.Of("packet"),
-				})
-				metrics.LastProcessedPacketsValue[ipType] = value
-			}
-		}
-	}
-}
-
-func (m metricsHandler) computeMetricsHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.backend.CollectMetrics()
-		next.ServeHTTP(w, r)
-	})
-}
-
 func Execute() error {
 	configPath := flag.String("c", "", "path to crowdsec-firewall-bouncer.yaml")
 	verbose := flag.Bool("v", false, "set verbose mode")
@@ -358,11 +217,11 @@ func Execute() error {
 		return errors.New("bouncer stream halted")
 	})
 
-	mHandler := metricsHandler{
-		backend: backend,
+	mHandler := metrics.Handler{
+		Backend: backend,
 	}
 
-	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, mHandler.metricsUpdater, log.StandardLogger())
+	metricsProvider, err := csbouncer.NewMetricsProvider(bouncer.APIClient, bouncerType, mHandler.MetricsUpdater, log.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("unable to create metrics provider: %w", err)
 	}
@@ -372,13 +231,13 @@ func Execute() error {
 	})
 
 	if config.Mode == cfg.IptablesMode || config.Mode == cfg.NftablesMode || config.Mode == cfg.IpsetMode || config.Mode == cfg.PfMode {
-		prometheus.MustRegister(metrics.TotalDroppedBytes, metrics.TotalDroppedPackets, metrics.TotalActiveBannedIPs, metrics.TotalProcessedBytes, metrics.TotalProcessedPackets)
+		metrics.Map.MustRegisterAll()
 	}
 
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 	if config.PrometheusConfig.Enabled {
 		go func() {
-			http.Handle("/metrics", mHandler.computeMetricsHandler(promhttp.Handler()))
+			http.Handle("/metrics", mHandler.ComputeMetricsHandler(promhttp.Handler()))
 
 			listenOn := net.JoinHostPort(
 				config.PrometheusConfig.ListenAddress,

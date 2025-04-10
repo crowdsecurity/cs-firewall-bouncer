@@ -64,6 +64,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		target:               target,
 		loggingEnabled:       config.DenyLog,
 		loggingPrefix:        config.DenyLogPrefix,
+		addRuleComments:      config.IptablesAddRuleComments,
 	}
 	ipv6Ctx := &ipTablesContext{
 		version:              "v6",
@@ -76,6 +77,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		target:               target,
 		loggingEnabled:       config.DenyLog,
 		loggingPrefix:        config.DenyLogPrefix,
+		addRuleComments:      config.IptablesAddRuleComments,
 	}
 
 	ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
