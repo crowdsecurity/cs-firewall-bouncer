@@ -3,22 +3,22 @@ version: "2"
 linters:
   default: all
   disable:
-    - cyclop
+    - cyclop    # revive
+    - funlen    # revive
+    - gocognit  # revive
+    - gocyclo   # revive
+    - lll       # revive
+
     - dupl
     - err113
     - exhaustruct
-    - funlen
     - gochecknoglobals
-    - gocognit
     - goconst
-    - gocyclo
     - godox
     - gosec
     - ireturn
-    - lll
     - maintidx
     - mnd
-    - nestif
     - nlreturn
     - paralleltest
     - tagliatelle
@@ -52,11 +52,14 @@ linters:
     govet:
       disable:
         - fieldalignment
-        - shadow
       enable-all: true
 
     misspell:
       locale: US
+
+    nestif:
+      # lower this after refactoring
+      min-complexity: 13
 
     nlreturn:
       block-size: 4
@@ -79,7 +82,9 @@ linters:
         - name: confusing-results
           disabled: true
         - name: cyclomatic
-          disabled: true
+          arguments:
+            # lower this after refactoring
+            - 28
         - name: empty-lines
           disabled: true
         - name: flag-parameter
@@ -93,8 +98,6 @@ linters:
         - name: line-length-limit
           disabled: true
         - name: nested-structs
-          disabled: true
-        - name: var-declaration
           disabled: true
         - name: exported
           disabled: true
@@ -120,6 +123,10 @@ linters:
       - legacy
       - std-error-handling
     rules:
+      - linters:
+          - govet
+        text: 'shadow: declaration of "(err|ctx)" shadows declaration'
+
       - linters:
           - perfsprint
         text: fmt.Sprintf can be replaced .*

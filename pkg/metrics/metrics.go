@@ -50,7 +50,7 @@ func (m metricMap) MustRegisterAll() {
 	}
 }
 
-var Map metricMap = metricMap{
+var Map = metricMap{
 	ActiveBannedIPs: {
 		Name: "active_decisions",
 		Unit: "ip",
