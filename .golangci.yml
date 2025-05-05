@@ -28,6 +28,7 @@ linters:
     - whitespace
     - wrapcheck
     - wsl
+    - funcorder
   settings:
 
     depguard:
@@ -48,6 +49,7 @@ linters:
         - paramTypeCombine
         - sloppyReassign
         - unnamedResult
+        - importShadow
 
     govet:
       disable:
@@ -140,9 +142,6 @@ issues:
   max-same-issues: 0
 
 formatters:
-  enable:
-    - gofmt
-    - goimports
   settings:
     gci:
       sections:
