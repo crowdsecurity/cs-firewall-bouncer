@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 	"github.com/google/nftables/expr"
 	"github.com/prometheus/client_golang/prometheus"
-
 	log "github.com/sirupsen/logrus"
+
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
 func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, int, int, error) {
@@ -19,27 +19,33 @@ func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, in
 	droppedBytes := make(map[string]int)
 	processedPackets := 0
 	processedBytes := 0
-	//setName := ""
+	// setName := ""
 	for chainName, chain := range c.chains {
 		rules, err := c.conn.GetRules(c.table, chain)
 		if err != nil {
 			log.Errorf("can't get rules for chain %s: %s", chainName, err)
 			continue
 		}
+
 		for _, rule := range rules {
 			for _, xpr := range rule.Exprs {
 				obj, ok := xpr.(*expr.Counter)
 				if ok {
 					log.Debugf("rule %d (%s): packets %d, bytes %d (%s)", rule.Position, rule.Table.Name, obj.Packets, obj.Bytes, rule.UserData)
+
 					if string(rule.UserData) == "processed" {
 						processedPackets += int(obj.Packets)
 						processedBytes += int(obj.Bytes)
+
 						continue
 					}
+
 					origin, _ := strings.CutPrefix(string(rule.UserData), c.blacklists+"-")
+
 					if origin == "" {
 						continue
 					}
+
 					droppedPackets[origin] += int(obj.Packets)
 					droppedBytes[origin] += int(obj.Bytes)
 				}
@@ -51,7 +57,7 @@ func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, in
 }
 
 func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
-	//Find the size of the set we have created
+	// Find the size of the set we have created
 	ret := make(map[string]int)
 
 	for origin, set := range c.sets {
@@ -59,11 +65,13 @@ func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
 		if err != nil {
 			return nil, fmt.Errorf("can't get set elements for %s: %w", set.Name, err)
 		}
+
 		if c.setOnly {
 			ret[c.blacklists] = len(setContent)
 		} else {
 			ret[origin] = len(setContent)
 		}
+
 		return ret, nil
 	}
 
@@ -76,7 +84,6 @@ func (c *nftContext) collectDropped() (map[string]int, map[string]int, int, int,
 	}
 
 	droppedPackets, droppedBytes, processedPackets, processedBytes, err := c.collectDroppedPackets()
-
 	if err != nil {
 		log.Errorf("can't collect dropped packets for ip%s from nft: %s", c.version, err)
 	}

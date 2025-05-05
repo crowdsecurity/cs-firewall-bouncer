@@ -235,6 +235,7 @@ func Execute() error {
 	}
 
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
+
 	if config.PrometheusConfig.Enabled {
 		go func() {
 			http.Handle("/metrics", mHandler.ComputeMetricsHandler(promhttp.Handler()))

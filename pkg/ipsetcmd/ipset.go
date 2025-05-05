@@ -30,6 +30,7 @@ func NewIPSet(setName string) (*IPSet, error) {
 	if err != nil {
 		return nil, errors.New("unable to find ipset")
 	}
+
 	return &IPSet{
 		binaryPath: ipsetBin,
 		setName:    setName,
@@ -72,6 +73,7 @@ func (i *IPSet) Add(entry string) error {
 	cmd := exec.Command(i.binaryPath, "add", i.setName, entry)
 
 	log.Debugf("ipset add command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error creating ipset: %s", out)
@@ -84,6 +86,7 @@ func (i *IPSet) DeleteEntry(entry string) error {
 	cmd := exec.Command(i.binaryPath, "del", i.setName, entry)
 
 	log.Debugf("ipset delete entry command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error creating ipset: %s", out)
@@ -96,6 +99,7 @@ func (i *IPSet) List() ([]string, error) {
 	cmd := exec.Command(i.binaryPath, "list", i.setName)
 
 	log.Debugf("ipset list command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("error listing ipset: %s", out)
@@ -108,6 +112,7 @@ func (i *IPSet) Flush() error {
 	cmd := exec.Command(i.binaryPath, "flush", i.setName)
 
 	log.Debugf("ipset flush command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error flushing ipset: %s", out)
@@ -120,6 +125,7 @@ func (i *IPSet) Destroy() error {
 	cmd := exec.Command(i.binaryPath, "destroy", i.setName)
 
 	log.Debugf("ipset destroy command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error destroying ipset: %s", out)
@@ -132,6 +138,7 @@ func (i *IPSet) Rename(toSetName string) error {
 	cmd := exec.Command(i.binaryPath, "rename", i.setName, toSetName)
 
 	log.Debugf("ipset rename command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error renaming ipset: %s", out)
@@ -146,6 +153,7 @@ func (i *IPSet) Test(entry string) error {
 	cmd := exec.Command(i.binaryPath, "test", i.setName, entry)
 
 	log.Debugf("ipset test command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error testing ipset: %s", out)
@@ -158,10 +166,12 @@ func (i *IPSet) Save() ([]string, error) {
 	cmd := exec.Command(i.binaryPath, "save", i.setName)
 
 	log.Debugf("ipset save command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("error saving ipset: %s", out)
 	}
+
 	return strings.Split(string(out), "\n"), nil
 }
 
@@ -169,6 +179,7 @@ func (i *IPSet) Restore(filename string) error {
 	cmd := exec.Command(i.binaryPath, "restore", "-file", filename)
 
 	log.Debugf("ipset restore command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error restoring ipset: %s", out)
@@ -181,6 +192,7 @@ func (i *IPSet) Swap(toSetName string) error {
 	cmd := exec.Command(i.binaryPath, "swap", i.setName, toSetName)
 
 	log.Debugf("ipset swap command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error swapping ipset: %s", out)
@@ -207,6 +219,7 @@ func (i *IPSet) Len() int {
 	cmd := exec.Command(i.binaryPath, "list", i.setName)
 
 	log.Debugf("ipset list command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return 0
@@ -238,6 +251,7 @@ func GetSetsStartingWith(name string) (map[string]*IPSet, error) {
 	cmd := exec.Command(ipsetBinary, "list", "-name")
 
 	log.Debugf("ipset list command: %v", cmd.String())
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("error listing ipset: %s", out)

@@ -9,8 +9,7 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
-type dryRun struct {
-}
+type dryRun struct{}
 
 func NewDryRun(_ *cfg.BouncerConfig) (types.Backend, error) {
 	return &dryRun{}, nil
