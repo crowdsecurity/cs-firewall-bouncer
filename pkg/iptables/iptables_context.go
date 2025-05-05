@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/ipsetcmd"
 )
 
@@ -67,7 +68,6 @@ func (ctx *ipTablesContext) setupChain() {
 	}
 
 	for _, chain := range ctx.Chains {
-
 		cmd = []string{"-I", chain, "-j", chainName}
 
 		c = exec.Command(ctx.iptablesBin, cmd...)
@@ -120,7 +120,6 @@ func (ctx *ipTablesContext) setupChain() {
 
 func (ctx *ipTablesContext) deleteChain() {
 	for _, chain := range ctx.Chains {
-
 		cmd := []string{"-D", chain, "-j", chainName}
 
 		c := exec.Command(ctx.iptablesBin, cmd...)
@@ -212,9 +211,10 @@ func (ctx *ipTablesContext) commit() error {
 	}()
 
 	for _, decision := range ctx.toDel {
-
-		var set *ipsetcmd.IPSet
-		var ok bool
+		var (
+			set *ipsetcmd.IPSet
+			ok  bool
+		)
 
 		// Decisions coming from lists will have "lists" as origin, and the scenario will be the list name
 		// We use those to build a custom origin because we want to track metrics per list
@@ -252,8 +252,10 @@ func (ctx *ipTablesContext) commit() error {
 			continue
 		}
 
-		var set *ipsetcmd.IPSet
-		var ok bool
+		var (
+			set *ipsetcmd.IPSet
+			ok  bool
+		)
 
 		if banDuration.Seconds() > maxBanSeconds {
 			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is %d, setting duration to %d", int(banDuration.Seconds()), maxBanSeconds, maxBanSeconds-1)
@@ -272,7 +274,6 @@ func (ctx *ipTablesContext) commit() error {
 			set, ok = ctx.ipsets[origin]
 
 			if !ok {
-
 				idx := slices.Index(ctx.originSetMapping, origin)
 
 				if idx == -1 {

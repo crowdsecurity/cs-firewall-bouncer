@@ -28,6 +28,7 @@ linters:
     - whitespace
     - wrapcheck
     - wsl
+    - funcorder
   settings:
 
     depguard:
@@ -44,10 +45,10 @@ linters:
       enable-all: true
       disabled-checks:
         - appendCombine
-        - commentFormatting
         - paramTypeCombine
         - sloppyReassign
         - unnamedResult
+        - importShadow
 
     govet:
       disable:
@@ -76,7 +77,9 @@ linters:
         - name: add-constant
           disabled: true
         - name: cognitive-complexity
-          disabled: true
+          arguments:
+            # lower this after refactoring
+            - 49
         - name: comment-spacings
           disabled: true
         - name: confusing-results
@@ -85,12 +88,13 @@ linters:
           arguments:
             # lower this after refactoring
             - 28
-        - name: empty-lines
-          disabled: true
         - name: flag-parameter
           disabled: true
         - name: function-length
-          disabled: true
+          arguments:
+            # lower this after refactoring
+            - 74
+            - 149
         - name: import-alias-naming
           disabled: true
         - name: import-shadowing
@@ -140,9 +144,6 @@ issues:
   max-same-issues: 0
 
 formatters:
-  enable:
-    - gofmt
-    - goimports
   settings:
     gci:
       sections:

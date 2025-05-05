@@ -30,6 +30,7 @@ type iptables struct {
 
 func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 	var err error
+
 	ret := &iptables{}
 
 	defaultSet, err := ipsetcmd.NewIPSet("")
@@ -87,10 +88,12 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 
 	if config.Mode == cfg.IpsetMode {
 		ipv4Ctx.ipsetContentOnly = true
+
 		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
 		if err != nil {
 			return nil, err
 		}
+
 		v4Sets["ipset"] = set
 	} else {
 		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
@@ -108,6 +111,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 
 	ipv4Ctx.ipsets = v4Sets
 	ret.v4 = ipv4Ctx
+
 	if config.DisableIPV6 {
 		return ret, nil
 	}
@@ -119,10 +123,12 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 
 	if config.Mode == cfg.IpsetMode {
 		ipv6Ctx.ipsetContentOnly = true
+
 		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
 		if err != nil {
 			return nil, err
 		}
+
 		v6Sets["ipset"] = set
 	} else {
 		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
@@ -198,10 +204,12 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 			log.Debugf("not adding '%s' because ipv6 is disabled", *decision.Value)
 			return nil
 		}
+
 		ipt.v6.add(decision)
 	} else {
 		ipt.v4.add(decision)
 	}
+
 	return nil
 }
 

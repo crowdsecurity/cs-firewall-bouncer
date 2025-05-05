@@ -136,7 +136,6 @@ func (m Handler) MetricsUpdater(met *models.RemediationComponentsMetrics, update
 	// We only need to care about the metrics themselves
 
 	promMetrics, err := prometheus.DefaultGatherer.Gather()
-
 	if err != nil {
 		log.Errorf("unable to gather prometheus metrics: %s", err)
 		return
@@ -181,8 +180,10 @@ func (m Handler) MetricsUpdater(met *models.RemediationComponentsMetrics, update
 
 				if finalValue < 0 {
 					finalValue = -finalValue
+
 					log.Warningf("metric value for %s %+v is negative, assuming external counter was reset", cfg.Name, labelMap)
 				}
+
 				cfg.LastValueMap[key] = value
 				log.Debugf("Sending %s for %+v %f | current value: %f | previous value: %f", cfg.Name, labelMap, finalValue, value, cfg.LastValueMap[key])
 			}

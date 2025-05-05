@@ -9,11 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
-
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // iptables does not provide a "nice" way to get the counters for a rule, so we have to parse the output of iptables-save
@@ -27,14 +26,18 @@ import (
 // In case of a jump, the counters represent the number of packets and bytes that have been processed by the chain (ie, whether the packets have been accepted or dropped)
 // In case of a rule, the counters represent the number of packets and bytes that have been matched by the rule (ie, the packets that have been dropped).
 
-var chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
-var ruleRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\] -A [0-9A-Za-z_-]+ -m set --match-set (.*) src .*-j \w+`)
+var (
+	chainRegexp = regexp.MustCompile(`^\[(\d+):(\d+)\]`)
+	ruleRegexp  = regexp.MustCompile(`^\[(\d+):(\d+)\] -A [0-9A-Za-z_-]+ -m set --match-set (.*) src .*-j \w+`)
+)
 
 // In ipset mode, we have to track the numbers of processed bytes/packets at the chain level
 // This is not really accurate, as a rule *before* the crowdsec rule could impact the numbers, but we don't have any other way.
 
-var ipsetChainDeclaration = regexp.MustCompile(`^:([0-9A-Za-z_-]+) ([0-9A-Za-z_-]+) \[(\d+):(\d+)\]`)
-var ipsetRule = regexp.MustCompile(`^\[(\d+):(\d+)\] -A ([0-9A-Za-z_-]+)`)
+var (
+	ipsetChainDeclaration = regexp.MustCompile(`^:([0-9A-Za-z_-]+) ([0-9A-Za-z_-]+) \[(\d+):(\d+)\]`)
+	ipsetRule             = regexp.MustCompile(`^\[(\d+):(\d+)\] -A ([0-9A-Za-z_-]+)`)
+)
 
 func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
 	processedBytes := 0
@@ -46,23 +49,25 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		//Ignore chain declaration
+		// Ignore chain declaration
 		if line[0] == ':' {
 			continue
 		}
 
-		//Jump to our chain, we can get the processed packets and bytes
+		// Jump to our chain, we can get the processed packets and bytes
 		if strings.Contains(line, "-j "+chainName) {
 			matches := chainRegexp.FindStringSubmatch(line)
 			if len(matches) != 3 {
 				log.Errorf("error while parsing counters : %s | not enough matches", line)
 				continue
 			}
+
 			val, err := strconv.Atoi(matches[1])
 			if err != nil {
 				log.Errorf("error while parsing counters : %s", line)
 				continue
 			}
+
 			processedPackets += val
 
 			val, err = strconv.Atoi(matches[2])
@@ -70,12 +75,13 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 				log.Errorf("error while parsing counters : %s", line)
 				continue
 			}
+
 			processedBytes += val
 
 			continue
 		}
 
-		//This is a rule
+		// This is a rule
 		if strings.Contains(line, "-A "+chainName) {
 			matches := ruleRegexp.FindStringSubmatch(line)
 			if len(matches) != 4 {
@@ -88,8 +94,8 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 				log.Errorf("error while parsing counters : %s | no origin found", line)
 				continue
 			}
-			originID, err := strconv.Atoi(originIDStr)
 
+			originID, err := strconv.Atoi(originIDStr)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
@@ -107,6 +113,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
 			}
+
 			droppedPackets[origin] += val
 
 			val, err = strconv.Atoi(matches[2])
@@ -120,7 +127,6 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 	}
 
 	return droppedPackets, droppedBytes, processedPackets, processedBytes
-
 }
 
 type chainCounters struct {
@@ -149,7 +155,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		//Chain declaration
+		// Chain declaration
 		if line[0] == ':' {
 			matches := ipsetChainDeclaration.FindStringSubmatch(line)
 			if len(matches) != 5 {
@@ -169,6 +175,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 				log.Errorf("error while parsing counters : %s", line)
 				continue
 			}
+
 			c.packets += val
 
 			val, err = strconv.Atoi(matches[4])
@@ -176,9 +183,10 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 				log.Errorf("error while parsing counters : %s", line)
 				continue
 			}
-			c.bytes += val
 
+			c.bytes += val
 			chainsCounter[matches[1]] = c
+
 			continue
 		}
 
@@ -195,6 +203,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 				log.Errorf("error while parsing counters : %s", line)
 				continue
 			}
+
 			droppedPackets["ipset"] += val
 
 			val, err = strconv.Atoi(matches[2])
@@ -205,7 +214,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 
 			droppedBytes["ipset"] += val
 
-			//Resolve the chain counters
+			// Resolve the chain counters
 			c, ok := chainsCounter[matches[3]]
 			if !ok {
 				log.Errorf("error while parsing counters : %s | chain not found", line)
@@ -224,16 +233,19 @@ func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, in
 	//-c is required to get the counters
 	cmd := []string{ctx.iptablesSaveBin, "-c", "-t", "filter"}
 	saveCmd := exec.Command(cmd[0], cmd[1:]...)
+
 	out, err := saveCmd.CombinedOutput()
 	if err != nil {
 		log.Errorf("error while getting iptables rules with cmd %+v : %v --> %s", cmd, err, string(out))
 		return nil, nil, 0, 0, err
 	}
 
-	var processedBytes int
-	var processedPackets int
-	var droppedBytes map[string]int
-	var droppedPackets map[string]int
+	var (
+		processedBytes   int
+		processedPackets int
+		droppedBytes     map[string]int
+		droppedPackets   map[string]int
+	)
 
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 
@@ -255,6 +267,7 @@ func (ipt *iptables) CollectMetrics() {
 		for origin, set := range ipt.v4.ipsets {
 			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": origin}).Set(float64(set.Len()))
 		}
+
 		ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
 
 		if err != nil {
@@ -277,6 +290,7 @@ func (ipt *iptables) CollectMetrics() {
 		for origin, set := range ipt.v6.ipsets {
 			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": origin}).Set(float64(set.Len()))
 		}
+
 		ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
 
 		if err != nil {

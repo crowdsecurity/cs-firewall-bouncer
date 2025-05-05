@@ -116,7 +116,6 @@ func (c *nftContext) setBanned(banned map[string]struct{}) error {
 	}
 
 	for _, set := range c.sets {
-
 		elements, err := c.conn.GetSetElements(set)
 		if err != nil {
 			return err
@@ -201,7 +200,7 @@ func (c *nftContext) initOwnTable(hooks []string) error {
 		c.chains[hook] = chain
 
 		log.Debugf("nftables: ip%s chain '%s' created", c.version, chain.Name)
-		//Rules and sets are created on the fly when we detect a new origin
+		// Rules and sets are created on the fly when we detect a new origin
 	}
 
 	if err := c.conn.Flush(); err != nil {
@@ -313,10 +312,11 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 }
 
 func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
-	//FIXME: only delete IPs from the set they are in
-	//But this could lead to strange behavior if we have duplicate decisions with different origins
+	// FIXME: only delete IPs from the set they are in
+	// But this could lead to strange behavior if we have duplicate decisions with different origins
 	for _, set := range c.sets {
 		log.Debugf("removing %d ip%s elements from set %s", len(els), c.version, set.Name)
+
 		if err := c.conn.SetDeleteElements(set, els); err != nil {
 			return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
 		}
@@ -365,7 +365,9 @@ func (c *nftContext) addElements(els map[string][]nftables.SetElement) error {
 		} else {
 			setName = fmt.Sprintf("%s-%s", c.blacklists, origin)
 		}
+
 		log.Debugf("Using %s as origin | len of IPs: %d | set name is %s", origin, len(els[origin]), setName)
+
 		for _, chunk := range slicetools.Chunks(els[origin], chunkSize) {
 			log.Debugf("adding %d ip%s elements to set %s", len(chunk), c.version, setName)
 
