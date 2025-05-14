@@ -141,7 +141,6 @@ Requires: nftables,gettext
 %files -n %{name}-nftables
 %defattr(-,root,root,-)
 %{_bindir}/%{name}
-/usr/sbin/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
