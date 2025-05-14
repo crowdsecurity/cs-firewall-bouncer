@@ -34,8 +34,6 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_bindir}
 install -m 755 %{name} %{buildroot}%{_bindir}/%{name}
 # symlink for compatibility with old versions
-mkdir -p %{buildroot}/usr/sbin
-ln -s %{_bindir}/%{name} %{buildroot}/usr/sbin/%{name}
 
 mkdir -p %{buildroot}/etc/crowdsec/bouncers
 install -m 600 config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
@@ -91,6 +89,13 @@ fi
 
 set_local_port
 
+if [ ! -e /usr/sbin/crowdsec-firewall-bouncer ]; then
+    if [ ! -L /usr/sbin ]; then
+        ln -s ../bin/crowdsec-firewall-bouncer /usr/sbin/crowdsec-firewall-bouncer
+    fi
+fi
+
+
 %systemd_post %{name}.service
 
 if [ "$START" -eq 0 ]; then
@@ -117,6 +122,11 @@ fi
 if [ "$1" = "1" ]; then
     systemctl restart %{name} || echo "cannot restart service"
 fi
+
+if [ -L /usr/sbin/crowdsec-firewall-bouncer ]; then
+    rm -f /usr/sbin/crowdsec-firewall-bouncer
+fi
+
 
 # ------------------------------------
 # nftables
@@ -158,6 +168,12 @@ fi
 
 set_local_port
 
+if [ ! -e /usr/sbin/crowdsec-firewall-bouncer ]; then
+    if [ ! -L /usr/sbin ]; then
+        ln -s ../bin/crowdsec-firewall-bouncer /usr/sbin/crowdsec-firewall-bouncer
+    fi
+fi
+
 %systemd_post %{name}.service
 
 if [ "$START" -eq 0 ]; then
@@ -183,4 +199,8 @@ fi
 %postun -n %{name}-nftables
 if [ "$1" = "1" ]; then
     systemctl restart %{name} || echo "cannot restart service"
+fi
+
+if [ -L /usr/sbin/crowdsec-firewall-bouncer ]; then
+    rm -f /usr/sbin/crowdsec-firewall-bouncer
 fi
