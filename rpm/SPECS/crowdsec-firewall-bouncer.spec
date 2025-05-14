@@ -1,4 +1,4 @@
-iName:      crowdsec-firewall-bouncer-iptables
+Name:      crowdsec-firewall-bouncer-iptables
 Version:   %(echo $VERSION)
 Release:   %(echo $PACKAGE_NUMBER)%{?dist}
 Summary:   Firewall bouncer for Crowdsec (iptables+ipset configuration)
