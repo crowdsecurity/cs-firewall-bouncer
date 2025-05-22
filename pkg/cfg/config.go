@@ -167,19 +167,11 @@ func pfConfig(_ *BouncerConfig) error {
 func nftablesConfig(config *BouncerConfig) error {
 	// deal with defaults in a backward compatible way
 	if config.Nftables.Ipv4.Enabled == nil {
-		if config.DisableIPV4 {
-			config.Nftables.Ipv4.Enabled = ptr.Of(false)
-		} else {
-			config.Nftables.Ipv4.Enabled = ptr.Of(true)
-		}
+		config.Nftables.Ipv4.Enabled = ptr.Of(!config.DisableIPV4)
 	}
 
 	if config.Nftables.Ipv6.Enabled == nil {
-		if config.DisableIPV6 {
-			config.Nftables.Ipv4.Enabled = ptr.Of(false)
-		} else {
-			config.Nftables.Ipv6.Enabled = ptr.Of(true)
-		}
+		config.Nftables.Ipv6.Enabled = ptr.Of(!config.DisableIPV6)
 	}
 
 	if *config.Nftables.Ipv4.Enabled {

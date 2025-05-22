@@ -82,8 +82,10 @@ func (pf *pf) Init() error {
 		return fmt.Errorf("%s command not found: %w", pfctlCmd, err)
 	}
 
-	if err := pf.inet.init(); err != nil {
-		return err
+	if pf.inet != nil {
+		if err := pf.inet.init(); err != nil {
+			return err
+		}
 	}
 
 	if pf.inet6 != nil {
@@ -122,7 +124,7 @@ func (pf *pf) commitDeletedDecisions() error {
 	for _, d := range pf.decisionsToDelete {
 		if strings.Contains(*d.Value, ":") && pf.inet6 != nil {
 			ipv6decisions = append(ipv6decisions, d)
-		} else {
+		} else if pf.inet != nil {
 			ipv4decisions = append(ipv4decisions, d)
 		}
 	}
@@ -130,15 +132,15 @@ func (pf *pf) commitDeletedDecisions() error {
 	if len(ipv6decisions) > 0 {
 		if pf.inet6 == nil {
 			log.Debugf("not removing '%d' decisions because ipv6 is disabled", len(ipv6decisions))
-		} else {
-			if err := pf.inet6.delete(ipv6decisions); err != nil {
-				return err
-			}
+		} else if err := pf.inet6.delete(ipv6decisions); err != nil {
+			return err
 		}
 	}
 
 	if len(ipv4decisions) > 0 {
-		if err := pf.inet.delete(ipv4decisions); err != nil {
+		if pf.inet == nil {
+			log.Debugf("not removing '%d' decisions because ipv4 is disabled", len(ipv4decisions))
+		} else if err := pf.inet.delete(ipv4decisions); err != nil {
 			return err
 		}
 	}
@@ -153,7 +155,7 @@ func (pf *pf) commitAddedDecisions() error {
 	for _, d := range pf.decisionsToAdd {
 		if strings.Contains(*d.Value, ":") && pf.inet6 != nil {
 			ipv6decisions = append(ipv6decisions, d)
-		} else {
+		} else if pf.inet != nil {
 			ipv4decisions = append(ipv4decisions, d)
 		}
 	}
@@ -161,15 +163,15 @@ func (pf *pf) commitAddedDecisions() error {
 	if len(ipv6decisions) > 0 {
 		if pf.inet6 == nil {
 			log.Debugf("not adding '%d' decisions because ipv6 is disabled", len(ipv6decisions))
-		} else {
-			if err := pf.inet6.add(ipv6decisions); err != nil {
-				return err
-			}
+		} else if err := pf.inet6.add(ipv6decisions); err != nil {
+			return err
 		}
 	}
 
 	if len(ipv4decisions) > 0 {
-		if err := pf.inet.add(ipv4decisions); err != nil {
+		if pf.inet == nil {
+			log.Debugf("not adding '%d' decisions because ipv4 is disabled", len(ipv4decisions))
+		} else if err := pf.inet.add(ipv4decisions); err != nil {
 			return err
 		}
 	}
@@ -185,8 +187,10 @@ func (pf *pf) Delete(decision *models.Decision) error {
 func (pf *pf) ShutDown() error {
 	log.Infof("flushing 'crowdsec' table(s)")
 
-	if err := pf.inet.shutDown(); err != nil {
-		return fmt.Errorf("unable to flush %s table (%s): ", pf.inet.version, pf.inet.table)
+	if pf.inet != nil {
+		if err := pf.inet.shutDown(); err != nil {
+			return fmt.Errorf("unable to flush %s table (%s): ", pf.inet.version, pf.inet.table)
+		}
 	}
 
 	if pf.inet6 != nil {

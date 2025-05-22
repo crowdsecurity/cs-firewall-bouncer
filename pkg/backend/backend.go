@@ -64,14 +64,14 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 
 	b := &BackendCTX{}
 
-	log.Printf("backend type: %s", config.Mode)
+	log.Infof("backend type: %s", config.Mode)
 
 	if config.DisableIPV6 {
-		log.Println("IPV6 is disabled")
+		log.Info("IPV6 is disabled")
 	}
 
 	if config.DisableIPV4 {
-		log.Println("IPV4 is disabled")
+		log.Info("IPV4 is disabled")
 	}
 
 	switch config.Mode {
