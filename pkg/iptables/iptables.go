@@ -248,6 +248,11 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 	}
 
 	if strings.Contains(*decision.Value, ".") {
+		if ipt.v4 == nil {
+			log.Debugf("not deleting '%s' because ipv4 is disabled", *decision.Value)
+			return nil
+		}
+
 		if err := ipt.v4.delete(decision); err != nil {
 			return errors.New("failed deleting ban")
 		}
