@@ -215,9 +215,11 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 }
 
 func (ipt *iptables) ShutDown() error {
-	err := ipt.v4.shutDown()
-	if err != nil {
-		return fmt.Errorf("iptables for ipv4 shutdown failed: %w", err)
+	if ipt.v4 != nil {
+		err := ipt.v4.shutDown()
+		if err != nil {
+			return fmt.Errorf("iptables for ipv4 shutdown failed: %w", err)
+		}
 	}
 
 	if ipt.v6 != nil {
