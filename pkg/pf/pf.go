@@ -50,7 +50,9 @@ func NewPF(config *cfg.BouncerConfig) (types.Backend, error) {
 		batchSize: batchSize,
 	}
 
-	ret.inet = inetCtx
+	if !config.DisableIPV4 {
+		ret.inet = inetCtx
+	}
 
 	if !config.DisableIPV6 {
 		ret.inet6 = inet6Ctx

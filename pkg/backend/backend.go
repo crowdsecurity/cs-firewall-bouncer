@@ -70,6 +70,10 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 		log.Println("IPV6 is disabled")
 	}
 
+	if config.DisableIPV4 {
+		log.Println("IPV4 is disabled")
+	}
+
 	switch config.Mode {
 	case cfg.IptablesMode, cfg.IpsetMode:
 		if runtime.GOOS != "linux" {

@@ -81,67 +81,66 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		addRuleComments:      config.IptablesAddRuleComments,
 	}
 
-	ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
-	if err != nil {
-		return nil, errors.New("unable to find iptables-save")
-	}
-
-	if config.Mode == cfg.IpsetMode {
-		ipv4Ctx.ipsetContentOnly = true
-
-		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
+	if !config.DisableIPV4 {
+		ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
 		if err != nil {
-			return nil, err
+			return nil, errors.New("unable to find iptables-save")
 		}
 
-		v4Sets["ipset"] = set
-	} else {
-		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
-		if err != nil {
-			return nil, errors.New("unable to find iptables")
+		if config.Mode == cfg.IpsetMode {
+			ipv4Ctx.ipsetContentOnly = true
+
+			set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
+			if err != nil {
+				return nil, err
+			}
+
+			v4Sets["ipset"] = set
+		} else {
+			ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
+			if err != nil {
+				return nil, errors.New("unable to find iptables")
+			}
+
+			// Try to "adopt" any leftover sets from a previous run if we crashed
+			// They will get flushed/deleted just after
+			v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
+			v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
+
+			ipv4Ctx.Chains = config.IptablesChains
 		}
 
-		// Try to "adopt" any leftover sets from a previous run if we crashed
-		// They will get flushed/deleted just after
-		v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
-		v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
-
-		ipv4Ctx.Chains = config.IptablesChains
+		ipv4Ctx.ipsets = v4Sets
+		ret.v4 = ipv4Ctx
 	}
 
-	ipv4Ctx.ipsets = v4Sets
-	ret.v4 = ipv4Ctx
-
-	if config.DisableIPV6 {
-		return ret, nil
-	}
-
-	ipv6Ctx.iptablesSaveBin, err = exec.LookPath("ip6tables-save")
-	if err != nil {
-		return nil, errors.New("unable to find ip6tables-save")
-	}
-
-	if config.Mode == cfg.IpsetMode {
-		ipv6Ctx.ipsetContentOnly = true
-
-		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
+	if !config.DisableIPV6 {
+		ipv6Ctx.iptablesSaveBin, err = exec.LookPath("ip6tables-save")
 		if err != nil {
-			return nil, err
+			return nil, errors.New("unable to find ip6tables-save")
 		}
 
-		v6Sets["ipset"] = set
-	} else {
-		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
-		if err != nil {
-			return nil, errors.New("unable to find ip6tables")
+		if config.Mode == cfg.IpsetMode {
+			ipv6Ctx.ipsetContentOnly = true
+
+			set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
+			if err != nil {
+				return nil, err
+			}
+
+			v6Sets["ipset"] = set
+		} else {
+			ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
+			if err != nil {
+				return nil, errors.New("unable to find ip6tables")
+			}
+
+			ipv6Ctx.Chains = config.IptablesChains
 		}
 
-		ipv6Ctx.Chains = config.IptablesChains
+		ipv6Ctx.ipsets = v6Sets
+		ret.v6 = ipv6Ctx
 	}
-
-	ipv6Ctx.ipsets = v6Sets
-	ret.v6 = ipv6Ctx
-
 	return ret, nil
 }
 
