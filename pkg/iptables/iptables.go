@@ -145,13 +145,12 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 }
 
 func (ipt *iptables) Init() error {
-	var err error
 
 	if ipt.v4 != nil {
 		log.Info("iptables for ipv4 initiated")
 
 		// flush before init
-		if err = ipt.v4.shutDown(); err != nil {
+		if err := ipt.v4.shutDown(); err != nil {
 			return fmt.Errorf("iptables shutdown failed: %w", err)
 		}
 
@@ -163,8 +162,7 @@ func (ipt *iptables) Init() error {
 	if ipt.v6 != nil {
 		log.Info("iptables for ipv6 initiated")
 
-		err = ipt.v6.shutDown() // flush before init
-		if err != nil {
+		if err := ipt.v6.shutDown(); err != nil {
 			return fmt.Errorf("iptables shutdown failed: %w", err)
 		}
 
@@ -216,15 +214,13 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 
 func (ipt *iptables) ShutDown() error {
 	if ipt.v4 != nil {
-		err := ipt.v4.shutDown()
-		if err != nil {
+		if err := ipt.v4.shutDown(); err != nil {
 			return fmt.Errorf("iptables for ipv4 shutdown failed: %w", err)
 		}
 	}
 
 	if ipt.v6 != nil {
-		err = ipt.v6.shutDown()
-		if err != nil {
+		if err := ipt.v6.shutDown(); err != nil {
 			return fmt.Errorf("iptables for ipv6 shutdown failed: %w", err)
 		}
 	}
