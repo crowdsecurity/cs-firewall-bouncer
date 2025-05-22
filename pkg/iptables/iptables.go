@@ -147,12 +147,8 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 func (ipt *iptables) Init() error {
 	var err error
 
-<<<<<<< Updated upstream
-	log.Info("iptables for ipv4 initiated")
-=======
 	if ipt.v4 != nil {
 		log.Printf("iptables for ipv4 initiated")
->>>>>>> Stashed changes
 
 		// flush before init
 		if err = ipt.v4.shutDown(); err != nil {
