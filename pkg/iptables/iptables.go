@@ -148,7 +148,7 @@ func (ipt *iptables) Init() error {
 	var err error
 
 	if ipt.v4 != nil {
-		log.Printf("iptables for ipv4 initiated")
+		log.Info("iptables for ipv4 initiated")
 
 		// flush before init
 		if err = ipt.v4.shutDown(); err != nil {
