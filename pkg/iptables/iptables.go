@@ -205,6 +205,10 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 
 		ipt.v6.add(decision)
 	} else {
+		if ipt.v4 == nil {
+			log.Debugf("not adding '%s' because ipv4 is disabled", *decision.Value)
+			return nil
+		}
 		ipt.v4.add(decision)
 	}
 
