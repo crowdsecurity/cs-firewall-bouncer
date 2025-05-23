@@ -52,6 +52,8 @@ type BouncerConfig struct {
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
+	IptablesV4Chains        []string `yaml:"iptables_v4_chains"`
+	IptablesV6Chains        []string `yaml:"iptables_v6_chains"`
 	IptablesAddRuleComments bool     `yaml:"iptables_add_rule_comments"`
 
 	SupportedDecisionsTypes []string `yaml:"supported_decisions_types"`
