@@ -41,6 +41,7 @@ type BouncerConfig struct {
 	Daemon             *bool         `yaml:"daemonize"` // unused
 	Logging            LoggingConfig `yaml:",inline"`
 	DisableIPV6        bool          `yaml:"disable_ipv6"`
+	DisableIPV4        bool          `yaml:"disable_ipv4"`
 	DenyAction         string        `yaml:"deny_action"`
 	DenyLog            bool          `yaml:"deny_log"`
 	DenyLogPrefix      string        `yaml:"deny_log_prefix"`
@@ -132,6 +133,11 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		config.SetSize = 131072
 	}
 
+	if config.DisableIPV4 && config.DisableIPV6 && config.Mode != NftablesMode {
+		// we return an error for pf or iptables because nftables has it own way to handle this
+		return nil, errors.New("both IPv4 and IPv6 disabled, doing nothing")
+	}
+
 	switch config.Mode {
 	case NftablesMode:
 		err := nftablesConfig(config)
@@ -161,15 +167,11 @@ func pfConfig(_ *BouncerConfig) error {
 func nftablesConfig(config *BouncerConfig) error {
 	// deal with defaults in a backward compatible way
 	if config.Nftables.Ipv4.Enabled == nil {
-		config.Nftables.Ipv4.Enabled = ptr.Of(true)
+		config.Nftables.Ipv4.Enabled = ptr.Of(!config.DisableIPV4)
 	}
 
 	if config.Nftables.Ipv6.Enabled == nil {
-		if config.DisableIPV6 {
-			config.Nftables.Ipv4.Enabled = ptr.Of(false)
-		} else {
-			config.Nftables.Ipv6.Enabled = ptr.Of(true)
-		}
+		config.Nftables.Ipv6.Enabled = ptr.Of(!config.DisableIPV6)
 	}
 
 	if *config.Nftables.Ipv4.Enabled {
