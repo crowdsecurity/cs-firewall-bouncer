@@ -64,7 +64,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 
 			val, err := strconv.Atoi(matches[1])
 			if err != nil {
-				log.Errorf("error while parsing counters : %s", line)
+				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
 			}
 
@@ -72,7 +72,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 
 			val, err = strconv.Atoi(matches[2])
 			if err != nil {
-				log.Errorf("error while parsing counters : %s", line)
+				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
 			}
 
