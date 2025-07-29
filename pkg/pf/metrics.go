@@ -14,8 +14,8 @@ import (
 )
 
 type counter struct {
-	packets int
-	bytes   int
+	packets uint64
+	bytes   uint64
 }
 
 var (
@@ -56,14 +56,14 @@ func parseMetrics(reader *strings.Reader, tables []string) map[string]counter {
 			continue
 		}
 
-		packets, err := strconv.Atoi(match[1])
+		packets, err := strconv.ParseUint(match[1], 10, 64)
 		if err != nil {
 			log.Errorf("failed to parse metrics - dropped packets: %s", err)
 
 			packets = 0
 		}
 
-		bytes, err := strconv.Atoi(match[2])
+		bytes, err := strconv.ParseUint(match[2], 10, 64)
 		if err != nil {
 			log.Errorf("failed to parse metrics - dropped bytes: %s", err)
 

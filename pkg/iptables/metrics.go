@@ -39,12 +39,12 @@ var (
 	ipsetRule             = regexp.MustCompile(`^\[(\d+):(\d+)\] -A ([0-9A-Za-z_-]+)`)
 )
 
-func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
-	processedBytes := 0
-	processedPackets := 0
+func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[string]uint64, map[string]uint64, uint64, uint64) {
+	processedBytes := uint64(0)
+	processedPackets := uint64(0)
 
-	droppedBytes := make(map[string]int)
-	droppedPackets := make(map[string]int)
+	droppedBytes := make(map[string]uint64)
+	droppedPackets := make(map[string]uint64)
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -62,7 +62,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 				continue
 			}
 
-			val, err := strconv.Atoi(matches[1])
+			val, err := strconv.ParseUint(matches[1], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
@@ -70,7 +70,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 
 			processedPackets += val
 
-			val, err = strconv.Atoi(matches[2])
+			val, err = strconv.ParseUint(matches[2], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
@@ -108,7 +108,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 
 			origin := ctx.originSetMapping[originID]
 
-			val, err := strconv.Atoi(matches[1])
+			val, err := strconv.ParseUint(matches[1], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
@@ -116,7 +116,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 
 			droppedPackets[origin] += val
 
-			val, err = strconv.Atoi(matches[2])
+			val, err = strconv.ParseUint(matches[2], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s | %s", line, err)
 				continue
@@ -130,18 +130,18 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 }
 
 type chainCounters struct {
-	bytes   int
-	packets int
+	bytes   uint64
+	packets uint64
 }
 
 // In ipset mode, we only get dropped packets and bytes by matching on the set name in the rule
 // It's probably not perfect, but good enough for most users.
-func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[string]int, map[string]int, int, int) {
-	processedBytes := 0
-	processedPackets := 0
+func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[string]uint64, map[string]uint64, uint64, uint64) {
+	processedBytes := uint64(0)
+	processedPackets := uint64(0)
 
-	droppedBytes := make(map[string]int)
-	droppedPackets := make(map[string]int)
+	droppedBytes := make(map[string]uint64)
+	droppedPackets := make(map[string]uint64)
 
 	// We need to store the counters for all chains
 	// As we don't know in which chain the user has setup the rules
@@ -170,7 +170,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 				c = chainCounters{}
 			}
 
-			val, err := strconv.Atoi(matches[3])
+			val, err := strconv.ParseUint(matches[3], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s", line)
 				continue
@@ -178,7 +178,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 
 			c.packets += val
 
-			val, err = strconv.Atoi(matches[4])
+			val, err = strconv.ParseUint(matches[4], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s", line)
 				continue
@@ -198,7 +198,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 				continue
 			}
 
-			val, err := strconv.Atoi(matches[1])
+			val, err := strconv.ParseUint(matches[1], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s", line)
 				continue
@@ -206,7 +206,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 
 			droppedPackets["ipset"] += val
 
-			val, err = strconv.Atoi(matches[2])
+			val, err = strconv.ParseUint(matches[2], 10, 64)
 			if err != nil {
 				log.Errorf("error while parsing counters : %s", line)
 				continue
@@ -229,7 +229,7 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 	return droppedPackets, droppedBytes, processedPackets, processedBytes
 }
 
-func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, int, int, error) {
+func (ctx *ipTablesContext) collectMetrics() (map[string]uint64, map[string]uint64, uint64, uint64, error) {
 	//-c is required to get the counters
 	cmd := []string{ctx.iptablesSaveBin, "-c", "-t", "filter"}
 	saveCmd := exec.Command(cmd[0], cmd[1:]...)
@@ -241,10 +241,10 @@ func (ctx *ipTablesContext) collectMetrics() (map[string]int, map[string]int, in
 	}
 
 	var (
-		processedBytes   int
-		processedPackets int
-		droppedBytes     map[string]int
-		droppedPackets   map[string]int
+		processedBytes   uint64
+		processedPackets uint64
+		droppedBytes     map[string]uint64
+		droppedPackets   map[string]uint64
 	)
 
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
@@ -269,7 +269,6 @@ func (ipt *iptables) CollectMetrics() {
 		}
 
 		ipv4DroppedPackets, ipv4DroppedBytes, ipv4ProcessedPackets, ipv4ProcessedBytes, err := ipt.v4.collectMetrics()
-
 		if err != nil {
 			log.Errorf("can't collect dropped packets for ipv4 from iptables: %s", err)
 		} else {
@@ -292,7 +291,6 @@ func (ipt *iptables) CollectMetrics() {
 		}
 
 		ipv6DroppedPackets, ipv6DroppedBytes, ipv6ProcessedPackets, ipv6ProcessedBytes, err := ipt.v6.collectMetrics()
-
 		if err != nil {
 			log.Errorf("can't collect dropped packets for ipv6 from iptables: %s", err)
 		} else {
