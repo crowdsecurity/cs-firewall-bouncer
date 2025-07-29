@@ -14,12 +14,10 @@ import (
 )
 
 type counter struct {
-	packets uint64
-	bytes   uint64
+	packets int
+	bytes   int
 }
 
-// maxSafeFloat64 is the largest integer that can be exactly represented in float64
-// Values larger than this may lose precision when converted to float64
 var (
 	// table names can contain _ or - characters.
 	rexpTable   = regexp.MustCompile(`^block .* from <(?P<table>[^ ]+)> .*"$`)
@@ -58,15 +56,17 @@ func parseMetrics(reader *strings.Reader, tables []string) map[string]counter {
 			continue
 		}
 
-		packets, err := strconv.ParseUint(match[1], 10, 64)
+		packets, err := strconv.Atoi(match[1])
 		if err != nil {
 			log.Errorf("failed to parse metrics - dropped packets: %s", err)
+
 			packets = 0
 		}
 
-		bytes, err := strconv.ParseUint(match[2], 10, 64)
+		bytes, err := strconv.Atoi(match[2])
 		if err != nil {
 			log.Errorf("failed to parse metrics - dropped bytes: %s", err)
+
 			bytes = 0
 		}
 
