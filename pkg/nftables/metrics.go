@@ -14,11 +14,11 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
-func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, int, int, error) {
-	droppedPackets := make(map[string]int)
-	droppedBytes := make(map[string]int)
-	processedPackets := 0
-	processedBytes := 0
+func (c *nftContext) collectDroppedPackets() (map[string]uint64, map[string]uint64, uint64, uint64, error) {
+	droppedPackets := make(map[string]uint64)
+	droppedBytes := make(map[string]uint64)
+	processedPackets := uint64(0)
+	processedBytes := uint64(0)
 	// setName := ""
 	for chainName, chain := range c.chains {
 		rules, err := c.conn.GetRules(c.table, chain)
@@ -34,8 +34,8 @@ func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, in
 					log.Debugf("rule %d (%s): packets %d, bytes %d (%s)", rule.Position, rule.Table.Name, obj.Packets, obj.Bytes, rule.UserData)
 
 					if string(rule.UserData) == "processed" {
-						processedPackets += int(obj.Packets)
-						processedBytes += int(obj.Bytes)
+						processedPackets += uint64(obj.Packets)
+						processedBytes += uint64(obj.Bytes)
 
 						continue
 					}
@@ -46,8 +46,8 @@ func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, in
 						continue
 					}
 
-					droppedPackets[origin] += int(obj.Packets)
-					droppedBytes[origin] += int(obj.Bytes)
+					droppedPackets[origin] += uint64(obj.Packets)
+					droppedBytes[origin] += uint64(obj.Bytes)
 				}
 			}
 		}
@@ -78,7 +78,7 @@ func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
 	return ret, nil
 }
 
-func (c *nftContext) collectDropped() (map[string]int, map[string]int, int, int, map[string]int) {
+func (c *nftContext) collectDropped() (map[string]uint64, map[string]uint64, uint64, uint64, map[string]int) {
 	if c.conn == nil {
 		return nil, nil, 0, 0, nil
 	}
