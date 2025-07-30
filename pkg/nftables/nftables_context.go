@@ -121,8 +121,8 @@ func (c *nftContext) setBanned(banned map[string]struct{}) error {
 			return err
 		}
 
-		for _, el := range elements {
-			banned[net.IP(el.Key).String()] = struct{}{}
+		for i := range elements {
+			banned[net.IP(elements[i].Key).String()] = struct{}{}
 		}
 	}
 
@@ -275,7 +275,6 @@ func (c *nftContext) lookupTable() (*nftables.Table, error) {
 func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 	denyLog bool, denyLogPrefix string, denyAction string,
 ) (*nftables.Rule, error) {
-
 	namedCounter := nftables.NamedObj{
 		Table: c.table,
 		Name:  set.Name,
@@ -364,8 +363,8 @@ func (c *nftContext) deleteElementChunk(els []nftables.SetElement) error {
 
 			log.Debugf("failed to flush chunk of %d elements, will retry each one: %s", len(els), err)
 
-			for _, el := range els {
-				if err := c.deleteElementChunk([]nftables.SetElement{el}); err != nil {
+			for i := range els {
+				if err := c.deleteElementChunk([]nftables.SetElement{els[i]}); err != nil {
 					return err
 				}
 			}
