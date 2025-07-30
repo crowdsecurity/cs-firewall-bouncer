@@ -186,13 +186,30 @@ func (c *nftContext) initOwnTable(hooks []string) error {
 			Priority: &priority,
 		})
 
+		namedCounter := nftables.NamedObj{
+			Table: c.table,
+			Name:  "processed",
+			Type:  nftables.ObjTypeCounter,
+			Obj:   &expr.Counter{},
+		}
+
+		c.conn.AddObject(&namedCounter)
+
+		// We flush here because we need to create a reference to the counter in the rule
+		err := c.conn.Flush()
+		if err != nil {
+			return fmt.Errorf("nftables: failed to flush conn: %w", err)
+		}
+
 		r := &nftables.Rule{
 			Table: c.table,
 			Chain: chain,
 			Exprs: []expr.Any{
-				&expr.Counter{},
+				&expr.Objref{
+					Type: int(nftables.ObjTypeCounter), // The nftables library does use the ObjType enum here, just cast it
+					Name: namedCounter.Name,
+				},
 			},
-			UserData: []byte("processed"),
 		}
 
 		c.conn.AddRule(r)
@@ -258,6 +275,21 @@ func (c *nftContext) lookupTable() (*nftables.Table, error) {
 func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 	denyLog bool, denyLogPrefix string, denyAction string,
 ) (*nftables.Rule, error) {
+
+	namedCounter := nftables.NamedObj{
+		Table: c.table,
+		Name:  set.Name,
+		Type:  nftables.ObjTypeCounter,
+		Obj:   &expr.Counter{},
+	}
+
+	c.conn.AddObject(&namedCounter)
+
+	// We flush here because we need to create a reference to the counter in the rule
+	if err := c.conn.Flush(); err != nil {
+		return nil, fmt.Errorf("nftables: failed to flush conn: %w", err)
+	}
+
 	r := &nftables.Rule{
 		Table:    c.table,
 		Chain:    chain,
@@ -278,7 +310,10 @@ func (c *nftContext) createRule(chain *nftables.Chain, set *nftables.Set,
 		SetID:          set.ID,
 	})
 
-	r.Exprs = append(r.Exprs, &expr.Counter{})
+	r.Exprs = append(r.Exprs, &expr.Objref{
+		Type: int(nftables.ObjTypeCounter), // The nftables library does use the ObjType enum here, just cast it
+		Name: namedCounter.Name,
+	})
 
 	if denyLog {
 		r.Exprs = append(r.Exprs, &expr.Log{
