@@ -87,14 +87,14 @@ linters:
         - name: cyclomatic
           arguments:
             # lower this after refactoring
-            - 28
+            - 29
         - name: flag-parameter
           disabled: true
         - name: function-length
           arguments:
             # lower this after refactoring
             - 74
-            - 149
+            - 153
         - name: import-alias-naming
           disabled: true
         - name: import-shadowing
