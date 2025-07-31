@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	chainName        = "CROWDSEC_CHAIN"
-	loggingChainName = "CROWDSEC_LOG"
-	maxBanSeconds    = 2147483
-	defaultTimeout   = "300"
+	chainName           = "CROWDSEC_CHAIN"
+	loggingChainName    = "CROWDSEC_LOG"
+	dockerUserChainName = "DOCKER-USER"
+	maxBanSeconds       = 2147483
+	defaultTimeout      = "300"
 )
 
 type ipTablesContext struct {
@@ -53,6 +54,17 @@ type ipTablesContext struct {
 	loggingPrefix  string
 
 	addRuleComments bool
+}
+
+func (ctx *ipTablesContext) chainExist(chainName string) bool {
+	cmd := []string{"-L", chainName, "-t", "filter"}
+	c := exec.Command(ctx.iptablesBin, cmd...)
+
+	if _, err := c.CombinedOutput(); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func (ctx *ipTablesContext) setupChain() {
@@ -115,6 +127,11 @@ func (ctx *ipTablesContext) setupChain() {
 		if out, err := c.CombinedOutput(); err != nil {
 			log.Errorf("error while setting logging chain policy : %v --> %s", err, string(out))
 		}
+	}
+
+	if ctx.chainExist(dockerUserChainName) && !slices.Contains(ctx.Chains, dockerUserChainName) {
+		// if the DOCKER-USER chain exists, but is not configured by the user, warn them as their containers will not be protected
+		log.Warnf("The %s chain exists, but is not configured for use by the bouncer. The bouncer will not block traffic destined for your containers", dockerUserChainName)
 	}
 }
 
