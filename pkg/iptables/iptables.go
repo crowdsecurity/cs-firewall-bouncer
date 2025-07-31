@@ -105,9 +105,9 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 			// Try to "adopt" any leftover sets from a previous run if we crashed
 			// They will get flushed/deleted just after
 			v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
-			v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
 
-			ipv4Ctx.Chains = config.IptablesChains
+			config.IptablesV4Chains = append(config.IptablesV4Chains, config.IptablesChains...)
+			ipv4Ctx.Chains = config.IptablesV4Chains
 		}
 
 		ipv4Ctx.ipsets = v4Sets
@@ -135,7 +135,9 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 				return nil, errors.New("unable to find ip6tables")
 			}
 
-			ipv6Ctx.Chains = config.IptablesChains
+			v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
+			config.IptablesV6Chains = append(config.IptablesV6Chains, config.IptablesChains...)
+			ipv6Ctx.Chains = config.IptablesV6Chains
 		}
 
 		ipv6Ctx.ipsets = v6Sets
