@@ -81,91 +81,89 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		addRuleComments:      config.IptablesAddRuleComments,
 	}
 
-	ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
-	if err != nil {
-		return nil, errors.New("unable to find iptables-save")
-	}
-
-	if config.Mode == cfg.IpsetMode {
-		ipv4Ctx.ipsetContentOnly = true
-
-		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
+	if !config.DisableIPV4 {
+		ipv4Ctx.iptablesSaveBin, err = exec.LookPath("iptables-save")
 		if err != nil {
-			return nil, err
+			return nil, errors.New("unable to find iptables-save")
 		}
 
-		v4Sets["ipset"] = set
-	} else {
-		ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
-		if err != nil {
-			return nil, errors.New("unable to find iptables")
+		if config.Mode == cfg.IpsetMode {
+			ipv4Ctx.ipsetContentOnly = true
+
+			set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv4)
+			if err != nil {
+				return nil, err
+			}
+
+			v4Sets["ipset"] = set
+		} else {
+			ipv4Ctx.iptablesBin, err = exec.LookPath("iptables")
+			if err != nil {
+				return nil, errors.New("unable to find iptables")
+			}
+
+			// Try to "adopt" any leftover sets from a previous run if we crashed
+			// They will get flushed/deleted just after
+			v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
+
+			config.IptablesV4Chains = append(config.IptablesV4Chains, config.IptablesChains...)
+			ipv4Ctx.Chains = config.IptablesV4Chains
 		}
 
-		// Try to "adopt" any leftover sets from a previous run if we crashed
-		// They will get flushed/deleted just after
-		v4Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv4)
-		v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
-
-		config.IptablesV4Chains = append(config.IptablesV4Chains, config.IptablesChains...)
-		ipv4Ctx.Chains = config.IptablesV4Chains
+		ipv4Ctx.ipsets = v4Sets
+		ret.v4 = ipv4Ctx
 	}
 
-	ipv4Ctx.ipsets = v4Sets
-	ret.v4 = ipv4Ctx
-
-	if config.DisableIPV6 {
-		return ret, nil
-	}
-
-	ipv6Ctx.iptablesSaveBin, err = exec.LookPath("ip6tables-save")
-	if err != nil {
-		return nil, errors.New("unable to find ip6tables-save")
-	}
-
-	if config.Mode == cfg.IpsetMode {
-		ipv6Ctx.ipsetContentOnly = true
-
-		set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
+	if !config.DisableIPV6 {
+		ipv6Ctx.iptablesSaveBin, err = exec.LookPath("ip6tables-save")
 		if err != nil {
-			return nil, err
+			return nil, errors.New("unable to find ip6tables-save")
 		}
 
-		v6Sets["ipset"] = set
-	} else {
-		ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
-		if err != nil {
-			return nil, errors.New("unable to find ip6tables")
+		if config.Mode == cfg.IpsetMode {
+			ipv6Ctx.ipsetContentOnly = true
+
+			set, err := ipsetcmd.NewIPSet(config.BlacklistsIpv6)
+			if err != nil {
+				return nil, err
+			}
+
+			v6Sets["ipset"] = set
+		} else {
+			ipv6Ctx.iptablesBin, err = exec.LookPath("ip6tables")
+			if err != nil {
+				return nil, errors.New("unable to find ip6tables")
+			}
+
+			v6Sets, _ = ipsetcmd.GetSetsStartingWith(config.BlacklistsIpv6)
+			config.IptablesV6Chains = append(config.IptablesV6Chains, config.IptablesChains...)
+			ipv6Ctx.Chains = config.IptablesV6Chains
 		}
 
-		config.IptablesV6Chains = append(config.IptablesV6Chains, config.IptablesChains...)
-		ipv6Ctx.Chains = config.IptablesV6Chains
+		ipv6Ctx.ipsets = v6Sets
+		ret.v6 = ipv6Ctx
 	}
-
-	ipv6Ctx.ipsets = v6Sets
-	ret.v6 = ipv6Ctx
-
 	return ret, nil
 }
 
 func (ipt *iptables) Init() error {
-	var err error
+	if ipt.v4 != nil {
+		log.Info("iptables for ipv4 initiated")
 
-	log.Printf("iptables for ipv4 initiated")
+		// flush before init
+		if err := ipt.v4.shutDown(); err != nil {
+			return fmt.Errorf("iptables shutdown failed: %w", err)
+		}
 
-	// flush before init
-	if err = ipt.v4.shutDown(); err != nil {
-		return fmt.Errorf("iptables shutdown failed: %w", err)
-	}
-
-	if !ipt.v4.ipsetContentOnly {
-		ipt.v4.setupChain()
+		if !ipt.v4.ipsetContentOnly {
+			ipt.v4.setupChain()
+		}
 	}
 
 	if ipt.v6 != nil {
-		log.Printf("iptables for ipv6 initiated")
+		log.Info("iptables for ipv6 initiated")
 
-		err = ipt.v6.shutDown() // flush before init
-		if err != nil {
+		if err := ipt.v6.shutDown(); err != nil {
 			return fmt.Errorf("iptables shutdown failed: %w", err)
 		}
 
@@ -209,6 +207,10 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 
 		ipt.v6.add(decision)
 	} else {
+		if ipt.v4 == nil {
+			log.Debugf("not adding '%s' because ipv4 is disabled", *decision.Value)
+			return nil
+		}
 		ipt.v4.add(decision)
 	}
 
@@ -216,14 +218,14 @@ func (ipt *iptables) Add(decision *models.Decision) error {
 }
 
 func (ipt *iptables) ShutDown() error {
-	err := ipt.v4.shutDown()
-	if err != nil {
-		return fmt.Errorf("iptables for ipv4 shutdown failed: %w", err)
+	if ipt.v4 != nil {
+		if err := ipt.v4.shutDown(); err != nil {
+			return fmt.Errorf("iptables for ipv4 shutdown failed: %w", err)
+		}
 	}
 
 	if ipt.v6 != nil {
-		err = ipt.v6.shutDown()
-		if err != nil {
+		if err := ipt.v6.shutDown(); err != nil {
 			return fmt.Errorf("iptables for ipv6 shutdown failed: %w", err)
 		}
 	}
@@ -248,6 +250,11 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 	}
 
 	if strings.Contains(*decision.Value, ".") {
+		if ipt.v4 == nil {
+			log.Debugf("not deleting '%s' because ipv4 is disabled", *decision.Value)
+			return nil
+		}
+
 		if err := ipt.v4.delete(decision); err != nil {
 			return errors.New("failed deleting ban")
 		}

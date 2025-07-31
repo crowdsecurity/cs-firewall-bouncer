@@ -7,50 +7,55 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/nftables/expr"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/google/nftables"
+	"github.com/google/nftables/expr"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
-func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, int, int, error) {
-	droppedPackets := make(map[string]int)
-	droppedBytes := make(map[string]int)
-	processedPackets := 0
-	processedBytes := 0
-	// setName := ""
-	for chainName, chain := range c.chains {
-		rules, err := c.conn.GetRules(c.table, chain)
-		if err != nil {
-			log.Errorf("can't get rules for chain %s: %s", chainName, err)
+func (c *nftContext) collectDroppedPackets() (map[string]uint64, map[string]uint64, uint64, uint64, error) {
+	droppedPackets := make(map[string]uint64)
+	droppedBytes := make(map[string]uint64)
+	processedPackets := uint64(0)
+	processedBytes := uint64(0)
+
+	objs, err := c.conn.GetNamedObjects(c.table)
+	if err != nil {
+		return nil, nil, 0, 0, fmt.Errorf("can't get named objects for table %s: %w", c.table.Name, err)
+	}
+
+	for _, obj := range objs {
+		o, ok := obj.(*nftables.NamedObj)
+		if !ok {
 			continue
 		}
 
-		for _, rule := range rules {
-			for _, xpr := range rule.Exprs {
-				obj, ok := xpr.(*expr.Counter)
-				if ok {
-					log.Debugf("rule %d (%s): packets %d, bytes %d (%s)", rule.Position, rule.Table.Name, obj.Packets, obj.Bytes, rule.UserData)
-
-					if string(rule.UserData) == "processed" {
-						processedPackets += int(obj.Packets)
-						processedBytes += int(obj.Bytes)
-
-						continue
-					}
-
-					origin, _ := strings.CutPrefix(string(rule.UserData), c.blacklists+"-")
-
-					if origin == "" {
-						continue
-					}
-
-					droppedPackets[origin] += int(obj.Packets)
-					droppedBytes[origin] += int(obj.Bytes)
-				}
-			}
+		if o.Type != nftables.ObjTypeCounter {
+			continue
 		}
+
+		counterObj, ok := o.Obj.(*expr.Counter)
+		if !ok {
+			continue
+		}
+
+		if o.Name == "processed" {
+			processedPackets = counterObj.Packets
+			processedBytes = counterObj.Bytes
+
+			continue
+		}
+
+		origin, found := strings.CutPrefix(o.Name, c.blacklists+"-")
+		if !found || origin == "" {
+			continue
+		}
+
+		droppedPackets[origin] += counterObj.Packets
+		droppedBytes[origin] += counterObj.Bytes
 	}
 
 	return droppedPackets, droppedBytes, processedPackets, processedBytes, nil
@@ -78,7 +83,7 @@ func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
 	return ret, nil
 }
 
-func (c *nftContext) collectDropped() (map[string]int, map[string]int, int, int, map[string]int) {
+func (c *nftContext) collectDropped() (map[string]uint64, map[string]uint64, uint64, uint64, map[string]int) {
 	if c.conn == nil {
 		return nil, nil, 0, 0, nil
 	}
