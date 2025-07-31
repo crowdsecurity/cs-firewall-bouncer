@@ -23,7 +23,6 @@ func (c *nftContext) collectDroppedPackets() (map[string]uint64, map[string]uint
 	processedBytes := uint64(0)
 
 	objs, err := c.conn.GetNamedObjects(c.table)
-
 	if err != nil {
 		return nil, nil, 0, 0, fmt.Errorf("can't get named objects for table %s: %w", c.table.Name, err)
 	}
@@ -46,6 +45,7 @@ func (c *nftContext) collectDroppedPackets() (map[string]uint64, map[string]uint
 		if o.Name == "processed" {
 			processedPackets = counterObj.Packets
 			processedBytes = counterObj.Bytes
+
 			continue
 		}
 
@@ -53,6 +53,7 @@ func (c *nftContext) collectDroppedPackets() (map[string]uint64, map[string]uint
 		if !found || origin == "" {
 			continue
 		}
+
 		droppedPackets[origin] += counterObj.Packets
 		droppedBytes[origin] += counterObj.Bytes
 	}
