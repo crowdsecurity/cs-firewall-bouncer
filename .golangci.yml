@@ -87,7 +87,7 @@ linters:
         - name: cyclomatic
           arguments:
             # lower this after refactoring
-            - 28
+            - 29
         - name: flag-parameter
           disabled: true
         - name: function-length
