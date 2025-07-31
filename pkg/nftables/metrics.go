@@ -16,14 +16,13 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
 
-func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, int, int, error) {
-	droppedPackets := make(map[string]int)
-	droppedBytes := make(map[string]int)
-	processedPackets := 0
-	processedBytes := 0
+func (c *nftContext) collectDroppedPackets() (map[string]uint64, map[string]uint64, uint64, uint64, error) {
+	droppedPackets := make(map[string]uint64)
+	droppedBytes := make(map[string]uint64)
+	processedPackets := uint64(0)
+	processedBytes := uint64(0)
 
 	objs, err := c.conn.GetNamedObjects(c.table)
-
 	if err != nil {
 		return nil, nil, 0, 0, fmt.Errorf("can't get named objects for table %s: %w", c.table.Name, err)
 	}
@@ -44,8 +43,9 @@ func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, in
 		}
 
 		if o.Name == "processed" {
-			processedPackets = int(counterObj.Packets)
-			processedBytes = int(counterObj.Bytes)
+			processedPackets = counterObj.Packets
+			processedBytes = counterObj.Bytes
+
 			continue
 		}
 
@@ -53,8 +53,9 @@ func (c *nftContext) collectDroppedPackets() (map[string]int, map[string]int, in
 		if !found || origin == "" {
 			continue
 		}
-		droppedPackets[origin] += int(counterObj.Packets)
-		droppedBytes[origin] += int(counterObj.Bytes)
+
+		droppedPackets[origin] += counterObj.Packets
+		droppedBytes[origin] += counterObj.Bytes
 	}
 
 	return droppedPackets, droppedBytes, processedPackets, processedBytes, nil
@@ -82,7 +83,7 @@ func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
 	return ret, nil
 }
 
-func (c *nftContext) collectDropped() (map[string]int, map[string]int, int, int, map[string]int) {
+func (c *nftContext) collectDropped() (map[string]uint64, map[string]uint64, uint64, uint64, map[string]int) {
 	if c.conn == nil {
 		return nil, nil, 0, 0, nil
 	}
