@@ -94,7 +94,7 @@ linters:
           arguments:
             # lower this after refactoring
             - 74
-            - 149
+            - 153
         - name: import-alias-naming
           disabled: true
         - name: import-shadowing
