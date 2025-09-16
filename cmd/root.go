@@ -215,8 +215,7 @@ func Execute() error {
 	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
-		bouncer.Run(ctx)
-		return errors.New("bouncer stream halted")
+		return bouncer.Run(ctx)
 	})
 
 	mHandler := metrics.Handler{

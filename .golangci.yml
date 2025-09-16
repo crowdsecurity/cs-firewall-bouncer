@@ -29,6 +29,9 @@ linters:
     - wrapcheck
     - wsl
     - funcorder
+    - wsl_v5
+    - noinlineerr
+    - noctx
   settings:
 
     depguard:
@@ -88,6 +91,8 @@ linters:
           arguments:
             # lower this after refactoring
             - 29
+        - name: enforce-switch-style
+          disabled: true
         - name: flag-parameter
           disabled: true
         - name: function-length
@@ -115,6 +120,8 @@ linters:
         - name: function-result-limit
           arguments:
             - 5
+        - name: var-naming
+          disabled: true
     staticcheck:
       checks:
         - all
