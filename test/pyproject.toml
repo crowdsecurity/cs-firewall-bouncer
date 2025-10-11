@@ -9,7 +9,7 @@ dependencies = [
     "pexpect>=4.9.0",
     "psutil>=6.1.1",
     "pytest>=8.3.4",
-    "pytest-cs",
+    "pytest-cs>=0.7.24",
     "pytest-dependency>=0.6.0",
     "pytest-dotenv>=0.5.2",
     "pytimeparse>=1.1.8",
