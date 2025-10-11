@@ -91,8 +91,7 @@ def test_api_key(crowdsec, bouncer, fw_cfg_factory, api_key_factory, bouncer_und
             fw.wait_for_lines_fnmatch(
                 [
                     "*Using API key auth*",
-                    "*API error: access forbidden*",
-                    "*process terminated with error: bouncer stream halted*",
+                    "*process terminated with error: API error: access forbidden*",
                 ]
             )
             fw.proc.wait()
