@@ -32,6 +32,7 @@ linters:
     - wsl_v5
     - noinlineerr
     - noctx
+    - godoclint
   settings:
 
     depguard:
@@ -100,6 +101,8 @@ linters:
             # lower this after refactoring
             - 74
             - 153
+        - name: identical-switch-branches
+          disabled: true
         - name: import-alias-naming
           disabled: true
         - name: import-shadowing
