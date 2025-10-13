@@ -62,7 +62,6 @@ jobs:
 
     - name: Run functional tests
       env:
-        CROWDSEC_BYPASS_DB_VOLUME_CHECK: 1
         CROWDSEC_TEST_VERSION: dev
         CROWDSEC_TEST_FLAVORS: full
         CROWDSEC_TEST_NETWORK: net-test
