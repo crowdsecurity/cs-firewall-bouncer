@@ -92,7 +92,6 @@ gen_apikey() {
         msg succ "cscli found, generating bouncer api key."
         bouncer_id="$BOUNCER_PREFIX-$(date +%s)"
         API_KEY=$(cscli -oraw bouncers add "$bouncer_id")
-        mkdir -p "$(dirname "$CONFIG")"
         echo "$bouncer_id" > "$CONFIG.id"
         msg info "API Key: $API_KEY"
         READY="yes"
@@ -103,7 +102,6 @@ gen_apikey() {
 }
 
 gen_config_file() {
-    mkdir -p "$(dirname "$CONFIG")"
     # shellcheck disable=SC2016
     (umask 177 && API_KEY="$API_KEY" BACKEND="$FW_BACKEND" envsubst '$API_KEY $BACKEND' <"./config/$CONFIG_FILE" > "$CONFIG")
 }
@@ -117,9 +115,10 @@ install_bouncer() {
         msg err "$BIN_PATH_INSTALLED is already installed. Exiting"
         exit 1
     fi
-    msg "Installing $BOUNCER"
+    msg info "Installing $BOUNCER"
     check_firewall
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
+    mkdir -p "$(dirname "$CONFIG")"
     # shellcheck disable=SC2016
     CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst '$CFG $BIN' <"./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
     systemctl daemon-reload
