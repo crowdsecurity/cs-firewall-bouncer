@@ -13,7 +13,7 @@ CONFIG = f"/etc/crowdsec/bouncers/{BOUNCER}.yaml"
 @pytest.mark.systemd_debug(BOUNCER)
 @pytest.mark.dependency
 def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
-    c = pexpect.spawn("/usr/bin/sh", ["scripts/install.sh"], encoding="utf-8", cwd=project_repo)
+    c = pexpect.spawn("/usr/bin/sh", ["scripts/install.sh"], encoding="utf-8", cwd=project_repo, env={"NO_COLOR": "1"})
 
     c.expect(f"Installing {BOUNCER}")
     c.expect("iptables found")
@@ -22,6 +22,7 @@ def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
     c.sendline("nftables")
     c.expect("cscli found, generating bouncer api key.")
     c.expect("API Key: (.*)")
+
     api_key = text.nocolor(c.match.group(1).strip())
     # XXX: what do we expect here ?
     c.wait()

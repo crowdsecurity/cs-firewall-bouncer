@@ -16,14 +16,14 @@ BOUNCER_PREFIX=$(echo "$BOUNCER" | sed 's/crowdsec-/cs-/g')
 # some environment variables with the functions. It's a matter of
 # readability balance between shorter vs cleaner code.
 
-if [ ! -t 0 ]; then
+if [ -n "${NO_COLOR-}" ] || [ ! -t 1 ]; then
     # terminal is not interactive; no colors
     FG_RED=""
     FG_GREEN=""
     FG_YELLOW=""
     FG_CYAN=""
     RESET=""
-elif tput sgr0 >/dev/null 2>&1; then
+elif [ -n "${TERM-}" ] && tput sgr0 >/dev/null 2>&1; then
     # terminfo
     FG_RED=$(tput setaf 1)
     FG_GREEN=$(tput setaf 2)
