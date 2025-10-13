@@ -102,9 +102,9 @@ gen_apikey() {
 }
 
 gen_config_file() {
+    mkdir -p "$(dirname "$CONFIG")"
     # shellcheck disable=SC2016
-    API_KEY=${API_KEY} BACKEND=${FW_BACKEND} envsubst '$API_KEY $BACKEND' <"./config/$CONFIG_FILE" | \
-        install -D -m 0600 /dev/stdin "$CONFIG"
+    (umask 1777 && API_KEY="$API_KEY" BACKEND="$FW_BACKEND" envsubst '$API_KEY $BACKEND' <"./config/$CONFIG_FILE" > "$CONFIG")
 }
 
 install_bouncer() {
@@ -119,7 +119,6 @@ install_bouncer() {
     msg "Installing $BOUNCER"
     check_firewall
     install -v -m 0755 -D "$BIN_PATH" "$BIN_PATH_INSTALLED"
-    install -D -m 0600 "./config/$CONFIG_FILE" "$CONFIG"
     # shellcheck disable=SC2016
     CFG=${CONFIG_DIR} BIN=${BIN_PATH_INSTALLED} envsubst '$CFG $BIN' <"./config/$SERVICE" >"$SYSTEMD_PATH_FILE"
     systemctl daemon-reload

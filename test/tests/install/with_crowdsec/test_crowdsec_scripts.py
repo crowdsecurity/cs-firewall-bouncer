@@ -19,7 +19,7 @@ def test_install_crowdsec(project_repo, bouncer_binary, must_be_root):
     c.expect("iptables found")
     c.expect("nftables found")
     c.expect(re.escape("Found nftables (default) and iptables, which firewall do you want to use (nftables/iptables)"))
-    c.sendline("fntables")
+    c.sendline("nftables")
     c.expect("cscli found, generating bouncer api key.")
     c.expect("API Key: (.*)")
     api_key = text.nocolor(c.match.group(1).strip())
