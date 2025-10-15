@@ -121,9 +121,8 @@ set_config_var_value() {
     fi
 
     before=$(cat "$CONFIG")
-    echo "$before" | \
-        env "$varname=$value" envsubst "\$$varname" | \
-        install -m 0600 /dev/stdin "$CONFIG"
+    (umask 177 && echo "$before" | \
+        env "$varname=$value" envsubst "\$$varname" >"$CONFIG")
 }
 
 set_api_key() {

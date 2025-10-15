@@ -19,8 +19,10 @@ override_dh_auto_install:
 		PKG="$$BOUNCER-$$BACKEND"; \
 		install -D $$BOUNCER -t "debian/$$PKG/usr/bin/"; \
 		install -D scripts/_bouncer.sh -t "debian/$$PKG/usr/lib/$$PKG/"; \
-		BACKEND=$$BACKEND envsubst '$$BACKEND' < config/$$BOUNCER.yaml | install -D /dev/stdin "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"; \
-		BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" | install -D /dev/stdin "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"; \
+		mkdir -p "debian/$$PKG/etc/crowdsec/bouncers"; \
+		(umask 177 && BACKEND=$$BACKEND envsubst '$$BACKEND' < "config/$$BOUNCER.yaml" > "debian/$$PKG/etc/crowdsec/bouncers/$$BOUNCER.yaml"); \
+		mkdir -p "debian/$$PKG/etc/systemd/system"; \
+		BIN="/usr/bin/$$BOUNCER" CFG="/etc/crowdsec/bouncers" envsubst '$$BIN $$CFG' < "config/$$BOUNCER.service" > "debian/$$PKG/etc/systemd/system/$$BOUNCER.service"; \
 		mkdir -p "debian/$$PKG/usr/sbin/"; \
 		ln -s "/usr/bin/$$BOUNCER" "debian/$$PKG/usr/sbin/$$BOUNCER"; \
 	done
