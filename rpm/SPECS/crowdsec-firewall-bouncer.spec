@@ -69,7 +69,7 @@ START=1
 
 if grep -q '${BACKEND}' "$CONFIG"; then
   newconfig=$(BACKEND="iptables" envsubst '$BACKEND' < "$CONFIG")
-  echo "$newconfig" | install -m 0600 /dev/stdin "$CONFIG"
+  (umask 177 && echo "$newconfig" > "$CONFIG")
 fi
 
 if [ "$1" = "1" ]; then
@@ -147,7 +147,7 @@ START=1
 
 if grep -q '${BACKEND}' "$CONFIG"; then
   newconfig=$(BACKEND="nftables" envsubst '$BACKEND' < "$CONFIG")
-  echo "$newconfig" | install -m 0600 /dev/stdin "$CONFIG"
+  (umask 177 && echo "$newconfig" > "$CONFIG")
 fi
 
 if [ "$1" = "1" ]; then
