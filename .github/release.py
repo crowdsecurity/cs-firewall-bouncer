@@ -52,6 +52,10 @@ def filename_for_entry(prog_name, entry):
 def matrix(prog_name):
     for goos in _goos():
         for goarch in _goarch(goos):
+            if (goos, goarch) == ('freebsd', 'riscv64'):
+                # platform not supported
+                # gopsutil/v4@v4.25.8/cpu/cpu_freebsd.go:85:13: undefined: cpuTimes
+                continue
             for goarm in _goarm(goarch):
                 for build_tarball in _build_tarball(goos):
                     yield {
