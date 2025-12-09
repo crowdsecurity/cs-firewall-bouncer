@@ -8,7 +8,9 @@ linters:
     - gocognit  # revive
     - gocyclo   # revive
     - lll       # revive
+    - wsl       # wsl_v5
 
+    - depguard
     - dupl
     - err113
     - exhaustruct
@@ -17,7 +19,6 @@ linters:
     - godox
     - gosec
     - ireturn
-    - maintidx
     - mnd
     - nlreturn
     - paralleltest
@@ -27,20 +28,13 @@ linters:
     - varnamelen
     - whitespace
     - wrapcheck
-    - wsl
     - funcorder
     - wsl_v5
     - noinlineerr
     - noctx
     - godoclint
+    - prealloc
   settings:
-
-    depguard:
-      rules:
-        main:
-          deny:
-            - pkg: github.com/pkg/errors
-              desc: errors.Wrap() is deprecated in favor of fmt.Errorf()
 
     errcheck:
       check-type-assertions: false
@@ -59,8 +53,16 @@ linters:
         - fieldalignment
       enable-all: true
 
+    maintidx:
+      # raise this after refactoring
+      under: 23
+
     misspell:
       locale: US
+
+    modernize:
+      disable:
+        - stringsseq
 
     nestif:
       # lower this after refactoring
@@ -142,8 +144,8 @@ linters:
         text: 'shadow: declaration of "(err|ctx)" shadows declaration'
 
       - linters:
-          - perfsprint
-        text: fmt.Sprintf can be replaced .*
+          - revive
+        text: 'deep-exit: calls to flag.Parse only in main\(\) or init\(\) functions'
     paths:
       - third_party$
       - builtin$
@@ -154,6 +156,10 @@ issues:
   max-same-issues: 0
 
 formatters:
+  enable:
+    - gci
+    - gofumpt
+
   settings:
     gci:
       sections:

@@ -143,6 +143,7 @@ func NewIPTables(config *cfg.BouncerConfig) (types.Backend, error) {
 		ipv6Ctx.ipsets = v6Sets
 		ret.v6 = ipv6Ctx
 	}
+
 	return ret, nil
 }
 

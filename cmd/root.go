@@ -287,6 +287,7 @@ func Execute() error {
 			log.Info("Received shutdown signal, exiting gracefully")
 			return nil
 		}
+
 		return fmt.Errorf("process terminated with error: %w", err)
 	}
 

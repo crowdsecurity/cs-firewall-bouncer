@@ -7,11 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
+	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
 )
