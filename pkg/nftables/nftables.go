@@ -318,7 +318,7 @@ func (n *nft) ShutDown() error {
 	return n.v6.shutDown()
 }
 
-func (n *nft) CheckHealth() cstypes.HealthStatus {
+func (*nft) CheckHealth() cstypes.HealthStatus {
 	// nftables health check - stub for now, returns healthy
 	// TODO: implement proper health check for nftables tables/chains
 	return cstypes.HealthStatus{

@@ -309,12 +309,8 @@ func Execute() error {
 		}
 	})
 
-	if config.Daemon != nil {
-		if *config.Daemon {
-			log.Debug("Ignoring deprecated 'daemonize' option")
-		} else {
-			log.Warn("The 'daemonize' config option is deprecated and treated as always true")
-		}
+	if config.Daemon != nil && !*config.Daemon {
+		log.Warn("The 'daemonize' config option is deprecated and treated as always true")
 	}
 
 	_ = csdaemon.Notify(csdaemon.Ready, log.StandardLogger())

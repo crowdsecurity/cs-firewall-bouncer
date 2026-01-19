@@ -203,7 +203,7 @@ func (pf *pf) ShutDown() error {
 	return nil
 }
 
-func (pf *pf) CheckHealth() types.HealthStatus {
+func (*pf) CheckHealth() types.HealthStatus {
 	// PF health check - stub for now, returns healthy
 	// TODO: implement proper health check for pf tables
 	return types.HealthStatus{
