@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -12,8 +11,6 @@ import (
 	"github.com/crowdsecurity/go-cs-lib/ptr"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
-
-	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 const CollectionInterval = time.Second * 10
@@ -26,18 +23,8 @@ const (
 	ProcessedPackets metricName = "fw_bouncer_processed_packets"
 	ProcessedBytes   metricName = "fw_bouncer_processed_bytes"
 	ActiveBannedIPs  metricName = "fw_bouncer_banned_ips"
-	HealthStatus     metricName = "fw_bouncer_health_status"
 )
 
-// HealthCheckFailure counter tracks when health checks detect missing infrastructure.
-var HealthCheckFailure = prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "fw_bouncer_health_check_failure_total",
-	Help: "Total number of health check failures detected",
-}, []string{"backend"})
-
-func RegisterHealthCounters() {
-	prometheus.MustRegister(HealthCheckFailure)
-}
 
 type backendCollector interface {
 	CollectMetrics()
@@ -128,17 +115,6 @@ var Map = metricMap{
 			return getLabelValue(labels, "ip_type")
 		},
 	},
-	HealthStatus: {
-		Name: "health_status",
-		Unit: "boolean",
-		Gauge: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Name: string(HealthStatus),
-			Help: "Current health status of the firewall backend (1=healthy, 0=unhealthy)",
-		}, []string{"backend", "component"}),
-		LabelKeys:    []string{"backend", "component"},
-		LastValueMap: nil,
-		KeyFunc:      func([]*io_prometheus_client.LabelPair) string { return "" },
-	},
 }
 
 func getLabelValue(labels []*io_prometheus_client.LabelPair, key string) string {
@@ -228,56 +204,4 @@ func (m Handler) ComputeMetricsHandler(next http.Handler) http.Handler {
 		m.Backend.CollectMetrics()
 		next.ServeHTTP(w, r)
 	})
-}
-
-// HealthResponse is the JSON response for the /health endpoint.
-type HealthResponse struct {
-	Status    string          `json:"status"`
-	Backend   string          `json:"backend"`
-	Details   map[string]bool `json:"details"`
-	Timestamp time.Time       `json:"timestamp"`
-}
-
-// HealthHandler returns an HTTP handler for the /health endpoint.
-func HealthHandler(healthChecker func() types.HealthStatus, backendMode string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		health := healthChecker()
-
-		status := "healthy"
-		httpStatus := http.StatusOK
-		if !health.Healthy {
-			status = "unhealthy"
-			httpStatus = http.StatusServiceUnavailable
-		}
-
-		response := HealthResponse{
-			Status:    status,
-			Backend:   backendMode,
-			Details:   health.Details,
-			Timestamp: health.LastChecked,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(httpStatus)
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Errorf("failed to encode health response: %s", err)
-		}
-	})
-}
-
-// UpdateHealthMetrics updates the Prometheus health metrics based on the health status.
-func UpdateHealthMetrics(health types.HealthStatus, backendMode string) {
-	overall := float64(0)
-	if health.Healthy {
-		overall = 1
-	}
-	Map[HealthStatus].Gauge.WithLabelValues(backendMode, "overall").Set(overall)
-
-	for component, healthy := range health.Details {
-		val := float64(0)
-		if healthy {
-			val = 1
-		}
-		Map[HealthStatus].Gauge.WithLabelValues(backendMode, component).Set(val)
-	}
 }

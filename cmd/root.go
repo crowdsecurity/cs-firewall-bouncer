@@ -57,15 +57,11 @@ func runHealthChecker(ctx context.Context, b *backend.BackendCTX, config *cfg.Bo
 		case <-ticker.C:
 			health := b.CheckHealth()
 
-			// Update Prometheus metrics
-			metrics.UpdateHealthMetrics(health, config.Mode)
-
 			if health.Healthy {
 				log.Debugf("Health check passed: %+v", health.Details)
 				continue
 			}
 
-			metrics.HealthCheckFailure.WithLabelValues(config.Mode).Inc()
 			log.Errorf("Critical: firewall infrastructure missing, triggering restart: %+v", health.Details)
 			return backend.ErrUnrecoverable
 		}
@@ -275,28 +271,15 @@ func Execute() error {
 
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 
-	// Register health check counters if health checking is enabled
-	if config.HealthConfig.Enabled {
-		metrics.RegisterHealthCounters()
-	}
-
 	if config.PrometheusConfig.Enabled {
 		go func() {
 			http.Handle("/metrics", mHandler.ComputeMetricsHandler(promhttp.Handler()))
-
-			// Add health endpoint if health checking is enabled
-			if config.HealthConfig.Enabled {
-				http.Handle("/health", metrics.HealthHandler(backend.CheckHealth, config.Mode))
-			}
 
 			listenOn := net.JoinHostPort(
 				config.PrometheusConfig.ListenAddress,
 				config.PrometheusConfig.ListenPort,
 			)
 			log.Infof("Serving metrics at %s", listenOn+"/metrics")
-			if config.HealthConfig.Enabled {
-				log.Infof("Serving health at %s", listenOn+"/health")
-			}
 			log.Error(http.ListenAndServe(listenOn, nil))
 		}()
 	}
