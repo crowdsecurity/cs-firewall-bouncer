@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -33,6 +34,43 @@ import (
 const bouncerType = "crowdsec-firewall-bouncer"
 
 var errSignalShutdown = errors.New("signal shutdown")
+
+// runHealthChecker periodically checks the health of the backend.
+// If critical infrastructure is missing, it returns an error to trigger a process restart.
+func runHealthChecker(ctx context.Context, b *backend.BackendCTX, config *cfg.BouncerConfig) error {
+	interval, err := time.ParseDuration(config.HealthConfig.CheckInterval)
+	if err != nil {
+		log.Warnf("invalid health check interval '%s', using default 30s", config.HealthConfig.CheckInterval)
+		interval = 30 * time.Second
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	log.Infof("Health checker started with interval %s", interval)
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("Health checker stopping due to context cancellation")
+			return nil
+		case <-ticker.C:
+			health := b.CheckHealth()
+
+			// Update Prometheus metrics
+			metrics.UpdateHealthMetrics(health, config.Mode)
+
+			if health.Healthy {
+				log.Debugf("Health check passed: %+v", health.Details)
+				continue
+			}
+
+			metrics.HealthCheckFailure.WithLabelValues(config.Mode).Inc()
+			log.Errorf("Critical: firewall infrastructure missing, triggering restart: %+v", health.Details)
+			return backend.ErrUnrecoverable
+		}
+	}
+}
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -237,17 +275,37 @@ func Execute() error {
 
 	prometheus.MustRegister(csbouncer.TotalLAPICalls, csbouncer.TotalLAPIError)
 
+	// Register health check counters if health checking is enabled
+	if config.HealthConfig.Enabled {
+		metrics.RegisterHealthCounters()
+	}
+
 	if config.PrometheusConfig.Enabled {
 		go func() {
 			http.Handle("/metrics", mHandler.ComputeMetricsHandler(promhttp.Handler()))
+
+			// Add health endpoint if health checking is enabled
+			if config.HealthConfig.Enabled {
+				http.Handle("/health", metrics.HealthHandler(backend.CheckHealth, config.Mode))
+			}
 
 			listenOn := net.JoinHostPort(
 				config.PrometheusConfig.ListenAddress,
 				config.PrometheusConfig.ListenPort,
 			)
 			log.Infof("Serving metrics at %s", listenOn+"/metrics")
+			if config.HealthConfig.Enabled {
+				log.Infof("Serving health at %s", listenOn+"/health")
+			}
 			log.Error(http.ListenAndServe(listenOn, nil))
 		}()
+	}
+
+	// Start health checker goroutine if enabled
+	if config.HealthConfig.Enabled {
+		g.Go(func() error {
+			return runHealthChecker(ctx, backend, config)
+		})
 	}
 
 	g.Go(func() error {

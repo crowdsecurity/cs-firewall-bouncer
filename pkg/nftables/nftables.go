@@ -15,6 +15,7 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	cstypes "github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
 const (
@@ -315,4 +316,14 @@ func (n *nft) ShutDown() error {
 	}
 
 	return n.v6.shutDown()
+}
+
+func (n *nft) CheckHealth() cstypes.HealthStatus {
+	// nftables health check - stub for now, returns healthy
+	// TODO: implement proper health check for nftables tables/chains
+	return cstypes.HealthStatus{
+		Healthy:     true,
+		Details:     map[string]bool{},
+		LastChecked: time.Now(),
+	}
 }
