@@ -3,25 +3,75 @@ package pf
 import (
 	"bufio"
 	"fmt"
+	"maps"
+	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/crowdsecurity/go-cs-lib/slicetools"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 )
 
 type pfContext struct {
-	proto     string
-	anchor    string
-	table     string
-	version   string
-	batchSize int
+	proto   string
+	anchor  string
+	table   string
+	version string
 }
 
 const backendName = "pf"
+
+func decisionsToIPs(decisions []*models.Decision) []string {
+	ips := make([]string, 0, len(decisions))
+
+	for i, d := range decisions {
+		if d == nil || d.Value == nil {
+			continue
+		}
+
+		ips[i] = *d.Value
+	}
+
+	return ips
+}
+
+func writeIPsToFile(ips []string) (string, error) {
+	f, err := os.CreateTemp("", "crowdsec-ips-*.txt")
+	if err != nil {
+		return "", err
+	}
+
+	name := f.Name()
+	done := false
+
+	defer func() {
+		if !done {
+			_ = f.Close()
+			_ = os.Remove(name)
+		}
+	}()
+
+	w := bufio.NewWriter(f)
+	for _, ip := range ips {
+		if _, err = w.WriteString(ip + "\n"); err != nil {
+			return "", err
+		}
+	}
+
+	if err = w.Flush(); err != nil {
+		return "", err
+	}
+
+	if err = f.Close(); err != nil {
+		return "", err
+	}
+
+	done = true
+
+	return name, nil
+}
 
 func (ctx *pfContext) checkTable() error {
 	log.Infof("Checking pf table: %s", ctx.table)
@@ -98,16 +148,24 @@ func getStateIPs() (map[string]bool, error) {
 }
 
 func (ctx *pfContext) add(decisions []*models.Decision) error {
-	chunks := slicetools.Chunks(decisions, ctx.batchSize)
-	for _, chunk := range chunks {
-		if err := ctx.addChunk(chunk); err != nil {
-			log.Errorf("error while adding decision chunk: %s", err)
-		}
+	log.Debugf("Adding %d decisions", len(decisions))
+
+	ips := decisionsToIPs(decisions)
+
+	file, err := writeIPsToFile(ips)
+	if err != nil {
+		return fmt.Errorf("writing decisions to temp file: %w", err)
+	}
+	defer os.Remove(file)
+
+	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "add", "-f", file)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error while adding to table (%s): %w --> %s", cmd, err, out)
 	}
 
-	bannedIPs := make(map[string]bool)
-	for _, d := range decisions {
-		bannedIPs[*d.Value] = true
+	bannedIPs := make(map[string]bool, len(ips))
+	for _, ip := range ips {
+		bannedIPs[ip] = true
 	}
 
 	if len(bannedIPs) == 0 {
@@ -115,7 +173,11 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 		return nil
 	}
 
-	log.Debugf("New banned IPs: %v", bannedIPs)
+	if log.IsLevelEnabled(log.DebugLevel) {
+		keys := slices.Collect(maps.Keys(bannedIPs))
+		slices.Sort(keys)
+		log.Debugf("New banned IPs: %v", keys)
+	}
 
 	stateIPs, err := getStateIPs()
 	if err != nil {
@@ -143,42 +205,18 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 	return nil
 }
 
-func (ctx *pfContext) addChunk(decisions []*models.Decision) error {
-	log.Debugf("Adding chunk with %d decisions", len(decisions))
-
-	addArgs := []string{"-t", ctx.table, "-T", "add"}
-
-	for _, d := range decisions {
-		addArgs = append(addArgs, *d.Value)
-	}
-
-	cmd := execPfctl(ctx.anchor, addArgs...)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("error while adding to table (%s): %w --> %s", cmd, err, out)
-	}
-
-	return nil
-}
-
 func (ctx *pfContext) delete(decisions []*models.Decision) error {
-	chunks := slicetools.Chunks(decisions, ctx.batchSize)
-	for _, chunk := range chunks {
-		if err := ctx.deleteChunk(chunk); err != nil {
-			log.Errorf("error while deleting decision chunk: %s", err)
-		}
+	log.Debugf("Removing %d decisions", len(decisions))
+
+	ips := decisionsToIPs(decisions)
+
+	file, err := writeIPsToFile(ips)
+	if err != nil {
+		return fmt.Errorf("writing decisions to temp file: %w", err)
 	}
+	defer os.Remove(file)
 
-	return nil
-}
-
-func (ctx *pfContext) deleteChunk(decisions []*models.Decision) error {
-	delArgs := []string{"-t", ctx.table, "-T", "delete"}
-
-	for _, d := range decisions {
-		delArgs = append(delArgs, *d.Value)
-	}
-
-	cmd := execPfctl(ctx.anchor, delArgs...)
+	cmd := execPfctl(ctx.anchor, "-t", ctx.table, "-T", "delete", "-f", file)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Infof("Error while deleting from table (%s): %v --> %s", cmd, err, out)
 	}

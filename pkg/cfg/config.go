@@ -162,7 +162,11 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	return config, nil
 }
 
-func pfConfig(_ *BouncerConfig) error {
+func pfConfig(config *BouncerConfig) error {
+	if config.PF.BatchSize != 0 {
+		log.Warning("Option pf.batch_size is deprecated and ignored, all IPs are loaded at once")
+	}
+
 	return nil
 }
 

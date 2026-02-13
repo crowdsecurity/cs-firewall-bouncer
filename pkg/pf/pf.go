@@ -29,25 +29,18 @@ const (
 func NewPF(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret := &pf{}
 
-	batchSize := config.PF.BatchSize
-	if batchSize == 0 {
-		batchSize = 2000
-	}
-
 	inetCtx := &pfContext{
-		table:     config.BlacklistsIpv4,
-		proto:     "inet",
-		anchor:    config.PF.AnchorName,
-		version:   "ipv4",
-		batchSize: batchSize,
+		table:   config.BlacklistsIpv4,
+		proto:   "inet",
+		anchor:  config.PF.AnchorName,
+		version: "ipv4",
 	}
 
 	inet6Ctx := &pfContext{
-		table:     config.BlacklistsIpv6,
-		proto:     "inet6",
-		anchor:    config.PF.AnchorName,
-		version:   "ipv6",
-		batchSize: batchSize,
+		table:   config.BlacklistsIpv6,
+		proto:   "inet6",
+		anchor:  config.PF.AnchorName,
+		version: "ipv6",
 	}
 
 	if !config.DisableIPV4 {
