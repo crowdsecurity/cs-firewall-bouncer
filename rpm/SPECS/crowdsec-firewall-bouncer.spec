@@ -38,7 +38,7 @@ install -m 600 -D scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
 mkdir -p %{buildroot}%{_unitdir}
 BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service > %{buildroot}%{_unitdir}/%{name}.service
 
-install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/
+install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
 %clean
 rm -rf %{buildroot}
