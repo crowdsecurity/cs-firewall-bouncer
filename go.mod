@@ -5,7 +5,7 @@ go 1.25.2
 require (
 	github.com/crowdsecurity/crowdsec v1.7.6
 	github.com/crowdsecurity/go-cs-bouncer v0.0.21
-	github.com/crowdsecurity/go-cs-lib v0.0.24
+	github.com/crowdsecurity/go-cs-lib v0.0.25
 	github.com/google/nftables v0.3.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
