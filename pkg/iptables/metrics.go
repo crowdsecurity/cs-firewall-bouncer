@@ -49,6 +49,10 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 	for scanner.Scan() {
 		line := scanner.Text()
 
+		if len(line) == 0 {
+			continue
+		}
+
 		// Ignore chain declaration
 		if line[0] == ':' {
 			continue
