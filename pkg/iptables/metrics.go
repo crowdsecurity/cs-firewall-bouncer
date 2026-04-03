@@ -105,7 +105,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 				continue
 			}
 
-			if len(ctx.originSetMapping) < originID {
+			if len(ctx.originSetMapping) <= originID {
 				log.Errorf("Found unknown origin id : %d", originID)
 				continue
 			}
