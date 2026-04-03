@@ -3,9 +3,9 @@ module github.com/crowdsecurity/cs-firewall-bouncer
 go 1.25.2
 
 require (
-	github.com/crowdsecurity/crowdsec v1.7.6
+	github.com/crowdsecurity/crowdsec v1.7.7
 	github.com/crowdsecurity/go-cs-bouncer v0.0.21
-	github.com/crowdsecurity/go-cs-lib v0.0.24
+	github.com/crowdsecurity/go-cs-lib v0.0.25
 	github.com/google/nftables v0.3.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
@@ -58,7 +58,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.mongodb.org/mongo-driver v1.17.4 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/net v0.44.0 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	golang.org/x/net v0.48.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
