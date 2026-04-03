@@ -56,6 +56,7 @@ ignore = [
     "D400",     # First line should end with a period
     "D415",     # First line should end with a period, question mark, or exclamation point
     "DTZ005",   # `datetime.datetime.now()` called without a `tz` argument
+    "DTZ901",   # Use of `datetime.datetime.min` without timezone information
     "EM102",    # Exception must not use an f-string literal, assign to variable first
     "ERA001",   # Found commented-out code
     "FBT002",   # Boolean default positional argument in function definition
