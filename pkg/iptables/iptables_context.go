@@ -398,3 +398,50 @@ func (ctx *ipTablesContext) delete(decision *models.Decision) error {
 	ctx.toDel = append(ctx.toDel, decision)
 	return nil
 }
+
+// jumpRuleExists checks if the jump rule to CROWDSEC_CHAIN exists in the given chain.
+func (ctx *ipTablesContext) jumpRuleExists(chain string) bool {
+	cmd := exec.Command(ctx.iptablesBin, "-C", chain, "-j", chainName)
+	return cmd.Run() == nil
+}
+
+// checkHealth verifies that the iptables infrastructure is intact.
+func (ctx *ipTablesContext) checkHealth() map[string]bool {
+	health := make(map[string]bool)
+
+	if ctx.ipsetContentOnly {
+		// In ipset-only mode, just check if the default ipset exists
+		if ctx.defaultSet != nil {
+			health["ipset_default"] = ctx.defaultSet.Exists()
+		}
+		// Also check any origin-specific sets
+		for origin, set := range ctx.ipsets {
+			if set != nil {
+				health["ipset_"+origin] = set.Exists()
+			}
+		}
+	} else {
+		// Full iptables mode: check chain and jump rules
+		health["chain_exists"] = ctx.chainExist(chainName)
+
+		// Check if jump rules exist in configured chains
+		for _, chain := range ctx.Chains {
+			health["jump_"+chain] = ctx.jumpRuleExists(chain)
+		}
+
+		// Check if logging chain exists (if logging is enabled)
+		if ctx.loggingEnabled {
+			health["logging_chain_exists"] = ctx.chainExist(loggingChainName)
+		}
+
+		// Check ipsets exist
+		for origin, set := range ctx.ipsets {
+			if set != nil {
+				health["ipset_"+origin] = set.Exists()
+			}
+		}
+	}
+
+	return health
+}
+
