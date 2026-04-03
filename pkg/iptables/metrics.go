@@ -49,7 +49,7 @@ func (ctx *ipTablesContext) collectMetricsIptables(scanner *bufio.Scanner) (map[
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		if len(line) == 0 {
+		if line == "" {
 			continue
 		}
 
@@ -158,6 +158,10 @@ func (ctx *ipTablesContext) collectMetricsIpset(scanner *bufio.Scanner) (map[str
 
 	for scanner.Scan() {
 		line := scanner.Text()
+
+		if line == "" {
+			continue
+		}
 
 		// Chain declaration
 		if line[0] == ':' {
