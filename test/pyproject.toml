@@ -23,7 +23,7 @@ pytest-cs = { git = "https://github.com/crowdsecurity/pytest-cs" }
 dev = [
     "basedpyright>=1.26.0",
     "ipdb>=0.13.13",
-    "ruff>=0.9.4",
+    "ruff>=0.15.11",
 ]
 
 #[tool.uv.sources]
