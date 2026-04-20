@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseMetrics(t *testing.T) {
-	metricsInput := `block drop in quick inet from <crowdsec_blacklists> to any label "CrowdSec IPv4"
+	metricsInput := `block drop in log quick inet from <crowdsec_blacklists> to any label "5557b4052ac9b83fbc9ccd5f036668ed" tag CrowdSec
   [ Evaluations: 1519      Packets: 16         Bytes: 4096           States: 0     ]
   [ Inserted: uid 0 pid 14219 State Creations: 0     ]
 block drop in quick inet6 from <crowdsec6_blacklists> to any label "CrowdSec IPv6"
