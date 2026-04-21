@@ -21,7 +21,7 @@ pytest-cs = { git = "https://github.com/crowdsecurity/pytest-cs" }
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.26.0",
+    "basedpyright>=1.39.3",
     "ipdb>=0.13.13",
     "ruff>=0.9.4",
 ]
