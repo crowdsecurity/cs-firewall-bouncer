@@ -31,6 +31,7 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/backend"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/metrics"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/profiling"
 )
 
 const bouncerType = "crowdsec-firewall-bouncer"
@@ -382,6 +383,9 @@ func Execute() error {
 			log.Error(http.ListenAndServe(listenOn, nil))
 		}()
 	}
+
+	profiling.StartPprofServerIfEnabled()
+	profiling.StartHeapWatcherIfEnabled(ctx)
 
 	g.Go(func() error {
 		log.Infof("Processing new and deleted decisions . . .")
