@@ -31,23 +31,14 @@ BUILD_VERSION=%{local_version} make
 %install
 rm -rf %{buildroot}
 
-mkdir -p %{buildroot}%{_bindir}
-install -m 755 %{name} %{buildroot}%{_bindir}/%{name}
-# symlink for compatibility with old versions
-mkdir -p %{buildroot}/usr/sbin
-ln -s %{_bindir}/%{name} %{buildroot}/usr/sbin/%{name}
-
-mkdir -p %{buildroot}/etc/crowdsec/bouncers
-install -m 600 config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
-
-mkdir -p %{buildroot}/usr/lib/%{name}
-install -m 600 scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
+install -m 755 -D %{name} %{buildroot}%{_bindir}/%{name}
+install -m 600 -D config/%{name}.yaml %{buildroot}/etc/crowdsec/bouncers/%{name}.yaml
+install -m 600 -D scripts/_bouncer.sh %{buildroot}/usr/lib/%{name}/_bouncer.sh
 
 mkdir -p %{buildroot}%{_unitdir}
-BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service | install -m 0644 /dev/stdin %{buildroot}%{_unitdir}/%{name}.service
+BIN=%{_bindir}/%{name} CFG=/etc/crowdsec/bouncers envsubst '$BIN $CFG' < config/%{name}.service > %{buildroot}%{_unitdir}/%{name}.service
 
-mkdir -p %{buildroot}%{_presetdir}
-install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/
+install -D -m 644 %{SOURCE1} %{buildroot}%{_presetdir}/80-crowdsec-firewall-bouncer.preset
 
 %clean
 rm -rf %{buildroot}
@@ -78,7 +69,7 @@ START=1
 
 if grep -q '${BACKEND}' "$CONFIG"; then
   newconfig=$(BACKEND="iptables" envsubst '$BACKEND' < "$CONFIG")
-  echo "$newconfig" | install -m 0600 /dev/stdin "$CONFIG"
+  (umask 177 && echo "$newconfig" > "$CONFIG")
 fi
 
 if [ "$1" = "1" ]; then
@@ -90,6 +81,13 @@ if [ "$1" = "1" ]; then
 fi
 
 set_local_port
+
+if [ ! -e /usr/sbin/crowdsec-firewall-bouncer ]; then
+    if [ ! -L /usr/sbin ]; then
+        ln -s ../bin/crowdsec-firewall-bouncer /usr/sbin/crowdsec-firewall-bouncer
+    fi
+fi
+
 
 %systemd_post %{name}.service
 
@@ -118,6 +116,11 @@ if [ "$1" = "1" ]; then
     systemctl restart %{name} || echo "cannot restart service"
 fi
 
+if [ -L /usr/sbin/crowdsec-firewall-bouncer ]; then
+    rm -f /usr/sbin/crowdsec-firewall-bouncer
+fi
+
+
 # ------------------------------------
 # nftables
 # ------------------------------------
@@ -131,7 +134,6 @@ Requires: nftables,gettext
 %files -n %{name}-nftables
 %defattr(-,root,root,-)
 %{_bindir}/%{name}
-/usr/sbin/%{name}
 /usr/lib/%{name}/_bouncer.sh
 %{_unitdir}/%{name}.service
 %config(noreplace) /etc/crowdsec/bouncers/%{name}.yaml
@@ -145,7 +147,7 @@ START=1
 
 if grep -q '${BACKEND}' "$CONFIG"; then
   newconfig=$(BACKEND="nftables" envsubst '$BACKEND' < "$CONFIG")
-  echo "$newconfig" | install -m 0600 /dev/stdin "$CONFIG"
+  (umask 177 && echo "$newconfig" > "$CONFIG")
 fi
 
 if [ "$1" = "1" ]; then
@@ -157,6 +159,12 @@ if [ "$1" = "1" ]; then
 fi
 
 set_local_port
+
+if [ ! -e /usr/sbin/crowdsec-firewall-bouncer ]; then
+    if [ ! -L /usr/sbin ]; then
+        ln -s ../bin/crowdsec-firewall-bouncer /usr/sbin/crowdsec-firewall-bouncer
+    fi
+fi
 
 %systemd_post %{name}.service
 
@@ -183,4 +191,8 @@ fi
 %postun -n %{name}-nftables
 if [ "$1" = "1" ]; then
     systemctl restart %{name} || echo "cannot restart service"
+fi
+
+if [ -L /usr/sbin/crowdsec-firewall-bouncer ]; then
+    rm -f /usr/sbin/crowdsec-firewall-bouncer
 fi

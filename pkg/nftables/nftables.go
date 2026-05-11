@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package nftables
 
@@ -142,7 +141,7 @@ func (n *nft) commitDeletedDecisions() error {
 
 func (n *nft) createSetAndRuleForOrigin(ctx *nftContext, origin string) error {
 	if _, ok := ctx.sets[origin]; !ok {
-		//First time we see this origin, create the rule/set for all hooks
+		// First time we see this origin, create the rule/set for all hooks
 		set := &nftables.Set{
 			Name:         fmt.Sprintf("%s-%s", ctx.blacklists, origin),
 			Table:        ctx.table,
@@ -156,15 +155,18 @@ func (n *nft) createSetAndRuleForOrigin(ctx *nftContext, origin string) error {
 		if err := ctx.conn.AddSet(set, []nftables.SetElement{}); err != nil {
 			return err
 		}
+
 		for _, chain := range ctx.chains {
 			rule, err := ctx.createRule(chain, set, n.DenyLog, n.DenyLogPrefix, n.DenyAction)
 			if err != nil {
 				return err
 			}
+
 			ctx.conn.AddRule(rule)
 			log.Infof("Created set and rule for origin %s and type %s in chain %s", origin, ctx.typeIPAddr.Name, chain.Name)
 		}
 	}
+
 	return nil
 }
 
@@ -199,11 +201,15 @@ func (n *nft) commitAddedDecisions() error {
 				if n.v6.setOnly {
 					origin = n.v6.blacklists
 				}
+
 				log.Tracef("adding %s to buffer", ip)
+
 				if _, ok := ip6[origin]; !ok {
 					ip6[origin] = make([]nftables.SetElement, 0)
 				}
+
 				ip6[origin] = append(ip6[origin], nftables.SetElement{Timeout: t, Key: ip.To16()})
+
 				if !n.v6.setOnly {
 					err := n.createSetAndRuleForOrigin(n.v6, origin)
 					if err != nil {
@@ -211,6 +217,7 @@ func (n *nft) commitAddedDecisions() error {
 					}
 				}
 			}
+
 			continue
 		}
 
@@ -218,11 +225,15 @@ func (n *nft) commitAddedDecisions() error {
 			if n.v4.setOnly {
 				origin = n.v4.blacklists
 			}
+
 			log.Tracef("adding %s to buffer", ip)
+
 			if _, ok := ip4[origin]; !ok {
 				ip4[origin] = make([]nftables.SetElement, 0)
 			}
+
 			ip4[origin] = append(ip4[origin], nftables.SetElement{Timeout: t, Key: ip.To4()})
+
 			if !n.v4.setOnly {
 				err := n.createSetAndRuleForOrigin(n.v4, origin)
 				if err != nil {
@@ -236,11 +247,7 @@ func (n *nft) commitAddedDecisions() error {
 		return err
 	}
 
-	if err := n.v6.addElements(ip6); err != nil {
-		return err
-	}
-
-	return nil
+	return n.v6.addElements(ip6)
 }
 
 func (n *nft) Commit() error {
@@ -250,11 +257,7 @@ func (n *nft) Commit() error {
 		return err
 	}
 
-	if err := n.commitAddedDecisions(); err != nil {
-		return err
-	}
-
-	return nil
+	return n.commitAddedDecisions()
 }
 
 type tmpDecisions struct {
@@ -311,9 +314,5 @@ func (n *nft) ShutDown() error {
 		return err
 	}
 
-	if err := n.v6.shutDown(); err != nil {
-		return err
-	}
-
-	return nil
+	return n.v6.shutDown()
 }

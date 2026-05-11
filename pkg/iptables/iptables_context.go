@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package iptables
 
@@ -15,14 +14,16 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
+
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/ipsetcmd"
 )
 
 const (
-	chainName        = "CROWDSEC_CHAIN"
-	loggingChainName = "CROWDSEC_LOG"
-	maxBanSeconds    = 2147483
-	defaultTimeout   = "300"
+	chainName           = "CROWDSEC_CHAIN"
+	loggingChainName    = "CROWDSEC_LOG"
+	dockerUserChainName = "DOCKER-USER"
+	maxBanSeconds       = 2147483
+	defaultTimeout      = "300"
 )
 
 type ipTablesContext struct {
@@ -51,6 +52,19 @@ type ipTablesContext struct {
 
 	loggingEnabled bool
 	loggingPrefix  string
+
+	addRuleComments bool
+}
+
+func (ctx *ipTablesContext) chainExist(chainName string) bool {
+	cmd := []string{"-L", chainName, "-t", "filter"}
+	c := exec.Command(ctx.iptablesBin, cmd...)
+
+	if _, err := c.CombinedOutput(); err != nil {
+		return false
+	}
+
+	return true
 }
 
 func (ctx *ipTablesContext) setupChain() {
@@ -66,7 +80,6 @@ func (ctx *ipTablesContext) setupChain() {
 	}
 
 	for _, chain := range ctx.Chains {
-
 		cmd = []string{"-I", chain, "-j", chainName}
 
 		c = exec.Command(ctx.iptablesBin, cmd...)
@@ -115,11 +128,15 @@ func (ctx *ipTablesContext) setupChain() {
 			log.Errorf("error while setting logging chain policy : %v --> %s", err, string(out))
 		}
 	}
+
+	if ctx.chainExist(dockerUserChainName) && !slices.Contains(ctx.Chains, dockerUserChainName) {
+		// if the DOCKER-USER chain exists, but is not configured by the user, warn them as their containers will not be protected
+		log.Warnf("The %s chain exists, but is not configured for use by the bouncer. The bouncer will not block traffic destined for your containers", dockerUserChainName)
+	}
 }
 
 func (ctx *ipTablesContext) deleteChain() {
 	for _, chain := range ctx.Chains {
-
 		cmd := []string{"-D", chain, "-j", chainName}
 
 		c := exec.Command(ctx.iptablesBin, cmd...)
@@ -174,7 +191,7 @@ func (ctx *ipTablesContext) deleteChain() {
 	}
 }
 
-func (ctx *ipTablesContext) createRule(setName string) {
+func (ctx *ipTablesContext) createRule(setName string, origin string) {
 	target := ctx.target
 
 	if ctx.loggingEnabled {
@@ -182,6 +199,10 @@ func (ctx *ipTablesContext) createRule(setName string) {
 	}
 
 	cmd := []string{"-I", chainName, "-m", "set", "--match-set", setName, "src", "-j", target}
+
+	if ctx.addRuleComments {
+		cmd = append(cmd, "-m", "comment", "--comment", "CrowdSec: "+origin)
+	}
 
 	c := exec.Command(ctx.iptablesBin, cmd...)
 
@@ -207,9 +228,10 @@ func (ctx *ipTablesContext) commit() error {
 	}()
 
 	for _, decision := range ctx.toDel {
-
-		var set *ipsetcmd.IPSet
-		var ok bool
+		var (
+			set *ipsetcmd.IPSet
+			ok  bool
+		)
 
 		// Decisions coming from lists will have "lists" as origin, and the scenario will be the list name
 		// We use those to build a custom origin because we want to track metrics per list
@@ -247,8 +269,10 @@ func (ctx *ipTablesContext) commit() error {
 			continue
 		}
 
-		var set *ipsetcmd.IPSet
-		var ok bool
+		var (
+			set *ipsetcmd.IPSet
+			ok  bool
+		)
 
 		if banDuration.Seconds() > maxBanSeconds {
 			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is %d, setting duration to %d", int(banDuration.Seconds()), maxBanSeconds, maxBanSeconds-1)
@@ -267,7 +291,6 @@ func (ctx *ipTablesContext) commit() error {
 			set, ok = ctx.ipsets[origin]
 
 			if !ok {
-
 				idx := slices.Index(ctx.originSetMapping, origin)
 
 				if idx == -1 {
@@ -308,7 +331,7 @@ func (ctx *ipTablesContext) commit() error {
 
 				if !ctx.ipsetContentOnly {
 					// Create the rule to use the set
-					ctx.createRule(set.Name())
+					ctx.createRule(set.Name(), origin)
 				}
 			}
 		}

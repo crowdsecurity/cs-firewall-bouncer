@@ -25,10 +25,10 @@ block drop in quick inet6 from <crowdsec6_blacklists> to any label "CrowdSec IPv
 	require.Contains(t, metrics, "crowdsec6_blacklists")
 
 	ip4Metrics := metrics["crowdsec_blacklists"]
-	assert.Equal(t, 16, ip4Metrics.packets)
-	assert.Equal(t, 4096, ip4Metrics.bytes)
+	assert.Equal(t, uint64(16), ip4Metrics.packets)
+	assert.Equal(t, uint64(4096), ip4Metrics.bytes)
 
 	ip6Metrics := metrics["crowdsec6_blacklists"]
-	assert.Equal(t, 8, ip6Metrics.packets)
-	assert.Equal(t, 2048, ip6Metrics.bytes)
+	assert.Equal(t, uint64(8), ip6Metrics.packets)
+	assert.Equal(t, uint64(2048), ip6Metrics.bytes)
 }

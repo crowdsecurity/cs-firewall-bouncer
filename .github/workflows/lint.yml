@@ -16,32 +16,31 @@ jobs:
       security-events: write
 
     steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version-file: go.mod
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.1
+        with:
+          languages: go, python
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: go, python
+      - name: Build
+        run: |
+          make build
 
-    - name: Build
-      run: |
-        make build
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: v2.9
+          args: --issues-exit-code=1 --timeout 10m
+          only-new-issues: false
 
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v6
-      with:
-        version: v1.62
-        args: --issues-exit-code=1 --timeout 10m
-        only-new-issues: false
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.1

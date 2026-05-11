@@ -8,8 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
+	"github.com/crowdsecurity/go-cs-lib/csyaml"
 	"github.com/crowdsecurity/go-cs-lib/ptr"
-	"github.com/crowdsecurity/go-cs-lib/yamlpatch"
 )
 
 type PrometheusConfig struct {
@@ -41,6 +41,7 @@ type BouncerConfig struct {
 	Daemon             *bool         `yaml:"daemonize"` // unused
 	Logging            LoggingConfig `yaml:",inline"`
 	DisableIPV6        bool          `yaml:"disable_ipv6"`
+	DisableIPV4        bool          `yaml:"disable_ipv4"`
 	DenyAction         string        `yaml:"deny_action"`
 	DenyLog            bool          `yaml:"deny_log"`
 	DenyLogPrefix      string        `yaml:"deny_log_prefix"`
@@ -52,6 +53,10 @@ type BouncerConfig struct {
 
 	// specific to iptables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/19
 	IptablesChains          []string `yaml:"iptables_chains"`
+	IptablesV4Chains        []string `yaml:"iptables_v4_chains"`
+	IptablesV6Chains        []string `yaml:"iptables_v6_chains"`
+	IptablesAddRuleComments bool     `yaml:"iptables_add_rule_comments"`
+
 	SupportedDecisionsTypes []string `yaml:"supported_decisions_types"`
 	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
 	Nftables struct {
@@ -68,7 +73,7 @@ type BouncerConfig struct {
 
 // MergedConfig() returns the byte content of the patched configuration file (with .yaml.local).
 func MergedConfig(configPath string) ([]byte, error) {
-	patcher := yamlpatch.NewPatcher(configPath, ".local")
+	patcher := csyaml.NewPatcher(configPath, ".local")
 
 	data, err := patcher.MergedPatchContent()
 	if err != nil {
@@ -79,7 +84,9 @@ func MergedConfig(configPath string) ([]byte, error) {
 }
 
 func NewConfig(reader io.Reader) (*BouncerConfig, error) {
-	config := &BouncerConfig{}
+	config := &BouncerConfig{
+		IptablesAddRuleComments: true,
+	}
 
 	fcontent, err := io.ReadAll(reader)
 	if err != nil {
@@ -128,6 +135,11 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		config.SetSize = 131072
 	}
 
+	if config.DisableIPV4 && config.DisableIPV6 && config.Mode != NftablesMode {
+		// we return an error for pf or iptables because nftables has it own way to handle this
+		return nil, errors.New("both IPv4 and IPv6 disabled, doing nothing")
+	}
+
 	switch config.Mode {
 	case NftablesMode:
 		err := nftablesConfig(config)
@@ -150,22 +162,22 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 	return config, nil
 }
 
-func pfConfig(_ *BouncerConfig) error {
+func pfConfig(config *BouncerConfig) error {
+	if config.PF.BatchSize != 0 {
+		log.Warning("Option pf.batch_size is deprecated and ignored, all IPs are loaded at once")
+	}
+
 	return nil
 }
 
 func nftablesConfig(config *BouncerConfig) error {
 	// deal with defaults in a backward compatible way
 	if config.Nftables.Ipv4.Enabled == nil {
-		config.Nftables.Ipv4.Enabled = ptr.Of(true)
+		config.Nftables.Ipv4.Enabled = ptr.Of(!config.DisableIPV4)
 	}
 
 	if config.Nftables.Ipv6.Enabled == nil {
-		if config.DisableIPV6 {
-			config.Nftables.Ipv4.Enabled = ptr.Of(false)
-		} else {
-			config.Nftables.Ipv6.Enabled = ptr.Of(true)
-		}
+		config.Nftables.Ipv6.Enabled = ptr.Of(!config.DisableIPV6)
 	}
 
 	if *config.Nftables.Ipv4.Enabled {

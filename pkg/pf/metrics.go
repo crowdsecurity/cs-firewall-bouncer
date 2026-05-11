@@ -14,8 +14,8 @@ import (
 )
 
 type counter struct {
-	packets int
-	bytes   int
+	packets uint64
+	bytes   uint64
 }
 
 var (
@@ -56,14 +56,14 @@ func parseMetrics(reader *strings.Reader, tables []string) map[string]counter {
 			continue
 		}
 
-		packets, err := strconv.Atoi(match[1])
+		packets, err := strconv.ParseUint(match[1], 10, 64)
 		if err != nil {
 			log.Errorf("failed to parse metrics - dropped packets: %s", err)
 
 			packets = 0
 		}
 
-		bytes, err := strconv.Atoi(match[2])
+		bytes, err := strconv.ParseUint(match[2], 10, 64)
 		if err != nil {
 			log.Errorf("failed to parse metrics - dropped bytes: %s", err)
 
@@ -80,7 +80,7 @@ func parseMetrics(reader *strings.Reader, tables []string) map[string]counter {
 }
 
 // countIPs returns the number of IPs in a table.
-func (pf *pf) countIPs(table string) int {
+func countIPs(table string) int {
 	cmd := execPfctl("", "-T", "show", "-t", table)
 
 	out, err := cmd.Output()
@@ -97,9 +97,6 @@ func (pf *pf) countIPs(table string) int {
 // In pf mode the firewall rules are not controlled by the bouncer, so we can only
 // trust they are set up correctly, and retrieve stats from the pfctl tables.
 func (pf *pf) CollectMetrics() {
-	droppedPackets := float64(0)
-	droppedBytes := float64(0)
-
 	tables := []string{}
 
 	if pf.inet != nil {
@@ -120,7 +117,6 @@ func (pf *pf) CollectMetrics() {
 
 	reader := strings.NewReader(string(out))
 	stats := parseMetrics(reader, tables)
-	bannedIPs := 0
 
 	for _, table := range tables {
 		st, ok := stats[table]
@@ -128,13 +124,18 @@ func (pf *pf) CollectMetrics() {
 			continue
 		}
 
-		droppedPackets += float64(st.packets)
-		droppedBytes += float64(st.bytes)
+		droppedPackets := float64(st.packets)
+		droppedBytes := float64(st.bytes)
+		bannedIPs := countIPs(table)
 
-		bannedIPs += pf.countIPs(table)
+		if pf.inet != nil && table == pf.inet.table {
+			metrics.Map[metrics.DroppedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
+			metrics.Map[metrics.DroppedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
+			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
+		} else if pf.inet6 != nil && table == pf.inet6.table {
+			metrics.Map[metrics.DroppedPackets].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": ""}).Set(droppedPackets)
+			metrics.Map[metrics.DroppedBytes].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": ""}).Set(droppedBytes)
+			metrics.Map[metrics.ActiveBannedIPs].Gauge.With(prometheus.Labels{"ip_type": "ipv6", "origin": ""}).Set(float64(bannedIPs))
+		}
 	}
-
-	metrics.TotalDroppedPackets.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedPackets)
-	metrics.TotalDroppedBytes.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(droppedBytes)
-	metrics.TotalActiveBannedIPs.With(prometheus.Labels{"ip_type": "ipv4", "origin": ""}).Set(float64(bannedIPs))
 }
