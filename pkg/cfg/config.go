@@ -31,6 +31,7 @@ const (
 	IptablesMode = "iptables"
 	NftablesMode = "nftables"
 	PfMode       = "pf"
+	IpfwMode     = "ipfw"
 	DryRunMode   = "dry-run"
 )
 
@@ -146,7 +147,7 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-	case IpsetMode, IptablesMode:
+	case IpsetMode, IptablesMode, IpfwMode:
 		// nothing specific to do
 	case PfMode:
 		err := pfConfig(config)
