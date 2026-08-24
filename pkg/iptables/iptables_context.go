@@ -23,6 +23,7 @@ const (
 	loggingChainName    = "CROWDSEC_LOG"
 	dockerUserChainName = "DOCKER-USER"
 	maxBanSeconds       = 2147483
+	minBanSeconds       = 1
 	defaultTimeout      = "300"
 )
 
@@ -213,6 +214,34 @@ func (ctx *ipTablesContext) createRule(setName string, origin string) {
 	}
 }
 
+// banDurationForIPSet converts a decision duration into an ipset timeout.
+// Returns false when the decision must not be added.
+//
+//   - too long: clamped, ipset only accepts up to maxBanSeconds
+//   - under 1s: skipped. Negative aborts `ipset restore`, silently dropping
+//     every entry after it; sub-second truncates to "timeout 0", which ipset
+//     reads as "never expires". Such decisions expired while the LAPI built
+//     its response, so skipping them loses nothing.
+func banDurationForIPSet(decision *models.Decision) (time.Duration, bool) {
+	banDuration, err := time.ParseDuration(*decision.Duration)
+	if err != nil {
+		log.Errorf("error while parsing ban duration : %s", err)
+		return 0, false
+	}
+
+	if banDuration.Seconds() > maxBanSeconds {
+		log.Warnf("Ban duration too long (%d seconds), maximum for ipset is %d, setting duration to %d", int(banDuration.Seconds()), maxBanSeconds, maxBanSeconds-1)
+		banDuration = time.Duration(maxBanSeconds-1) * time.Second
+	}
+
+	if banDuration.Seconds() < minBanSeconds {
+		log.Debugf("Skipping %s: ban duration %s is too short to be used as an ipset timeout", *decision.Value, banDuration)
+		return 0, false
+	}
+
+	return banDuration, true
+}
+
 func (ctx *ipTablesContext) commit() error {
 	tmpFile, err := os.CreateTemp("", "cs-firewall-bouncer-ipset-")
 	if err != nil {
@@ -263,9 +292,8 @@ func (ctx *ipTablesContext) commit() error {
 	}
 
 	for _, decision := range ctx.toAdd {
-		banDuration, err := time.ParseDuration(*decision.Duration)
-		if err != nil {
-			log.Errorf("error while parsing ban duration : %s", err)
+		banDuration, usable := banDurationForIPSet(decision)
+		if !usable {
 			continue
 		}
 
@@ -273,11 +301,6 @@ func (ctx *ipTablesContext) commit() error {
 			set *ipsetcmd.IPSet
 			ok  bool
 		)
-
-		if banDuration.Seconds() > maxBanSeconds {
-			log.Warnf("Ban duration too long (%d seconds), maximum for ipset is %d, setting duration to %d", int(banDuration.Seconds()), maxBanSeconds, maxBanSeconds-1)
-			banDuration = time.Duration(maxBanSeconds-1) * time.Second
-		}
 
 		origin := *decision.Origin
 
