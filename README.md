@@ -22,6 +22,7 @@ Supported firewalls:
  - nftables (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
  - ipset only (IPv4 :heavy_check_mark: / IPv6 :heavy_check_mark: )
  - pf (IPV4 :heavy_check_mark: / IPV6 :heavy_check_mark: )
+ - ipfw (IPV4 :heavy_check_mark: / IPV6 :heavy_check_mark: )
 
 # Installation
 
