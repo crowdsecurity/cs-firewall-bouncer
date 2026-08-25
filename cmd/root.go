@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -33,6 +34,39 @@ import (
 const bouncerType = "crowdsec-firewall-bouncer"
 
 var errSignalShutdown = errors.New("signal shutdown")
+
+// runHealthChecker periodically checks the health of the backend.
+// If critical infrastructure is missing, it returns an error to trigger a process restart.
+func runHealthChecker(ctx context.Context, b *backend.BackendCTX, config *cfg.BouncerConfig) error {
+	interval, err := time.ParseDuration(config.HealthConfig.CheckInterval)
+	if err != nil {
+		log.Warnf("invalid health check interval '%s', using default 30s", config.HealthConfig.CheckInterval)
+		interval = 30 * time.Second
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	log.Infof("Health checker started with interval %s", interval)
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("Health checker stopping due to context cancellation")
+			return nil
+		case <-ticker.C:
+			health := b.CheckHealth()
+
+			if health.Healthy {
+				log.Debugf("Health check passed: %+v", health.Details)
+				continue
+			}
+
+			log.Errorf("Critical: firewall infrastructure missing, triggering restart: %+v", health.Details)
+			return backend.ErrUnrecoverable
+		}
+	}
+}
 
 func backendCleanup(backend *backend.BackendCTX) {
 	log.Info("Shutting down backend")
@@ -250,6 +284,13 @@ func Execute() error {
 		}()
 	}
 
+	// Start health checker goroutine if enabled
+	if config.HealthConfig.Enabled {
+		g.Go(func() error {
+			return runHealthChecker(ctx, backend, config)
+		})
+	}
+
 	g.Go(func() error {
 		log.Infof("Processing new and deleted decisions . . .")
 
@@ -268,12 +309,8 @@ func Execute() error {
 		}
 	})
 
-	if config.Daemon != nil {
-		if *config.Daemon {
-			log.Debug("Ignoring deprecated 'daemonize' option")
-		} else {
-			log.Warn("The 'daemonize' config option is deprecated and treated as always true")
-		}
+	if config.Daemon != nil && !*config.Daemon {
+		log.Warn("The 'daemonize' config option is deprecated and treated as always true")
 	}
 
 	_ = csdaemon.Notify(csdaemon.Ready, log.StandardLogger())

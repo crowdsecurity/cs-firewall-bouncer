@@ -18,6 +18,11 @@ type PrometheusConfig struct {
 	ListenPort    string `yaml:"listen_port"`
 }
 
+type HealthConfig struct {
+	Enabled       bool   `yaml:"enabled"`
+	CheckInterval string `yaml:"check_interval"`
+}
+
 type nftablesFamilyConfig struct {
 	Enabled  *bool  `yaml:"enabled"`
 	SetOnly  bool   `yaml:"set-only"`
@@ -69,6 +74,7 @@ type BouncerConfig struct {
 		BatchSize  int    `yaml:"batch_size"`
 	} `yaml:"pf"`
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
+	HealthConfig     HealthConfig     `yaml:"health"`
 }
 
 // MergedConfig() returns the byte content of the patched configuration file (with .yaml.local).
@@ -133,6 +139,11 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 
 	if config.SetSize == 0 {
 		config.SetSize = 131072
+	}
+
+	// Health check defaults
+	if config.HealthConfig.CheckInterval == "" {
+		config.HealthConfig.CheckInterval = "30s"
 	}
 
 	if config.DisableIPV4 && config.DisableIPV6 && config.Mode != NftablesMode {

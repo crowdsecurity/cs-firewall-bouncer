@@ -25,6 +25,7 @@ const (
 	ActiveBannedIPs  metricName = "fw_bouncer_banned_ips"
 )
 
+
 type backendCollector interface {
 	CollectMetrics()
 }

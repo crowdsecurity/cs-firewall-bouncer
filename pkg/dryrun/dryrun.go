@@ -1,6 +1,8 @@
 package dryrun
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/crowdsecurity/crowdsec/pkg/models"
@@ -42,4 +44,13 @@ func (*dryRun) Delete(decision *models.Decision) error {
 func (*dryRun) ShutDown() error {
 	log.Infof("backend.ShutDown() called")
 	return nil
+}
+
+func (*dryRun) CheckHealth() types.HealthStatus {
+	log.Infof("backend.CheckHealth() called")
+	return types.HealthStatus{
+		Healthy:     true,
+		Details:     map[string]bool{},
+		LastChecked: time.Now(),
+	}
 }
