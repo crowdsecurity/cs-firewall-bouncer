@@ -225,25 +225,53 @@ func (i *IPSet) Len() int {
 		return 0
 	}
 
-	for _, line := range strings.Split(string(out), "\n") {
+	return parseIPSetLen(string(out))
+}
+
+// parseIPSetLen extracts the number of entries from the output of `ipset list <set>`.
+//
+// Most ipset versions print a "Number of entries:" header line, which we use when
+// present. Some kernels (set protocol v6, e.g. on embedded routers) omit that line
+// entirely, so we fall back to counting the member lines listed after "Members:".
+func parseIPSetLen(out string) int {
+	lines := strings.Split(out, "\n")
+
+	for _, line := range lines {
 		if !strings.Contains(strings.ToLower(line), "number of entries:") {
 			continue
 		}
 
-		fields := strings.Split(line, ":")
+		fields := strings.SplitN(line, ":", 2)
 		if len(fields) != 2 {
 			continue
 		}
 
 		count, err := strconv.Atoi(strings.TrimSpace(fields[1]))
 		if err != nil {
-			return 0
+			continue
 		}
 
 		return count
 	}
 
-	return 0
+	inMembers := false
+	count := 0
+
+	for _, line := range lines {
+		if !inMembers {
+			if strings.TrimSpace(line) == "Members:" {
+				inMembers = true
+			}
+
+			continue
+		}
+
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+
+	return count
 }
 
 // Helpers.
