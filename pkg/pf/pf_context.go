@@ -26,12 +26,12 @@ const backendName = "pf"
 func decisionsToIPs(decisions []*models.Decision) []string {
 	ips := make([]string, 0, len(decisions))
 
-	for i, d := range decisions {
+	for _, d := range decisions {
 		if d == nil || d.Value == nil {
 			continue
 		}
 
-		ips[i] = *d.Value
+		ips = append(ips, *d.Value)
 	}
 
 	return ips
