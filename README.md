@@ -25,4 +25,4 @@ Supported firewalls:
 
 # Installation
 
-Please follow the [official documentation](https://doc.crowdsec.net/docs/bouncers/firewall).
+Please follow the [official documentation](https://docs.crowdsec.net/u/bouncers/firewall/).
