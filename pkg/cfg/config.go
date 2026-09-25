@@ -67,6 +67,8 @@ type BouncerConfig struct {
 	PF            struct {
 		AnchorName string `yaml:"anchor_name"`
 		BatchSize  int    `yaml:"batch_size"`
+		// FlushStates kills existing pf states for newly banned IPs.
+		FlushStates *bool `yaml:"flush_states"`
 	} `yaml:"pf"`
 	PrometheusConfig PrometheusConfig `yaml:"prometheus"`
 }
@@ -165,6 +167,10 @@ func NewConfig(reader io.Reader) (*BouncerConfig, error) {
 func pfConfig(config *BouncerConfig) error {
 	if config.PF.BatchSize != 0 {
 		log.Warning("Option pf.batch_size is deprecated and ignored, all IPs are loaded at once")
+	}
+
+	if config.PF.FlushStates == nil {
+		config.PF.FlushStates = ptr.Of(true)
 	}
 
 	return nil

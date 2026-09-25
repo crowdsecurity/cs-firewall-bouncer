@@ -56,6 +56,10 @@ nftables_hooks:
 pf:
   # an empty string disables the anchor
   anchor_name: ""
+  # kill existing states of newly banned IPs, so that established connections
+  # are cut. Set to false if your own rules deliberately pass some traffic from
+  # banned IPs before the block rule (rule ordering), and states must survive.
+  flush_states: true
 
 prometheus:
   enabled: false
