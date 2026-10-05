@@ -11,6 +11,7 @@ import (
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/dryrun"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/ipfw"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/iptables"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/nftables"
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/pf"
@@ -59,6 +60,10 @@ func isPFSupported(runtimeOS string) bool {
 	return supported
 }
 
+func isIPFWSupported(runtimeOS string) bool {
+	return runtimeOS == "freebsd"
+}
+
 func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 	var err error
 
@@ -99,6 +104,15 @@ func NewBackend(config *cfg.BouncerConfig) (*BackendCTX, error) {
 		}
 
 		b.firewall, err = pf.NewPF(config)
+		if err != nil {
+			return nil, err
+		}
+	case cfg.IpfwMode:
+		if !isIPFWSupported(runtime.GOOS) {
+			log.Warning("ipfw mode can only work with freebsd. It is available on other platforms only for testing purposes")
+		}
+
+		b.firewall, err = ipfw.NewIPFW(config)
 		if err != nil {
 			return nil, err
 		}

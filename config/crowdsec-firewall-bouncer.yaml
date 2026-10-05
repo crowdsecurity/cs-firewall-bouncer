@@ -57,6 +57,10 @@ pf:
   # an empty string disables the anchor
   anchor_name: ""
 
+# ipfw (FreeBSD): the bouncer only manages the "blacklists_ipv4"/"blacklists_ipv6"
+# named tables above, you must create them and the rule(s) referencing them
+# (e.g. "ipfw add deny ip from table(crowdsec-blacklists) to any") beforehand.
+
 prometheus:
   enabled: false
   listen_addr: 127.0.0.1
