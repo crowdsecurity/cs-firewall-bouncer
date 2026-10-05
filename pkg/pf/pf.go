@@ -30,17 +30,19 @@ func NewPF(config *cfg.BouncerConfig) (types.Backend, error) {
 	ret := &pf{}
 
 	inetCtx := &pfContext{
-		table:   config.BlacklistsIpv4,
-		proto:   "inet",
-		anchor:  config.PF.AnchorName,
-		version: "ipv4",
+		table:       config.BlacklistsIpv4,
+		proto:       "inet",
+		anchor:      config.PF.AnchorName,
+		version:     "ipv4",
+		flushStates: *config.PF.FlushStates,
 	}
 
 	inet6Ctx := &pfContext{
-		table:   config.BlacklistsIpv6,
-		proto:   "inet6",
-		anchor:  config.PF.AnchorName,
-		version: "ipv6",
+		table:       config.BlacklistsIpv6,
+		proto:       "inet6",
+		anchor:      config.PF.AnchorName,
+		version:     "ipv6",
+		flushStates: *config.PF.FlushStates,
 	}
 
 	if !config.DisableIPV4 {

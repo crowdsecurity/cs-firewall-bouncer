@@ -19,6 +19,8 @@ type pfContext struct {
 	anchor  string
 	table   string
 	version string
+	// flushStates kills existing states of newly banned IPs after adding them to the table
+	flushStates bool
 }
 
 const backendName = "pf"
@@ -177,6 +179,11 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 		keys := slices.Collect(maps.Keys(bannedIPs))
 		slices.Sort(keys)
 		log.Debugf("New banned IPs: %v", keys)
+	}
+
+	if !ctx.flushStates {
+		log.Debugf("pf.flush_states is disabled, not killing states of %d banned IPs", len(bannedIPs))
+		return nil
 	}
 
 	stateIPs, err := getStateIPs()
