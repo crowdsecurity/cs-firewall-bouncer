@@ -7,6 +7,7 @@ require (
 	github.com/crowdsecurity/go-cs-bouncer v0.0.21
 	github.com/crowdsecurity/go-cs-lib v0.0.25
 	github.com/google/nftables v0.3.0
+	github.com/google/pprof v0.0.0-20260507013755-92041b743c96
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	github.com/sirupsen/logrus v1.9.4
