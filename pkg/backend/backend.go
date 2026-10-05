@@ -17,6 +17,10 @@ import (
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/types"
 )
 
+// ErrUnrecoverable is returned when the firewall infrastructure is missing
+// and the process should restart to recover.
+var ErrUnrecoverable = errors.New("firewall infrastructure missing, restart required")
+
 type BackendCTX struct {
 	firewall types.Backend
 }
@@ -44,6 +48,11 @@ func (b *BackendCTX) Delete(decision *models.Decision) error {
 func (b *BackendCTX) CollectMetrics() {
 	log.Trace("Collecting backend-specific metrics")
 	b.firewall.CollectMetrics()
+}
+
+// CheckHealth returns the current health status of the backend.
+func (b *BackendCTX) CheckHealth() types.HealthStatus {
+	return b.firewall.CheckHealth()
 }
 
 func isPFSupported(runtimeOS string) bool {

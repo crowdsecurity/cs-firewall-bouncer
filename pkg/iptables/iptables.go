@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -269,3 +270,35 @@ func (ipt *iptables) Delete(decision *models.Decision) error {
 
 	return nil
 }
+
+// CheckHealth verifies that the iptables infrastructure is intact.
+func (ipt *iptables) CheckHealth() types.HealthStatus {
+	status := types.HealthStatus{
+		Healthy:     true,
+		Details:     make(map[string]bool),
+		LastChecked: time.Now(),
+	}
+
+	if ipt.v4 != nil {
+		v4Health := ipt.v4.checkHealth()
+		for k, v := range v4Health {
+			status.Details["v4_"+k] = v
+			if !v {
+				status.Healthy = false
+			}
+		}
+	}
+
+	if ipt.v6 != nil {
+		v6Health := ipt.v6.checkHealth()
+		for k, v := range v6Health {
+			status.Details["v6_"+k] = v
+			if !v {
+				status.Healthy = false
+			}
+		}
+	}
+
+	return status
+}
+

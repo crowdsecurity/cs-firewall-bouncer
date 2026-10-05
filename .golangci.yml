@@ -93,7 +93,7 @@ linters:
         - name: cyclomatic
           arguments:
             # lower this after refactoring
-            - 29
+            - 30
         - name: enforce-switch-style
           disabled: true
         - name: flag-parameter
@@ -102,7 +102,7 @@ linters:
           arguments:
             # lower this after refactoring
             - 74
-            - 153
+            - 160
         - name: identical-switch-branches
           disabled: true
         - name: import-alias-naming

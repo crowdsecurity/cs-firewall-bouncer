@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -193,4 +194,14 @@ func (pf *pf) ShutDown() error {
 	}
 
 	return nil
+}
+
+func (*pf) CheckHealth() types.HealthStatus {
+	// PF health check - stub for now, returns healthy
+	// TODO: implement proper health check for pf tables
+	return types.HealthStatus{
+		Healthy:     true,
+		Details:     map[string]bool{},
+		LastChecked: time.Now(),
+	}
 }
