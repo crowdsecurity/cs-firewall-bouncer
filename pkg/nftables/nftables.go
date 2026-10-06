@@ -171,11 +171,6 @@ func (n *nft) createSetAndRuleForOrigin(ctx *nftContext, origin string) error {
 }
 
 func (n *nft) commitAddedDecisions() error {
-	banned, err := n.getBannedState()
-	if err != nil {
-		return fmt.Errorf("failed to get current state: %w", err)
-	}
-
 	ip4 := make(map[string][]nftables.SetElement, 0)
 	ip6 := make(map[string][]nftables.SetElement, 0)
 
@@ -183,12 +178,13 @@ func (n *nft) commitAddedDecisions() error {
 
 	for _, decision := range n.decisionsToAdd {
 		ip := net.ParseIP(*decision.Value)
-		if _, ok := banned[ip.String()]; ok {
-			log.Debugf("not adding %s since it's already in the set", ip)
+		t, _ := time.ParseDuration(*decision.Duration)
+		if t <= 0 {
 			continue
 		}
-
-		t, _ := time.ParseDuration(*decision.Duration)
+		if t < time.Millisecond {
+			t = time.Millisecond
+		}
 
 		origin := *decision.Origin
 
@@ -278,6 +274,10 @@ func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 		}
 
 		*d.Value = strings.Split(*d.Value, "/")[0]
+		if ip := net.ParseIP(*d.Value); ip != nil {
+			*d.Value = ip.String()
+		}
+
 		if longest, ok := vals[*d.Value]; !ok || t > longest.duration {
 			vals[*d.Value] = tmpDecisions{
 				duration: t,

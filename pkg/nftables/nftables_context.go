@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/binaryutil"
@@ -391,22 +392,78 @@ func (c *nftContext) deleteElements(els []nftables.SetElement) error {
 }
 
 func (c *nftContext) addElements(els map[string][]nftables.SetElement) error {
+	type elementState struct {
+		timed   bool
+		expires time.Duration
+	}
+
 	var setName string
 
 	for origin, set := range c.sets {
+		pending := els[origin]
+		if len(pending) == 0 {
+			continue
+		}
+
+		current, err := c.conn.GetSetElements(set)
+		if err != nil {
+			return fmt.Errorf("failed to get ip%s elements from set: %w", c.version, err)
+		}
+
+		existing := make(map[string]elementState, len(current))
+		for i := range current {
+			existing[string(current[i].Key)] = elementState{
+				// Inherited set timeouts are also reported on each element.
+				timed:   current[i].Timeout > 0,
+				expires: current[i].Expires,
+			}
+		}
+
+		// Preserve permanent elements and longer remaining timeouts.
+		// Explicit removals are handled before additions by Commit.
+		toAdd := make([]nftables.SetElement, 0, len(pending))
+		for i := range pending {
+			state, present := existing[string(pending[i].Key)]
+			if present && (!state.timed || pending[i].Timeout <= state.expires) {
+				continue
+			}
+
+			toAdd = append(toAdd, pending[i])
+		}
+
 		if c.setOnly {
 			setName = c.blacklists
 		} else {
 			setName = fmt.Sprintf("%s-%s", c.blacklists, origin)
 		}
 
-		log.Debugf("Using %s as origin | len of IPs: %d | set name is %s", origin, len(els[origin]), setName)
+		log.Debugf("Using %s as origin | len of IPs: %d | set name is %s", origin, len(toAdd), setName)
 
-		for _, chunk := range slicetools.Chunks(els[origin], chunkSize) {
+		for _, chunk := range slicetools.Chunks(toAdd, chunkSize) {
 			log.Debugf("adding %d ip%s elements to set %s", len(chunk), c.version, setName)
 
 			if err := c.conn.SetAddElements(set, chunk); err != nil {
 				return fmt.Errorf("failed to add ip%s elements to set: %w", c.version, err)
+			}
+
+			var refresh []nftables.SetElement
+			for i := range chunk {
+				if _, present := existing[string(chunk[i].Key)]; present {
+					refresh = append(refresh, chunk[i])
+				}
+			}
+
+			if len(refresh) > 0 {
+				// The first add ensures refresh keys exist even if they expired
+				// since the snapshot. Replace only existing timed elements in
+				// this same transaction, so packets never observe a removal.
+				if err := c.conn.SetDeleteElements(set, refresh); err != nil {
+					return fmt.Errorf("failed to replace ip%s elements in set: %w", c.version, err)
+				}
+
+				if err := c.conn.SetAddElements(set, refresh); err != nil {
+					return fmt.Errorf("failed to add ip%s elements to set: %w", c.version, err)
+				}
 			}
 
 			if err := c.conn.Flush(); err != nil {
