@@ -45,3 +45,14 @@ def new_decision(ip: str):
         "duration": "4h",
         "reason": "for testing",
     }
+
+
+def new_range_decision(cidr: str, duration="4h"):
+    return {
+        "value": cidr,
+        "scope": "range",
+        "type": "ban",
+        "origin": "script",
+        "duration": duration,
+        "reason": "for testing",
+    }

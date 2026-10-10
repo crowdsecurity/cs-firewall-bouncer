@@ -15,11 +15,16 @@ import (
 	"github.com/crowdsecurity/crowdsec/pkg/models"
 
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/iputils"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/state"
 )
 
 const (
 	chunkSize      = 200
-	defaultTimeout = "4h"
+	defaultTimeout = 4 * time.Hour
+	// Elements expiring sooner than this are always left out to avoid racing
+	// with the kernel.
+	minTimeout = time.Second
 )
 
 type nft struct {
@@ -31,6 +36,7 @@ type nft struct {
 	DenyLog           bool
 	DenyLogPrefix     string
 	Hooks             []string
+	ranges            bool
 }
 
 func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
@@ -41,6 +47,7 @@ func NewNFTables(config *cfg.BouncerConfig) (*nft, error) {
 		DenyLog:       config.DenyLog,
 		DenyLogPrefix: config.DenyLogPrefix,
 		Hooks:         config.NftablesHooks,
+		ranges:        config.Nftables.EnableExperimentalRanges,
 	}
 
 	return ret, nil
@@ -148,9 +155,16 @@ func (n *nft) createSetAndRuleForOrigin(ctx *nftContext, origin string) error {
 			KeyType:      ctx.typeIPAddr,
 			KeyByteOrder: binaryutil.BigEndian,
 			HasTimeout:   true,
+			Interval:     ctx.ranges,
 		}
 
 		ctx.sets[origin] = set
+		if ctx.ranges {
+			ctx.setsState[origin] = state.New(state.Options{
+				DefaultExpiration: defaultTimeout,
+				BatchSize:         chunkSize,
+			})
+		}
 
 		if err := ctx.conn.AddSet(set, []nftables.SetElement{}); err != nil {
 			return err
@@ -253,11 +267,96 @@ func (n *nft) commitAddedDecisions() error {
 func (n *nft) Commit() error {
 	defer n.reset()
 
+	if n.ranges {
+		return n.commitWithState()
+	}
+
 	if err := n.commitDeletedDecisions(); err != nil {
 		return err
 	}
 
 	return n.commitAddedDecisions()
+}
+
+// contextFor returns the context handling a decision, or nil when the
+// corresponding address family is disabled.
+func (n *nft) contextFor(decision *models.Decision) *nftContext {
+	// An IPv4 address can be written in the IPv6 notation, so the family
+	// comes from the parsed address and not from the text.
+	rng, err := iputils.ParseIPRange(*decision.Value)
+
+	ctx := n.v4
+	if err == nil && rng.First.Is6() {
+		ctx = n.v6
+	}
+
+	if ctx.conn == nil {
+		return nil
+	}
+
+	return ctx
+}
+
+func (n *nft) deleteDecisionFromState(decision *models.Decision) {
+	ctx := n.contextFor(decision)
+	if ctx == nil {
+		return
+	}
+
+	origin := ctx.originFor(decision)
+
+	setState, ok := ctx.setsState[origin]
+	if !ok {
+		log.Debugf("not deleting %s, no set for origin %s", *decision.Value, origin)
+		return
+	}
+
+	if err := setState.Delete(decision); err != nil {
+		log.Errorf("unable to delete decision for '%s': %s", *decision.Value, err)
+	}
+}
+
+func (n *nft) addDecisionToState(decision *models.Decision) error {
+	ctx := n.contextFor(decision)
+	if ctx == nil {
+		return nil
+	}
+
+	origin := ctx.originFor(decision)
+
+	if !ctx.setOnly {
+		if err := n.createSetAndRuleForOrigin(ctx, origin); err != nil {
+			return err
+		}
+	}
+
+	log.Tracef("adding %s to buffer", *decision.Value)
+
+	if err := ctx.setsState[origin].Insert(decision); err != nil {
+		log.Errorf("unable to insert decision for '%s': %s", *decision.Value, err)
+	}
+
+	return nil
+}
+
+// commitWithState mirrors the decisions into the state and submits the changes
+// to the kernel.
+func (n *nft) commitWithState() error {
+	for _, decision := range n.decisionsToDelete {
+		n.deleteDecisionFromState(decision)
+	}
+
+	for _, decision := range n.decisionsToAdd {
+		if err := n.addDecisionToState(decision); err != nil {
+			return err
+		}
+	}
+
+	if err := n.v4.applyState(); err != nil {
+		return err
+	}
+
+	return n.v6.applyState()
 }
 
 type tmpDecisions struct {
@@ -274,7 +373,7 @@ func normalizedDecisions(decisions []*models.Decision) []*models.Decision {
 	for _, d := range decisions {
 		t, err := time.ParseDuration(*d.Duration)
 		if err != nil {
-			t, _ = time.ParseDuration(defaultTimeout)
+			t = defaultTimeout
 		}
 
 		*d.Value = strings.Split(*d.Value, "/")[0]

@@ -3,9 +3,12 @@
 package nftables
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/binaryutil"
@@ -15,7 +18,10 @@ import (
 
 	"github.com/crowdsecurity/go-cs-lib/slicetools"
 
+	"github.com/crowdsecurity/crowdsec/pkg/models"
+
 	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/cfg"
+	"github.com/crowdsecurity/cs-firewall-bouncer/pkg/state"
 )
 
 var HookNameToHookID = map[string]nftables.ChainHook{
@@ -31,6 +37,7 @@ type nftContext struct {
 	chains        map[string]*nftables.Chain
 	conn          *nftables.Conn
 	sets          map[string]*nftables.Set
+	setsState     map[string]*state.State
 	table         *nftables.Table
 	tableFamily   nftables.TableFamily
 	typeIPAddr    nftables.SetDatatype
@@ -42,6 +49,7 @@ type nftContext struct {
 	chainName     string
 	tableName     string
 	setOnly       bool
+	ranges        bool
 }
 
 // convert a binary representation of an IP (4 or 16 bytes) to a string.
@@ -71,6 +79,8 @@ func NewNFTV4Context(config *cfg.BouncerConfig) *nftContext {
 		setOnly:       config.Nftables.Ipv4.SetOnly,
 		priority:      config.Nftables.Ipv4.Priority,
 		sets:          make(map[string]*nftables.Set),
+		setsState:     make(map[string]*state.State),
+		ranges:        config.Nftables.EnableExperimentalRanges,
 	}
 
 	log.Debugf("nftables: ipv4: %t, table: %s, chain: %s, blacklist: %s, set-only: %t",
@@ -101,6 +111,8 @@ func NewNFTV6Context(config *cfg.BouncerConfig) *nftContext {
 		setOnly:       config.Nftables.Ipv6.SetOnly,
 		priority:      config.Nftables.Ipv6.Priority,
 		sets:          make(map[string]*nftables.Set),
+		setsState:     make(map[string]*state.State),
+		ranges:        config.Nftables.EnableExperimentalRanges,
 	}
 
 	log.Debugf("nftables: ipv6: %t, table6: %s, chain6: %s, blacklist: %s, set-only6: %t",
@@ -150,6 +162,7 @@ func (c *nftContext) initSetOnly() error {
 			KeyType:      c.typeIPAddr,
 			KeyByteOrder: binaryutil.BigEndian,
 			HasTimeout:   true,
+			Interval:     c.ranges,
 		}
 
 		if err := c.conn.AddSet(set, []nftables.SetElement{}); err != nil {
@@ -159,16 +172,56 @@ func (c *nftContext) initSetOnly() error {
 		if err := c.conn.Flush(); err != nil {
 			return err
 		}
+	} else if c.ranges {
+		if !set.Interval {
+			return fmt.Errorf("nftables: ip%s set '%s' must be declared with the 'interval' flag to support ranges", c.version, c.blacklists)
+		}
+
+		// the state starts empty, so the set must start empty too
+		c.conn.FlushSet(set)
+
+		if err := c.conn.Flush(); err != nil {
+			return err
+		}
 	}
 
 	c.sets[c.blacklists] = set
+	if c.ranges {
+		c.setsState[c.blacklists] = state.New(state.Options{
+			DefaultExpiration: defaultTimeout,
+			BatchSize:         chunkSize,
+		})
+	}
+
 	log.Debugf("nftables: ip%s set '%s' configured", c.version, c.blacklists)
 
 	return nil
 }
 
+// originFor returns the name of the set a decision belongs to.
+func (c *nftContext) originFor(decision *models.Decision) string {
+	if c.setOnly {
+		return c.blacklists
+	}
+
+	origin := *decision.Origin
+	if origin == "lists" {
+		origin = origin + "-" + *decision.Scenario
+	}
+
+	return origin
+}
+
 func (c *nftContext) initOwnTable(hooks []string) error {
 	log.Debugf("nftables: ip%s own table", c.version)
+
+	if c.ranges {
+		c.conn.DelTable(&nftables.Table{Family: c.tableFamily, Name: c.tableName})
+
+		if err := c.conn.Flush(); err != nil {
+			log.Debugf("nftables: ip%s no table '%s' to delete: %s", c.version, c.tableName, err)
+		}
+	}
 
 	c.table = c.conn.AddTable(&nftables.Table{
 		Family: c.tableFamily,
@@ -433,4 +486,139 @@ func (c *nftContext) shutDown() error {
 	}
 
 	return c.conn.Flush()
+}
+
+// setElements converts firewall rules into nftables set.
+func setElements(rules []*state.Rule) []nftables.SetElement {
+	now := time.Now()
+	els := make([]nftables.SetElement, 0, 2*len(rules))
+
+	for _, rule := range rules {
+		var timeout time.Duration
+
+		if !rule.ExpiresAt.IsZero() {
+			timeout = rule.ExpiresAt.Sub(now)
+			if timeout < minTimeout {
+				continue
+			}
+		}
+
+		// In nftables, an interval ends on the address right after its last
+		// one.
+		end := make([]byte, rule.Last.BitLen()/8)
+		if next := rule.Last.Next(); next.IsValid() {
+			end = next.AsSlice()
+		}
+
+		els = append(els,
+			nftables.SetElement{Key: rule.First.AsSlice(), Timeout: timeout},
+			nftables.SetElement{Key: end, IntervalEnd: true},
+		)
+	}
+
+	return els
+}
+
+func (c *nftContext) addRules(set *nftables.Set, rules []*state.Rule) error {
+	els := setElements(rules)
+	if len(els) == 0 {
+		return nil
+	}
+
+	log.Debugf("adding %d ip%s elements to set %s", len(els), c.version, set.Name)
+
+	if err := c.conn.SetAddElements(set, els); err != nil {
+		return fmt.Errorf("failed to add ip%s elements to set: %w", c.version, err)
+	}
+
+	if err := c.conn.Flush(); err != nil {
+		return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
+	}
+
+	return nil
+}
+
+func (c *nftContext) deleteRules(set *nftables.Set, rules []*state.Rule) error {
+	els := setElements(rules)
+	if len(els) == 0 {
+		return nil
+	}
+
+	log.Debugf("removing %d ip%s elements from set %s", len(els), c.version, set.Name)
+
+	if err := c.conn.SetDeleteElements(set, els); err != nil {
+		return fmt.Errorf("failed to remove ip%s elements from set: %w", c.version, err)
+	}
+
+	err := c.conn.Flush()
+	if err == nil {
+		return nil
+	}
+
+	if len(rules) == 1 {
+		if errors.Is(err, fs.ErrNotExist) {
+			log.Debugf("not deleting %s, already gone from the set", reprIP(els[0].Key))
+
+			return nil
+		}
+
+		return fmt.Errorf("failed to flush ip%s conn: %w", c.version, err)
+	}
+
+	// Flushing many elements deletion failed, which may happen when racing
+	// with the kernel. So we retry deletions one by one.
+	log.Debugf("failed to flush chunk of %d elements, will retry each one: %s", len(rules), err)
+
+	for i := range rules {
+		if err := c.deleteRules(set, rules[i:i+1]); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// applyDiff sends one batch of changes to the kernel, atomically.
+func (c *nftContext) applyDiff(set *nftables.Set, diff state.Diff) error {
+	if err := c.deleteRules(set, diff.ToDelete); err != nil {
+		return err
+	}
+
+	return c.addRules(set, diff.ToAdd)
+}
+
+// applyState reconciles every set with the state.
+func (c *nftContext) applyState() error {
+	if c.conn == nil {
+		return nil
+	}
+
+	for origin, set := range c.sets {
+		setState := c.setsState[origin]
+
+		apply := func(diff state.Diff) error {
+			return c.applyDiff(set, diff)
+		}
+
+		switch err := setState.ApplyDiff(apply); {
+		case errors.Is(err, fs.ErrExist):
+			// The set probably holds elements we don't know about, we can only
+			// rebuild from scratch.
+			log.Errorf("failed to apply ip%s state to set %s, rebuilding it: %s", c.version, set.Name, err)
+
+			c.conn.FlushSet(set)
+
+			if err := c.conn.Flush(); err != nil {
+				return fmt.Errorf("failed to empty ip%s set %s: %w", c.version, set.Name, err)
+			}
+
+			if err := setState.Rebuild(apply); err != nil {
+				return fmt.Errorf("failed to rebuild ip%s set %s: %w", c.version, set.Name, err)
+			}
+		case err != nil:
+			log.Errorf("failed to apply ip%s state to set %s: %s", c.version, set.Name, err)
+		}
+	}
+
+	return nil
 }
