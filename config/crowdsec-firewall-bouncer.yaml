@@ -35,6 +35,8 @@ iptables_add_rule_comments: true
 
 ## nftables
 nftables:
+  #experimental, support range and overlapping decisions. empties the sets when changed
+  enable_experimental_ranges: false
   ipv4:
     enabled: true
     set-only: false
