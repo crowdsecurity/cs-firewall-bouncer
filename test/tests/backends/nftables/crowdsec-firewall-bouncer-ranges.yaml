@@ -1,0 +1,31 @@
+mode: nftables
+update_frequency: 0.01s
+log_mode: stdout
+log_dir: ./
+log_level: info
+api_url: http://127.0.0.1:8081/
+api_key: 1237adaf7a1724ac68a3288828820a67
+disable_ipv6: false
+deny_action: DROP
+deny_log: false
+supported_decisions_types:
+  - ban
+iptables_chains:
+  - INPUT
+
+nftables_hooks:
+  - input
+  - forward
+
+nftables:
+  enable_experimental_ranges: true
+  ipv4:
+    enabled: true
+    set-only: false
+    table: crowdsec
+    chain: crowdsec-chain
+  ipv6:
+    enabled: true
+    set-only: false
+    table: crowdsec6
+    chain: crowdsec6-chain
