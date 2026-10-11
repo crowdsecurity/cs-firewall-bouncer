@@ -70,13 +70,20 @@ func (c *nftContext) collectActiveBannedIPs() (map[string]int, error) {
 			return nil, fmt.Errorf("can't get set elements for %s: %w", set.Name, err)
 		}
 
-		if c.setOnly {
-			ret[c.blacklists] = len(setContent)
-		} else {
-			ret[origin] = len(setContent)
+		count := 0
+
+		// make sure we count ranges only once
+		for i := range setContent {
+			if !setContent[i].IntervalEnd {
+				count++
+			}
 		}
 
-		return ret, nil
+		if c.setOnly {
+			ret[c.blacklists] = count
+		} else {
+			ret[origin] = count
+		}
 	}
 
 	return ret, nil
