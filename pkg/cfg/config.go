@@ -60,8 +60,9 @@ type BouncerConfig struct {
 	SupportedDecisionsTypes []string `yaml:"supported_decisions_types"`
 	// specific to nftables, following https://github.com/crowdsecurity/cs-firewall-bouncer/issues/74
 	Nftables struct {
-		Ipv4 nftablesFamilyConfig `yaml:"ipv4"`
-		Ipv6 nftablesFamilyConfig `yaml:"ipv6"`
+		Ipv4                     nftablesFamilyConfig `yaml:"ipv4"`
+		Ipv6                     nftablesFamilyConfig `yaml:"ipv6"`
+		EnableExperimentalRanges bool                 `yaml:"enable_experimental_ranges"`
 	} `yaml:"nftables"`
 	NftablesHooks []string `yaml:"nftables_hooks"`
 	PF            struct {
@@ -206,6 +207,10 @@ func nftablesConfig(config *BouncerConfig) error {
 
 	if len(config.NftablesHooks) == 0 {
 		config.NftablesHooks = []string{"input"}
+	}
+
+	if config.Nftables.EnableExperimentalRanges {
+		log.Info("nftables: experimental support for range decisions is enabled")
 	}
 
 	return nil
