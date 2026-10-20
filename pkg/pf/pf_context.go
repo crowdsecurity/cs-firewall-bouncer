@@ -2,8 +2,11 @@ package pf
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"maps"
+	"net/netip"
 	"os"
 	"os/exec"
 	"slices"
@@ -105,10 +108,53 @@ func (ctx *pfContext) shutDown() error {
 	return nil
 }
 
-// getStateIPs returns a list of IPs that are currently in the state table.
-func getStateIPs() (map[string]bool, error) {
+// stateHostIP extracts the address from a host printed by "pfctl -s states":
+// "192.0.2.1:80" for IPv4, "2001:db8::1[80]" for IPv6, with or without port.
+// NAT/rdr hosts are wrapped in parentheses.
+func stateHostIP(host string) (netip.Addr, bool) {
+	host = strings.Trim(host, "()")
+
+	if i := strings.IndexByte(host, '['); i >= 0 {
+		host = host[:i]
+	} else if strings.Count(host, ":") == 1 {
+		host, _, _ = strings.Cut(host, ":")
+	}
+
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return netip.Addr{}, false
+	}
+
+	return addr, true
+}
+
+// parseStateIPs returns the set of addresses found in the output of "pfctl -s states".
+func parseStateIPs(reader io.Reader) map[string]bool {
 	ret := make(map[string]bool)
 
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 6 {
+			continue
+		}
+
+		// skip the interface and protocol; the remaining fields are hosts
+		// (possibly with a translated address in parentheses), the direction
+		// and the connection state. Don't bother to parse the direction,
+		// we'll block both anyway.
+		for _, field := range fields[2:] {
+			if addr, ok := stateHostIP(field); ok {
+				ret[addr.String()] = true
+			}
+		}
+	}
+
+	return ret
+}
+
+// getStateIPs returns a list of IPs that are currently in the state table.
+func getStateIPs() (map[string]bool, error) {
 	cmd := exec.Command(pfctlCmd, "-s", "states")
 
 	out, err := cmd.Output()
@@ -116,31 +162,7 @@ func getStateIPs() (map[string]bool, error) {
 		return nil, err
 	}
 
-	scanner := bufio.NewScanner(strings.NewReader(string(out)))
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-		if len(fields) < 6 {
-			continue
-		}
-
-		// don't bother to parse the direction, we'll block both anyway
-
-		// right side
-		ip := fields[4]
-		if strings.Contains(ip, ":") {
-			ip = strings.Split(ip, ":")[0]
-		}
-
-		ret[ip] = true
-
-		// left side
-		ip = fields[2]
-		if strings.Contains(ip, ":") {
-			ip = strings.Split(ip, ":")[0]
-		}
-
-		ret[ip] = true
-	}
+	ret := parseStateIPs(bytes.NewReader(out))
 
 	log.Debugf("Found IPs in state table: %v", len(ret))
 
@@ -184,6 +206,11 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 		return fmt.Errorf("error while getting state IPs: %w", err)
 	}
 
+	anyAddr := "0.0.0.0/0"
+	if ctx.proto == "inet6" {
+		anyAddr = "::/0"
+	}
+
 	// Reset the states of connections coming from or going to an IP if it's both in stateIPs and bannedIPs
 
 	for ip := range bannedIPs {
@@ -195,7 +222,7 @@ func (ctx *pfContext) add(decisions []*models.Decision) error {
 			}
 
 			// outgoing
-			cmd = execPfctl("", "-k", "0.0.0.0/0", "-k", ip)
+			cmd = execPfctl("", "-k", anyAddr, "-k", ip)
 			if out, err := cmd.CombinedOutput(); err != nil {
 				log.Errorf("Error while flushing state (%s): %v --> %s", cmd, err, out)
 			}
